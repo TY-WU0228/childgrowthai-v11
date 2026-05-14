@@ -77,6 +77,23 @@ ${JSON.stringify(body.child || {})}
 完成狀態：${body.status || ''}
 家長備註：${body.note || ''}
 
+Learning Level Awareness（學習水平資料）：
+${JSON.stringify(body.learningContext || {}, null, 2)}
+
+非常重要：
+
+- V25 Auto-detect rule: 家長不需要每次手動填 worksheet level。請你優先從圖片上的標題、頁眉、頁腳、logo、書名、題目說明讀取年級或程度，例如 Year 3、Year 4、Grade 5、Extension、Challenge、QS、NAPLAN、Olympiad、Competition。
+- 如果圖片上清楚見到 worksheet 年級，請直接使用你讀到的年級，並同 childCurrentYear 比較。
+- 如果圖片上看不到年級，請寫「相片上未見到明確年級，因此只能按題目難度作初步估計」，不要亂估。
+- 如果圖片上年級和手動補充資料不一致，請指出「圖片顯示」與「家長補充」可能不同，建議家長確認。
+
+- 請同時比較「小朋友目前年級」和「呢份 worksheet 的程度」。
+- 如果小朋友目前是 Year 2，但正在做 Year 3 / Year 4 / extension 題目，請清楚指出：這是高於目前年級常規要求的練習。
+- 但不要輕易用「天才」、「資優」、「智商很高」等標籤。除非家長資料明確提供正式評估，否則只可寫「有延伸學習潛力」、「表現高於目前年級要求」、「值得同老師討論是否適合 extension」。
+- 如果 worksheet level 高，但錯題較多，請分開講：以目前年級來說值得肯定；以該 worksheet level 來說仍需要鞏固哪些步驟。
+- 不要只用錯題數評價能力，要考慮：題目程度、是否獨立完成、孩子感覺、家長備註、圖片清晰度。
+- 對 gifted/enrichment 類情況，請提供穩陣培養方向：保持挑戰、重視思考過程、避免只追求超前、可同學校/老師討論 extension 或 enrichment。
+
 非常重要規則：
 1. 不要扮 OCR 100% 準。如果圖片模糊、角度歪、字太細，請清楚講「我未必睇得清楚」。
 2. 不要亂推斷。看不到的內容不要當成事實。
@@ -102,6 +119,13 @@ ${JSON.stringify(body.child || {})}
 8. 家長看到後要覺得：清楚、溫和、實用、可信。
 
 輸出格式：
+
+🌟 0. Learning level awareness
+- 圖片上是否見到 worksheet 年級 / 程度：
+- 以小朋友目前年級來看：
+- 以呢份 worksheet 程度來看：
+- 今次值得肯定的位置：
+- 需要避免過度解讀的位置：
 
 📌 1. 我大約睇到嘅功課內容
 - 

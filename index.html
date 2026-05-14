@@ -436,6 +436,49 @@ body{padding-bottom:98px!important}
   .v23-tab .label{font-size:11px}
 }
 
+
+/* V24 Learning Level Awareness */
+.v24-level-box{background:linear-gradient(135deg,#eef2ff,#fdf2f8);border:1px solid #dbeafe;border-radius:24px;padding:16px;margin:14px 0}.v24-title{font-size:20px;font-weight:950;color:#0f172a;margin-bottom:6px;letter-spacing:-.02em}.v24-activity-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}.v24-activity-row{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:12px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.v24-activity-row b{color:#0f172a}.v24-activity-row small{color:#64748b;font-weight:800}.v24-delete{border:none!important;background:#fee2e2!important;color:#991b1b!important;border-radius:999px!important;padding:7px 10px!important;font-weight:900!important}.v24-note{background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;border-radius:18px;padding:12px;font-weight:850;line-height:1.45;margin-top:12px}
+
+
+/* V25 Auto Level Detection */
+.v24-level-box{
+  display:none!important;
+}
+.v25-auto-level-card{
+  background:linear-gradient(135deg,#eef2ff,#fdf2f8);
+  border:1px solid #dbeafe;
+  border-radius:24px;
+  padding:16px;
+  margin:14px 0;
+}
+.v25-title{font-size:20px;font-weight:950;color:#0f172a;margin-bottom:6px;letter-spacing:-.02em}
+.v25-note{color:#64748b;font-weight:800;line-height:1.45}
+.v25-small-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.v25-pill{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+  font-weight:900;
+  color:#0f172a;
+}
+.v25-pill small{display:block;color:#64748b;font-weight:800;margin-top:3px}
+.v25-advanced-toggle{
+  margin-top:12px;
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  font-weight:900!important;
+}
+.v25-advanced-panel{
+  display:none;
+  margin-top:12px;
+}
+.v25-advanced-panel.show{display:block}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -462,7 +505,7 @@ body{padding-bottom:98px!important}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v23 QA Stable Build · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v25 Auto Level Detection · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -470,7 +513,7 @@ body{padding-bottom:98px!important}
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v23 QA Stable Build 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v25 Auto Level Detection 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -542,6 +585,87 @@ body{padding-bottom:98px!important}
       <label>日期</label><input type="date" id="hwDate">
       <label>類別</label><select id="hwType"><option>QS Math</option><option>English</option><option>Spelling</option><option>Reading</option><option>School Homework</option><option>Test Paper</option><option>Other</option></select>
       <label>完成情況</label><select id="hwStatus"><option>Completed</option><option>Partial</option><option>Not completed</option></select>
+
+      <div class="v24-level-box">
+        <div class="v24-title">🧠 Learning Level Awareness</div>
+        <div class="helper">AI 會同時考慮「小朋友實際年級」同「呢份 worksheet 程度」，避免只用錯題數判斷能力。</div>
+
+        <label>小朋友目前年級</label>
+        <select id="v24ChildYear">
+          <option>Year 2</option><option>Year 1</option><option>Year 3</option><option>Year 4</option><option>Year 5</option><option>Year 6</option><option>Foundation / Prep</option><option>Other</option>
+        </select>
+
+        <label>呢份功課 / Worksheet 程度</label>
+        <select id="v24TaskLevel">
+          <option>Unknown / Not sure</option>
+          <option>Year 2 level</option>
+          <option>Year 3 level</option>
+          <option>Year 4 level</option>
+          <option>Year 5 level</option>
+          <option>Year 6 level</option>
+          <option>Extension / Above year level</option>
+          <option>Competition / Enrichment</option>
+        </select>
+
+        <label>來源</label>
+        <select id="v24TaskSource">
+          <option>School</option>
+          <option>Tutoring / QS</option>
+          <option>Extension work</option>
+          <option>Competition / Enrichment</option>
+          <option>Home practice</option>
+          <option>Other</option>
+        </select>
+
+        <label>完成方式</label>
+        <select id="v24Independence">
+          <option>Unknown / Not sure</option>
+          <option>Independent</option>
+          <option>With some help</option>
+          <option>With a lot of help</option>
+        </select>
+
+        <label>小朋友感覺</label>
+        <select id="v24Difficulty">
+          <option>Unknown / Not sure</option>
+          <option>Easy</option>
+          <option>Just right</option>
+          <option>Hard</option>
+          <option>Frustrating</option>
+        </select>
+
+        <label>能力 / 延伸背景（可選）</label>
+        <textarea id="v24AbilityNote" placeholder="例：Year 2 但做緊 Year 3 QS；或者學校有 extension；或者已參加 enrichment / gifted assessment..."></textarea>
+      </div>
+
+
+      <div class="v25-auto-level-card" id="v25AutoLevelCard">
+        <div class="v25-title">🧠 AI 自動判斷功課程度</div>
+        <div class="v25-note">
+          你只需要一開始喺「我的」設定小朋友目前年級。之後上傳功課時，AI 會嘗試直接從 worksheet 標題 / 頁面文字讀出 Year 3、Year 4、Extension 等資料。
+        </div>
+        <div class="v25-small-row">
+          <div class="v25-pill"><span id="v25CurrentYearView">Year 2</span><small>小朋友目前年級</small></div>
+          <div class="v25-pill">Auto-detect<small>AI 從圖片讀 worksheet level</small></div>
+        </div>
+        <button type="button" class="v25-advanced-toggle" onclick="v25ToggleAdvancedLevel()">進階：手動補充</button>
+        <div id="v25AdvancedLevelPanel" class="v25-advanced-panel">
+          <label>如果 AI 睇唔清楚，可手動補充 worksheet 程度</label>
+          <select id="v25ManualTaskLevel">
+            <option value="">由 AI 自動判斷</option>
+            <option>Year 2 level</option>
+            <option>Year 3 level</option>
+            <option>Year 4 level</option>
+            <option>Year 5 level</option>
+            <option>Year 6 level</option>
+            <option>Extension / Above year level</option>
+            <option>Competition / Enrichment</option>
+          </select>
+          <label>補充說明（可選）</label>
+          <textarea id="v25ManualAbilityNote" placeholder="例：QS Year 3 題；學校 extension；老師話係高一級內容..."></textarea>
+        </div>
+      </div>
+
       <label>上傳照片</label><input type="file" id="hwPhotos" accept="image/*" multiple>
       <div id="photoPreview" class="photoGrid"></div>
       <label>備註 / 錯題觀察</label><textarea id="hwNote" placeholder="例：第3題錯，做得太快；reading main idea 唔肯定..."></textarea>
@@ -800,7 +924,7 @@ async function analyzeHomework(){
   const btn=$('previewBtn');btn.classList.add('loading');btn.textContent='AI analyzing... V11 正在讀圖，請等 10–25 秒';
   try{
     const r=await fetch('/.netlify/functions/analyze-homework',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
-      images:imageDataList, note:$('hwNote').value, subject:$('hwType').value, status:$('hwStatus').value, child:app.profile
+      images:imageDataList, note:$('hwNote').value, subject:$('hwType').value, status:$('hwStatus').value, child:app.profile, learningContext:v24GetLearningContext()
     })});
     const data=await r.json();
     if(!r.ok)throw new Error(data.error||'AI analysis failed');
@@ -819,7 +943,7 @@ async function analyzeHomework(){
 }
 function saveHomework(){
   const note=$('hwNote').value.trim();
-  app.homework.unshift({id:Date.now(),date:$('hwDate').value,type:$('hwType').value,status:$('hwStatus').value,note,photos:imageDataList,ai:lastAIResult,tags:extractTags(note+' '+lastAIResult)});
+  app.homework.unshift({id:Date.now(),date:$('hwDate').value,type:$('hwType').value,status:$('hwStatus').value,note,learningContext:v24GetLearningContext(),photos:imageDataList,ai:lastAIResult,tags:extractTags(note+' '+lastAIResult)});
   save();flash('savedHomework');capture('homework_saved',{photos:imageDataList.length,hasAI:!!lastAIResult});
 }
 function extractTags(text){
@@ -1540,6 +1664,76 @@ setTimeout(v18RenderTodayPlanner,600);
   setTimeout(run,900);
   setInterval(()=>{hideGlobalDuplicates();},2500);
 })();
+</script>
+<script>
+function v24Val(id){const el=document.getElementById(id);return el?(el.value||'').trim():''}
+function v24GetLearningContext(){return{childCurrentYear:v24Val('v24ChildYear')||((window.app&&app.profile&&app.profile.year)||'Year 2'),worksheetLevel:v24Val('v24TaskLevel')||'Unknown / Not sure',source:v24Val('v24TaskSource')||'',independence:v24Val('v24Independence')||'',difficultyFelt:v24Val('v24Difficulty')||'',abilityNote:v24Val('v24AbilityNote')||''}}
+function v24Activities(){try{return JSON.parse(localStorage.getItem('cg_v24_custom_activities')||'[]')}catch(e){return[]}}
+function v24SaveActivities(list){localStorage.setItem('cg_v24_custom_activities',JSON.stringify(list.slice(-50)))}
+function v24TodayWeekday(){return new Date().toLocaleDateString('en-AU',{weekday:'long'})}
+function v24AddActivity(){const name=v24Val('v24ActivityName'),day=v24Val('v24ActivityDay'),time=v24Val('v24ActivityTime'),note=v24Val('v24ActivityNote');if(!name){alert('請先輸入活動名稱');return}const list=v24Activities();list.push({id:Date.now(),name,day,time,note});v24SaveActivities(list);['v24ActivityName','v24ActivityTime','v24ActivityNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});v24RenderActivities();if(typeof capture==='function')capture('v24_custom_activity_added',{name,day})}
+function v24DeleteActivity(id){v24SaveActivities(v24Activities().filter(x=>String(x.id)!==String(id)));v24RenderActivities()}
+function v24RenderActivities(){const list=v24Activities();const profile=document.getElementById('profile');if(profile&&!document.getElementById('v24ActivityCard')){const card=document.createElement('div');card.className='card';card.id='v24ActivityCard';card.innerHTML=`<div class="title">🗓️ 自訂課外活動</div><div class="helper">課外活動可以自己加，例：gymnastics、coding、補習、choir、basketball、therapy、playdate。</div><label>活動名稱</label><input id="v24ActivityName" placeholder="例：Gymnastics / Maths tutoring / Art class"><label>星期</label><select id="v24ActivityDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select><label>時間</label><input id="v24ActivityTime" placeholder="例：4:30 PM"><label>備註</label><textarea id="v24ActivityNote" placeholder="例：記得帶水樽 / 功課前先食 snack"></textarea><button class="btn primary" onclick="v24AddActivity()">➕ 加入活動</button><div id="v24ActivityList" class="v24-activity-list"></div>`;profile.appendChild(card)}const box=document.getElementById('v24ActivityList');if(box){box.innerHTML=list.length?list.map(x=>`<div class="v24-activity-row"><div><b>${x.day||''} ${x.time||''} · ${x.name||''}</b><br><small>${x.note||''}</small></div><button class="v24-delete" onclick="v24DeleteActivity('${x.id}')">刪除</button></div>`).join(''):'<div class="v24-note">未有自訂活動。</div>'}const home=document.getElementById('home');if(home&&!document.getElementById('v24TodayCustomActivities')){const card=document.createElement('div');card.className='card';card.id='v24TodayCustomActivities';card.innerHTML='<div class="title">🗓️ 今日自訂活動</div><div id="v24TodayActivityList"></div>';const first=home.querySelector('.card');if(first&&first.nextSibling)home.insertBefore(card,first.nextSibling);else home.appendChild(card)}const todayBox=document.getElementById('v24TodayActivityList');if(todayBox){const today=v24TodayWeekday();const todays=list.filter(x=>x.day===today);todayBox.innerHTML=todays.length?todays.map(x=>`<div class="v24-activity-row"><div><b>${x.time||''} · ${x.name||''}</b><br><small>${x.note||''}</small></div></div>`).join(''):'<div class="v24-note">今日未有自訂活動。可到「我的」加入。</div>'}}
+setTimeout(v24RenderActivities,1200);setInterval(v24RenderActivities,3500);
+</script>
+<script>
+function v25ChildYear(){
+  return localStorage.getItem('cg_child_current_year') || 'Year 2';
+}
+function v25SetChildYear(year){
+  localStorage.setItem('cg_child_current_year', year || 'Year 2');
+  v25RefreshYearViews();
+}
+function v25RefreshYearViews(){
+  document.querySelectorAll('#v25CurrentYearView').forEach(el=>el.textContent=v25ChildYear());
+  const sel=document.getElementById('v25ProfileYearSelect');
+  if(sel) sel.value=v25ChildYear();
+}
+function v25ToggleAdvancedLevel(){
+  const p=document.getElementById('v25AdvancedLevelPanel');
+  if(p) p.classList.toggle('show');
+}
+function v24GetLearningContext(){
+  const manualLevel = (document.getElementById('v25ManualTaskLevel')||{}).value || '';
+  const manualNote = (document.getElementById('v25ManualAbilityNote')||{}).value || '';
+  return {
+    mode: 'auto_detect_from_image',
+    childCurrentYear: v25ChildYear(),
+    worksheetLevel: manualLevel || 'AI auto-detect from worksheet title/header in image',
+    source: 'AI auto-detect if visible; otherwise use parent note',
+    independence: 'Unknown / Not asked to reduce friction',
+    difficultyFelt: 'Unknown / Not asked to reduce friction',
+    abilityNote: manualNote,
+    instruction: 'Please read the worksheet title/header/page text to infer worksheet level such as Year 3, Year 4, Extension, QS, competition, if visible. If not visible, say not sure instead of guessing.'
+  };
+}
+function v25InjectProfileYearSetting(){
+  const profile=document.getElementById('profile');
+  if(!profile || document.getElementById('v25ProfileYearCard')) return;
+  const card=document.createElement('div');
+  card.className='card';
+  card.id='v25ProfileYearCard';
+  card.innerHTML=`
+    <div class="title">🎓 小朋友目前年級</div>
+    <div class="helper">只需要設定一次。之後 AI 會自動將 worksheet 上嘅年級 / 程度同小朋友目前年級比較。</div>
+    <label>Current school year</label>
+    <select id="v25ProfileYearSelect" onchange="v25SetChildYear(this.value)">
+      <option>Foundation / Prep</option>
+      <option>Year 1</option>
+      <option>Year 2</option>
+      <option>Year 3</option>
+      <option>Year 4</option>
+      <option>Year 5</option>
+      <option>Year 6</option>
+      <option>Other</option>
+    </select>
+    <div class="v25-note" style="margin-top:10px">例：Janice 目前 Year 2。如果 worksheet 圖片上寫 Year 3 / Year 4，AI 會自動指出「高於目前年級」。</div>
+  `;
+  profile.insertBefore(card, profile.firstChild);
+  v25RefreshYearViews();
+}
+setTimeout(()=>{v25InjectProfileYearSetting();v25RefreshYearViews();},1000);
+setInterval(v25RefreshYearViews,2500);
 </script>
 </body>
 </html>
