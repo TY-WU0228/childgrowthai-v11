@@ -62,6 +62,162 @@
 .v12-bar{flex:1;border-radius:10px 10px 0 0;background:linear-gradient(180deg,#60a5fa,#7c3aed);min-height:12px;text-align:center;color:white;font-size:12px;font-weight:900;padding-top:6px}
 @media print{nav,.bottom-nav,.no-print{display:none!important}.card{box-shadow:none!important;border:1px solid #ddd!important}body{background:white!important}}
 
+
+/* V14 Parent Dashboard */
+.v14-hero{background:linear-gradient(135deg,#eef2ff,#ecfeff);border:1px solid #dbeafe;border-radius:28px;padding:22px;margin:18px 0;box-shadow:0 18px 45px rgba(15,23,42,.08)}
+.v14-hero h2{margin:0 0 6px;font-size:30px}
+.v14-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:white;border:1px solid #e5e7eb;font-weight:900;margin:4px 6px 4px 0}
+.v14-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.v14-card{background:white;border:1px solid #e5e7eb;border-radius:24px;padding:18px;box-shadow:0 14px 35px rgba(15,23,42,.06)}
+.v14-card h3{margin:0 0 8px;font-size:21px}
+.v14-big{font-size:34px;font-weight:1000;color:#be185d}
+.v14-label{color:#6b7280;font-weight:800}
+.v14-trend{display:flex;gap:10px;align-items:end;height:155px;padding:16px;border-radius:22px;background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid #e5e7eb}
+.v14-bar{flex:1;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,#38bdf8,#7c3aed);min-height:14px;color:white;text-align:center;font-size:12px;font-weight:1000;padding-top:6px}
+.v14-timeline{display:flex;flex-direction:column;gap:10px}
+.v14-event{border-left:5px solid #93c5fd;background:#f8fafc;border-radius:16px;padding:12px}
+.v14-event b{font-size:15px}
+.v14-muted{color:#6b7280;font-weight:750;font-size:14px}
+.v14-reportbox{white-space:pre-wrap;line-height:1.6;background:#f0f9ff;border:1px solid #bfdbfe;border-radius:20px;padding:16px;font-weight:750}
+.v14-btnrow{display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:700px){.v14-grid{grid-template-columns:1fr}.v14-hero h2{font-size:26px}.v14-card{padding:16px}}
+@media print{nav,.bottom-nav,.no-print,.v14-btnrow{display:none!important}.v14-card,.card,.v14-hero{box-shadow:none!important;border:1px solid #ddd!important}body{background:white!important}}
+
+
+/* V15 UX polish */
+:root{
+  --cg-bg:#f6f8fb;
+  --cg-card:#ffffff;
+  --cg-border:#e5e7eb;
+  --cg-text:#0f172a;
+  --cg-muted:#64748b;
+  --cg-blue:#2563eb;
+  --cg-purple:#7c3aed;
+  --cg-pink:#db2777;
+  --cg-soft:#eef2ff;
+}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{
+  background:linear-gradient(180deg,#f8fbff 0%,#f6f8fb 45%,#eef2f7 100%)!important;
+  color:var(--cg-text);
+  -webkit-font-smoothing:antialiased;
+}
+input,textarea,select,button{
+  max-width:100%;
+  box-sizing:border-box;
+  font-family:inherit;
+}
+input,textarea,select{
+  width:100%!important;
+  border:1.5px solid var(--cg-border)!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  padding:16px 18px!important;
+  font-size:17px!important;
+  line-height:1.45!important;
+  outline:none!important;
+}
+input:focus,textarea:focus,select:focus{
+  border-color:#93c5fd!important;
+  box-shadow:0 0 0 4px rgba(147,197,253,.25)!important;
+}
+textarea{min-height:132px;resize:vertical}
+.card,.v14-card,.v14-hero{
+  border-radius:28px!important;
+  border:1px solid rgba(226,232,240,.95)!important;
+  background:rgba(255,255,255,.92)!important;
+  box-shadow:0 18px 55px rgba(15,23,42,.08)!important;
+  backdrop-filter:blur(12px);
+  overflow:hidden;
+}
+.card{margin:18px auto!important;padding:22px!important}
+h1,h2,h3{letter-spacing:-.035em}
+button,.primary,.secondary{
+  border:none!important;
+  border-radius:999px!important;
+  padding:14px 20px!important;
+  font-weight:900!important;
+  font-size:16px!important;
+  min-height:48px!important;
+  cursor:pointer;
+}
+.primary{
+  background:linear-gradient(135deg,var(--cg-blue),var(--cg-purple))!important;
+  color:white!important;
+  box-shadow:0 10px 24px rgba(37,99,235,.22)!important;
+}
+.secondary{
+  background:#eef2ff!important;
+  color:#3730a3!important;
+}
+button:active{transform:translateY(1px)}
+.v15-language-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:10px 0 14px;
+}
+.v15-lang-btn{
+  background:white!important;
+  color:#1e40af!important;
+  border:1px solid #dbeafe!important;
+  padding:10px 14px!important;
+  min-height:40px!important;
+  font-size:14px!important;
+}
+.v15-lang-btn.active{
+  background:linear-gradient(135deg,#dbeafe,#ede9fe)!important;
+  border-color:#93c5fd!important;
+}
+.v15-voice-status{
+  margin-top:10px;
+  color:#64748b;
+  font-weight:800;
+  font-size:14px;
+}
+.v15-voice-listening{
+  color:#be123c!important;
+}
+.v15-polish-header{
+  text-align:center;
+  padding:14px 16px 10px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:rgba(248,251,255,.92);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(226,232,240,.8);
+}
+.v15-input-wrap{padding:0 2px}
+.v15-note{
+  background:linear-gradient(135deg,#fff7ed,#fefce8);
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:22px;
+  padding:14px 16px;
+  font-weight:850;
+  line-height:1.5;
+}
+.v14-grid{gap:12px!important}
+.v14-card{padding:18px!important}
+.v14-hero{padding:22px!important}
+.v14-trend{overflow:hidden}
+.bottom-nav,nav{
+  padding-bottom:env(safe-area-inset-bottom)!important;
+}
+@media(max-width:700px){
+  body{font-size:16px}
+  .card,.v14-card,.v14-hero{border-radius:24px!important;margin:14px 10px!important;padding:18px!important}
+  input,textarea,select{font-size:16px!important;padding:15px 16px!important;border-radius:20px!important}
+  button,.primary,.secondary{width:auto;min-width:0}
+  .v14-grid{grid-template-columns:1fr 1fr!important}
+  .v14-big{font-size:28px!important}
+}
+@media(max-width:420px){
+  .v14-grid{grid-template-columns:1fr!important}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -82,15 +238,19 @@
 
 </head>
 <body>
+<div class="v15-note" style="margin:14px auto;max-width:720px">
+  ✨ V15 已優化手機版面，並加入真正語音轉文字：支援廣東話 / 普通話 / English。
+</div>
+
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v13 HK Parent Tone · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v15 UX + Voice Polish · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v13 香港家長語氣版已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v15 UX + Voice Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -228,7 +388,8 @@
 </main>
 
 
-<section id="v12ParentDashboard"></section>
+<div id="v14ParentDashboard"></div>
+<section id="v12ParentDashboard" style="display:none"></section>
 
 <section class="card">
   <h2>👩‍🏫 Teacher Comment AI</h2>
@@ -465,7 +626,7 @@ function voiceFill(id){
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('此瀏覽器未支援語音輸入。iPhone 可用鍵盤咪高峰。');return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const rec=new SR();rec.lang='zh-HK';rec.interimResults=false;rec.onresult=e=>{$(id).value+=e.results[0][0].transcript};rec.start();
 }
-(async()=>{await loadConfig();load();capture('app_loaded',{version:'v13'});})();
+(async()=>{await loadConfig();load();capture('app_loaded',{version:'v15'});})();
 </script>
 <script>
 function v12GetRecords(){
@@ -544,6 +705,220 @@ document.addEventListener('click',function(e){
   }
 });
 setTimeout(v12RenderParentDashboard,700);
+</script>
+<script>
+function v14Records(){
+  try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch{return[]}
+}
+function v14TypeLabel(t){
+  return {homework:'功課分析',teacher_comment:'老師 Comment',emotion:'情緒記錄'}[t] || t || '記錄';
+}
+function v14SubjectGuess(records){
+  const txt=records.map(r=>(r.summary||r.note||r.emotion||'')).join(' ').toLowerCase();
+  if(txt.includes('math')||txt.includes('數')||txt.includes('number')) return '數學 / 規律題';
+  if(txt.includes('reading')||txt.includes('comprehension')||txt.includes('true')||txt.includes('false')) return '英文閱讀理解';
+  if(txt.includes('ga')||txt.includes('reasoning')) return 'GA / 推理';
+  return '暫時未有足夠資料';
+}
+function v14RenderDashboard(){
+  const el=document.getElementById('v14ParentDashboard');
+  if(!el)return;
+  const records=v14Records();
+  const homework=records.filter(r=>r.type==='homework');
+  const comments=records.filter(r=>r.type==='teacher_comment');
+  const emotions=records.filter(r=>r.type==='emotion');
+  const recent=records.slice(-8).reverse();
+  const days=[6,5,4,3,2,1,0].map(d=>{
+    const dt=new Date(); dt.setDate(dt.getDate()-d);
+    const key=dt.toISOString().slice(0,10);
+    const count=records.filter(r=>(r.createdAt||'').slice(0,10)===key).length;
+    return {label:dt.toLocaleDateString('en-AU',{weekday:'short'}),count};
+  });
+  const topEmotion=emotions.length ? emotions[emotions.length-1].emotion : '未有記錄';
+  const subject=v14SubjectGuess(records);
+  el.innerHTML=`
+    <section class="v14-hero">
+      <h2>👨‍👩‍👧 Parent Dashboard</h2>
+      <p class="v14-muted">將功課、老師 comment、情緒 tap 整合成一個家長睇得明的學習概覽。</p>
+      <div>
+        <span class="v14-pill">👧 Janice</span>
+        <span class="v14-pill">Year 2</span>
+        <span class="v14-pill">📚 ${subject}</span>
+      </div>
+    </section>
+
+    <section class="v14-grid">
+      <div class="v14-card"><h3>📘 功課分析</h3><div class="v14-big">${homework.length}</div><div class="v14-label">已記錄</div></div>
+      <div class="v14-card"><h3>😊 最近狀態</h3><div class="v14-big" style="font-size:26px">${topEmotion}</div><div class="v14-label">最後一次 emotion tap</div></div>
+      <div class="v14-card"><h3>👩‍🏫 老師 Comment</h3><div class="v14-big">${comments.length}</div><div class="v14-label">已分析</div></div>
+      <div class="v14-card"><h3>🎯 本週重點</h3><div class="v14-label">${subject}</div><p class="v14-muted">記錄越多，AI weekly report 會越準。</p></div>
+    </section>
+
+    <section class="v14-card" style="margin-top:16px">
+      <h3>📈 7 日活動趨勢</h3>
+      <div class="v14-trend">${days.map(d=>`<div class="v14-bar" style="height:${Math.max(14,d.count*26)}px">${d.count}</div>`).join('')}</div>
+      <div style="display:flex;justify-content:space-between" class="v14-muted">${days.map(d=>`<span>${d.label}</span>`).join('')}</div>
+    </section>
+
+    <section class="v14-card" style="margin-top:16px">
+      <h3>🧾 最近記錄</h3>
+      <div class="v14-timeline">
+      ${recent.length?recent.map(r=>`<div class="v14-event"><b>${v14TypeLabel(r.type)}</b><br><span class="v14-muted">${new Date(r.createdAt).toLocaleString()}</span><br>${(r.summary||r.note||r.emotion||'').slice(0,160)}</div>`).join(''):'<p class="v14-muted">未有記錄。先試上傳一份功課或按 Emotion Tap。</p>'}
+      </div>
+    </section>
+
+    <section class="v14-card" style="margin-top:16px">
+      <h3>🤖 AI Weekly Report</h3>
+      <p class="v14-muted">用最近記錄生成一份家長版學習小結。</p>
+      <div class="v14-btnrow no-print">
+        <button class="primary" onclick="v14GenerateWeeklyReport()">生成 AI 週報</button>
+        <button class="secondary" onclick="window.print()">📄 Print / Export</button>
+      </div>
+      <div id="v14WeeklyReportResult"></div>
+    </section>
+  `;
+}
+async function v14GenerateWeeklyReport(){
+  const out=document.getElementById('v14WeeklyReportResult');
+  if(!out)return;
+  const records=v14Records();
+  out.innerHTML='<div class="info">AI 正在整理本週學習小結...</div>';
+  if(typeof capture==='function') capture('weekly_report_started');
+  try{
+    const res=await fetch('/.netlify/functions/weekly-report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({records})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Weekly report failed');
+    out.innerHTML='<div class="v14-reportbox">'+String(data.report||'').replace(/[<>&]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[m]))+'</div>';
+    if(typeof v12AddRecord==='function') v12AddRecord('weekly_report',{summary:String(data.report||'').slice(0,180)});
+    if(typeof capture==='function') capture('weekly_report_success');
+  }catch(e){
+    out.innerHTML='<div class="error">AI weekly report error: '+e.message+'</div>';
+    if(typeof capture==='function') capture('weekly_report_error',{message:e.message});
+  }
+}
+setTimeout(v14RenderDashboard,800);
+document.addEventListener('click',function(){setTimeout(v14RenderDashboard,250);});
+</script>
+<script>
+window.childGrowthVoiceLang = localStorage.getItem('cg_voice_lang') || 'zh-HK';
+window.childGrowthRecognition = null;
+
+function v15SetVoiceLang(lang){
+  window.childGrowthVoiceLang = lang;
+  localStorage.setItem('cg_voice_lang', lang);
+  document.querySelectorAll('.v15-lang-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.lang===lang);
+  });
+  const label = document.getElementById('v15VoiceLangLabel');
+  if(label){
+    label.textContent = lang==='zh-HK' ? '廣東話' : lang==='zh-CN' ? '普通話' : 'English';
+  }
+}
+
+function v15FindNearestTextarea(el){
+  const card = el.closest('.card,.v14-card,section,div') || document;
+  return card.querySelector('textarea') || document.querySelector('textarea');
+}
+
+function v15StartVoiceInput(targetId, btn){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const status = document.getElementById('v15VoiceStatus') || document.getElementById('voiceStatus');
+  if(!SpeechRecognition){
+    alert('呢個 browser 暫時未支援語音轉文字。建議用 iPhone Safari / Chrome 再試。');
+    return;
+  }
+
+  const textarea = targetId ? document.getElementById(targetId) : v15FindNearestTextarea(btn || document.body);
+  if(!textarea){
+    alert('搵唔到文字輸入欄。');
+    return;
+  }
+
+  try{
+    if(window.childGrowthRecognition){
+      window.childGrowthRecognition.stop();
+      window.childGrowthRecognition = null;
+    }
+  }catch(e){}
+
+  const rec = new SpeechRecognition();
+  window.childGrowthRecognition = rec;
+  rec.lang = window.childGrowthVoiceLang || 'zh-HK';
+  rec.interimResults = true;
+  rec.continuous = false;
+
+  let finalText = '';
+  if(status){
+    status.textContent = '🎙️ 正在聆聽... 講完會自動填入文字框';
+    status.classList.add('v15-voice-listening');
+  }
+  if(typeof capture==='function') capture('voice_input_started',{lang:rec.lang});
+
+  rec.onresult = function(event){
+    let interim = '';
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      const transcript = event.results[i][0].transcript;
+      if(event.results[i].isFinal) finalText += transcript;
+      else interim += transcript;
+    }
+    const base = textarea.dataset.v15BaseText || textarea.value || '';
+    textarea.value = (base + (base && (finalText||interim) ? ' ' : '') + finalText + interim).trim();
+  };
+
+  rec.onstart = function(){
+    textarea.dataset.v15BaseText = textarea.value || '';
+  };
+
+  rec.onerror = function(e){
+    if(status){
+      status.textContent = '⚠️ 語音輸入失敗：' + (e.error || '請檢查咪高峰權限');
+      status.classList.remove('v15-voice-listening');
+    }
+    if(typeof capture==='function') capture('voice_input_error',{error:e.error});
+  };
+
+  rec.onend = function(){
+    if(status){
+      status.textContent = finalText ? '✅ 已轉成文字，可再修改後儲存。' : '已停止聆聽。';
+      status.classList.remove('v15-voice-listening');
+    }
+    if(textarea) delete textarea.dataset.v15BaseText;
+    if(typeof capture==='function') capture('voice_input_finished',{lang:rec.lang,hasText:!!finalText});
+  };
+
+  rec.start();
+}
+
+function v15EnhanceVoiceUI(){
+  const teacher = document.getElementById('teacherCommentInput');
+  if(teacher && !document.getElementById('v15TeacherVoiceControls')){
+    const wrap = document.createElement('div');
+    wrap.id='v15TeacherVoiceControls';
+    wrap.innerHTML = `
+      <div class="v15-language-row">
+        <button type="button" class="v15-lang-btn" data-lang="zh-HK" onclick="v15SetVoiceLang('zh-HK')">廣東話</button>
+        <button type="button" class="v15-lang-btn" data-lang="zh-CN" onclick="v15SetVoiceLang('zh-CN')">普通話</button>
+        <button type="button" class="v15-lang-btn" data-lang="en-AU" onclick="v15SetVoiceLang('en-AU')">English</button>
+      </div>
+      <button type="button" class="secondary" onclick="v15StartVoiceInput('teacherCommentInput',this)">🎤 語音轉文字</button>
+      <div id="v15VoiceStatus" class="v15-voice-status">目前語音：<span id="v15VoiceLangLabel"></span></div>
+    `;
+    teacher.parentNode.insertBefore(wrap, teacher.nextSibling);
+  }
+
+  // Upgrade older voice buttons if they exist
+  document.querySelectorAll('button').forEach(btn=>{
+    const t=(btn.innerText||'').trim();
+    if(t.includes('語音輸入') && !btn.dataset.v15patched){
+      btn.dataset.v15patched='1';
+      btn.onclick=function(){v15StartVoiceInput(null,btn)};
+    }
+  });
+  v15SetVoiceLang(window.childGrowthVoiceLang);
+}
+
+setTimeout(v15EnhanceVoiceUI,600);
+document.addEventListener('click',()=>setTimeout(v15EnhanceVoiceUI,150));
 </script>
 </body>
 </html>
