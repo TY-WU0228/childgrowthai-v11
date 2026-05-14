@@ -845,6 +845,24 @@ main{
   .v28-plan-card h2{font-size:23px}
 }
 
+
+/* V29 Home-only Today Plan fix */
+body:not(.v29-home-active) #v18TodayPlanner,
+body:not(.v29-home-active) #v28TodayPlanCard,
+body:not(.v29-home-active) #v24TodayCustomActivities{
+  display:none!important;
+}
+body.v29-home-active #v18TodayPlanner,
+body.v29-home-active #v28TodayPlanCard{
+  display:block;
+}
+#v18TodayPlanner,
+#v28TodayPlanCard{
+  max-width:860px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -871,7 +889,7 @@ main{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v28 Layout + Today Plan · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v29 Home-only Today Plan · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -879,7 +897,7 @@ main{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v28 Layout + Today Plan 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v29 Home-only Today Plan 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -2543,6 +2561,67 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(()=>{updateHeader();hideVersionNotices();renderTodayPlan();},900);
   setTimeout(()=>{updateHeader();hideVersionNotices();renderTodayPlan();},1800);
   setInterval(()=>{hideVersionNotices();},3000);
+})();
+</script>
+<script>
+(function(){
+  function $(id){return document.getElementById(id)}
+  function activeTab(){
+    const active=document.querySelector('.section.active');
+    return active ? active.id : 'home';
+  }
+  function moveHomeOnlyBlocks(){
+    const home=$('home');
+    if(!home) return;
+
+    const planner=$('v18TodayPlanner');
+    if(planner && planner.parentElement!==home){
+      home.insertBefore(planner, home.firstChild);
+    }
+
+    const plan=$('v28TodayPlanCard');
+    if(plan && plan.parentElement!==home){
+      const plannerNow=$('v18TodayPlanner');
+      if(plannerNow && plannerNow.parentElement===home && plannerNow.nextSibling){
+        home.insertBefore(plan, plannerNow.nextSibling);
+      }else{
+        home.insertBefore(plan, home.firstChild);
+      }
+    }
+
+    const custom=$('v24TodayCustomActivities');
+    if(custom && custom.parentElement!==home){
+      home.appendChild(custom);
+    }
+  }
+  function updateHomeOnlyVisibility(tab){
+    const current=tab || activeTab();
+    document.body.classList.toggle('v29-home-active', current==='home');
+    ['v18TodayPlanner','v28TodayPlanCard','v24TodayCustomActivities'].forEach(id=>{
+      const el=$(id);
+      if(el) el.style.display = current==='home' ? '' : 'none';
+    });
+  }
+
+  const oldGo=window.go;
+  if(typeof oldGo==='function'){
+    window.go=function(tab){
+      oldGo(tab);
+      setTimeout(()=>{
+        moveHomeOnlyBlocks();
+        updateHomeOnlyVisibility(tab);
+      },60);
+    };
+  }
+
+  function run(){
+    moveHomeOnlyBlocks();
+    updateHomeOnlyVisibility(activeTab());
+  }
+  setTimeout(run,500);
+  setTimeout(run,1200);
+  setTimeout(run,2200);
+  setInterval(run,3000);
 })();
 </script>
 </body>
