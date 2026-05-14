@@ -218,6 +218,123 @@ button:active{transform:translateY(1px)}
   .v14-grid{grid-template-columns:1fr!important}
 }
 
+
+/* V17 UX Cleanup */
+.v17-hide-duplicate{display:none!important}
+.v17-home-overview{
+  background:linear-gradient(135deg,#eef2ff,#fdf2f8);
+  border:1px solid #dbeafe;
+  border-radius:30px;
+  padding:22px;
+  margin:16px auto;
+  box-shadow:0 18px 45px rgba(15,23,42,.08);
+}
+.v17-home-overview h2{margin:0 0 8px;font-size:28px;letter-spacing:-.035em}
+.v17-summary{font-size:15px;line-height:1.55;color:#334155;font-weight:750}
+.v17-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.v17-mini-card{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:14px;box-shadow:0 8px 25px rgba(15,23,42,.05)}
+.v17-mini-card b{font-size:23px;display:block;color:#be185d}
+.v17-mini-card span{font-size:13px;color:#64748b;font-weight:850}
+.v17-risk{margin-top:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:22px;padding:13px;font-weight:850;line-height:1.45}
+.v17-toast{
+  position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);
+  background:#0f172a;color:white;padding:13px 16px;border-radius:999px;
+  box-shadow:0 15px 35px rgba(15,23,42,.28);z-index:9999;
+  opacity:0;pointer-events:none;transition:all .25s ease;font-weight:900;font-size:14px;
+}
+.v17-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.v17-selected-emotion{background:linear-gradient(135deg,#dcfce7,#dbeafe)!important;border-color:#86efac!important;box-shadow:0 0 0 4px rgba(34,197,94,.18)!important}
+@media(max-width:430px){.v17-mini-grid{grid-template-columns:1fr 1fr}.v17-home-overview{margin:12px 10px;padding:18px}.v17-home-overview h2{font-size:24px}}
+
+
+/* V18 Daily Planner */
+.v18-today{
+  background:linear-gradient(135deg,#eff6ff,#faf5ff);
+  border:1px solid #dbeafe;
+  border-radius:30px;
+  padding:22px;
+  margin:16px auto;
+  box-shadow:0 18px 50px rgba(15,23,42,.08);
+}
+.v18-today h2{
+  margin:0 0 8px;
+  font-size:30px;
+  letter-spacing:-.04em;
+}
+.v18-date{
+  color:#64748b;
+  font-weight:800;
+  margin-bottom:16px;
+}
+.v18-schedule{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.v18-item{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  background:white;
+  border:1px solid #e5e7eb;
+  border-radius:22px;
+  padding:14px;
+  box-shadow:0 8px 20px rgba(15,23,42,.05);
+}
+.v18-time{
+  min-width:72px;
+  font-weight:900;
+  color:#7c3aed;
+}
+.v18-title{
+  font-weight:900;
+  color:#0f172a;
+}
+.v18-note{
+  font-size:14px;
+  color:#64748b;
+  margin-top:2px;
+  line-height:1.45;
+}
+.v18-ai{
+  margin-top:16px;
+  background:#fff7ed;
+  border:1px solid #fdba74;
+  color:#9a3412;
+  border-radius:22px;
+  padding:15px;
+  font-weight:850;
+  line-height:1.5;
+}
+.v18-reminder{
+  margin-top:14px;
+  background:#ecfeff;
+  border:1px solid #a5f3fc;
+  color:#155e75;
+  border-radius:22px;
+  padding:14px;
+  font-weight:850;
+}
+.v18-mini-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:16px;
+}
+.v18-chip{
+  background:white;
+  border:1px solid #dbeafe;
+  border-radius:999px;
+  padding:10px 14px;
+  font-weight:850;
+  color:#1d4ed8;
+}
+@media(max-width:480px){
+  .v18-item{padding:12px}
+  .v18-time{min-width:64px;font-size:13px}
+  .v18-today h2{font-size:25px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -244,13 +361,15 @@ button:active{transform:translateY(1px)}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v16 Parent Intelligence Platform · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v18 Daily Parent Planner · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
+<div id="v18TodayPlanner"></div>
+<div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v16 Parent Intelligence Platform 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v18 Daily Parent Planner 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -648,7 +767,7 @@ function voiceFill(id){
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('此瀏覽器未支援語音輸入。iPhone 可用鍵盤咪高峰。');return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const rec=new SR();rec.lang='zh-HK';rec.interimResults=false;rec.onresult=e=>{$(id).value+=e.results[0][0].transcript};rec.start();
 }
-(async()=>{await loadConfig();load();capture('app_loaded',{version:'v15'});})();
+(async()=>{await loadConfig();load();capture('app_loaded',{version:'v17'});})();
 </script>
 <script>
 function v12GetRecords(){
@@ -972,5 +1091,193 @@ setTimeout(()=>{
 },500);
 </script>
 
+<script>
+function v17TodayKey(){return new Date().toISOString().slice(0,10)}
+function v17GetRecords(){
+  try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch(e){return[]}
+}
+function v17SaveRecords(records){
+  localStorage.setItem('childgrowth_records', JSON.stringify(records.slice(-120)));
+}
+function v17Toast(msg){
+  let el=document.getElementById('v17Toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='v17Toast';
+    el.className='v17-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1800);
+}
+function v17RecordDailyEmotion(emotion){
+  const today=v17TodayKey();
+  const records=v17GetRecords();
+  const idx=records.findIndex(r=>r.type==='emotion' && (r.createdAt||'').slice(0,10)===today && r.scope!=='homework');
+  if(idx>=0){
+    records[idx].emotion=emotion;
+    records[idx].updatedAt=new Date().toISOString();
+    v17Toast('✅ 已更新今日情緒：'+emotion);
+  }else{
+    records.push({id:Date.now(),type:'emotion',scope:'daily',emotion:emotion,createdAt:new Date().toISOString()});
+    v17Toast('✅ 已記錄今日情緒：'+emotion);
+  }
+  v17SaveRecords(records);
+  if(navigator.vibrate) try{navigator.vibrate(35)}catch(e){}
+  if(typeof capture==='function') capture('v17_daily_emotion_saved',{emotion:emotion});
+  v17RenderHomeOverview();
+  v17MarkSelectedEmotion(emotion);
+}
+function v17MarkSelectedEmotion(emotion){
+  document.querySelectorAll('[data-mood],button').forEach(btn=>{
+    const t=(btn.dataset&&btn.dataset.mood)||btn.innerText||'';
+    btn.classList.toggle('v17-selected-emotion', t.trim()===emotion.trim());
+  });
+}
+function v17RenderHomeOverview(){
+  const el=document.getElementById('v17HomeOverview');
+  if(!el)return;
+  const records=v17GetRecords();
+  const today=v17TodayKey();
+  const todayRecords=records.filter(r=>(r.createdAt||'').slice(0,10)===today);
+  const latestEmotion=[...records].reverse().find(r=>r.type==='emotion');
+  const homework=records.filter(r=>r.type==='homework');
+  const teacher=records.filter(r=>r.type==='teacher_comment');
+  const recent=records.slice(-1)[0];
+  const aiSummary = recent ? String(recent.summary||recent.note||recent.emotion||'今日未有新 AI summary。').slice(0,120) : '今日未有記錄。可以先按一個情緒，或者上傳一份功課。';
+  el.innerHTML=`
+    <section class="v17-home-overview">
+      <h2>🌸 今日 Parent Overview</h2>
+      <div class="v17-summary">${aiSummary}</div>
+      <div class="v17-mini-grid">
+        <div class="v17-mini-card"><b>${latestEmotion?latestEmotion.emotion:'—'}</b><span>最近情緒</span></div>
+        <div class="v17-mini-card"><b>${homework.length}</b><span>功課分析</span></div>
+        <div class="v17-mini-card"><b>${teacher.length}</b><span>老師 Comment</span></div>
+        <div class="v17-mini-card"><b>${todayRecords.length}</b><span>今日記錄</span></div>
+      </div>
+      <div class="v17-risk">💡 今日建議：先記錄一個最真實狀態，不需要每樣都填滿。資料穩定比資料多更重要。</div>
+    </section>
+  `;
+}
+function v17CleanupDuplicates(){
+  document.querySelectorAll('section.card,.card,section').forEach(sec=>{
+    const txt=(sec.innerText||'').trim();
+    if(txt.includes('Language / 語言') && !sec.closest('#profile') && !sec.closest('[data-page="profile"]')){
+      sec.classList.add('v17-hide-duplicate');
+    }
+    if((txt.includes('Parent Dashboard') || txt.includes('7 日活動趨勢') || txt.includes('Weekly Parent Insight')) && !sec.id.includes('v17') && !sec.closest('#analysis') && !sec.closest('#analytics')){
+      if(!txt.includes('Teacher Comment AI')) sec.classList.add('v17-hide-duplicate');
+    }
+  });
+}
+document.addEventListener('click',function(e){
+  const moodEl=e.target.closest && e.target.closest('[data-mood]');
+  if(moodEl){
+    e.preventDefault();
+    e.stopPropagation();
+    v17RecordDailyEmotion(moodEl.dataset.mood || moodEl.innerText.trim());
+    return false;
+  }
+  const t=(e.target&&e.target.innerText||'').trim();
+  const emotionWords=['🙂 Normal','😫 Frustrated','😴 Tired','😭 Meltdown','✨ Confident','Normal','Frustrated','Tired','Meltdown','Confident'];
+  if(emotionWords.includes(t)){
+    e.preventDefault();
+    e.stopPropagation();
+    v17RecordDailyEmotion(t);
+    return false;
+  }
+},true);
+setTimeout(()=>{v17RenderHomeOverview();v17CleanupDuplicates();},700);
+setInterval(v17CleanupDuplicates,1500);
+</script>
+<script>
+function v18GetTodaySchedule(){
+  const day = new Date().getDay();
+
+  // 0 Sunday, 2 Tuesday, 4 Thursday, 5 Friday, 6 Saturday
+  const schedules = {
+    2: [
+      {time:'3:30 PM',title:'💻 Minecraft Coding',note:'放學後 coding class'},
+    ],
+    4: [
+      {time:'4:30 PM',title:'⚽ Soccer',note:'記得帶水樽同運動鞋'},
+      {time:'6:00 PM',title:'🏊 Swimming',note:'活動較多，今晚功課建議早啲開始'}
+    ],
+    5: [
+      {time:'4:30 PM',title:'♟️ Chess',note:'放學後 chess class'}
+    ],
+    6: [
+      {time:'3:30 PM',title:'🎹 Piano + Art',note:'30分鐘 piano + 1.5 小時 art'}
+    ],
+    0: [
+      {time:'9:00 AM',title:'📚 Chinese Class',note:'中文閱讀 / 寫字'}
+    ]
+  };
+
+  return schedules[day] || [];
+}
+
+function v18RenderTodayPlanner(){
+  const host = document.getElementById('v18TodayPlanner');
+  if(!host) return;
+
+  const schedule = v18GetTodaySchedule();
+  const dateText = new Date().toLocaleDateString('en-AU',{
+    weekday:'long',
+    day:'numeric',
+    month:'short'
+  });
+
+  let aiMessage = '今日活動不算太多，可以安排閱讀或輕鬆 homework。';
+
+  if(schedule.length >= 2){
+    aiMessage = '今日課外活動較多，AI 建議先完成閱讀類 homework，再安排沖涼和休息。';
+  }
+
+  host.innerHTML = `
+    <section class="v18-today">
+      <h2>🌸 Janice Today</h2>
+      <div class="v18-date">${dateText}</div>
+
+      <div class="v18-schedule">
+        <div class="v18-item">
+          <div class="v18-time">8:45 AM</div>
+          <div>
+            <div class="v18-title">🏫 School</div>
+            <div class="v18-note">正常上課日</div>
+          </div>
+        </div>
+
+        ${schedule.map(item=>`
+          <div class="v18-item">
+            <div class="v18-time">${item.time}</div>
+            <div>
+              <div class="v18-title">${item.title}</div>
+              <div class="v18-note">${item.note}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="v18-ai">
+        🤖 AI Parent Insight：${aiMessage}
+      </div>
+
+      <div class="v18-reminder">
+        📚 Tonight Focus：Reading log + English spelling
+      </div>
+
+      <div class="v18-mini-actions">
+        <div class="v18-chip">😊 Emotion Check</div>
+        <div class="v18-chip">📚 Homework AI</div>
+        <div class="v18-chip">👩‍🏫 Teacher Comment</div>
+      </div>
+    </section>
+  `;
+}
+
+setTimeout(v18RenderTodayPlanner,600);
+</script>
 </body>
 </html>
