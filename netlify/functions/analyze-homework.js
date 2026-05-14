@@ -17,7 +17,7 @@ exports.handler = async function(event) {
 
     const prompt = buildPrompt(body);
 
-    const responseModel = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+    const responseModel = process.env.OPENAI_MODEL || 'gpt-4.1';
     const responsePayload = {
       model: responseModel,
       input: [{
@@ -36,7 +36,7 @@ exports.handler = async function(event) {
       return json(200, { analysis: text, model: responseModel, route: 'responses', imageCount: images.length });
     }
 
-    const fallbackModel = process.env.OPENAI_FALLBACK_MODEL || 'gpt-4o-mini';
+    const fallbackModel = process.env.OPENAI_FALLBACK_MODEL || 'gpt-4.1-mini';
     const chatPayload = {
       model: fallbackModel,
       messages: [{
@@ -85,6 +85,7 @@ Instructions:
 - Do not invent details you cannot see.
 - Focus on useful parent insight: careless mistakes, concept gaps, reading comprehension, fatigue/confidence, and next action.
 - Keep it practical and not too long.
+- Also create long-term trend tags for the parent dashboard.
 
 Return exactly in this structure:
 
@@ -103,7 +104,13 @@ Return exactly in this structure:
 💡 4. 對家長嘅重點 insight
 -
 
-✅ 5. 下次最少摩擦記錄建議
+📈 5. 長期 pattern / trend tag
+- subject:
+- mistake_type:
+- confidence_signal:
+- next_focus:
+
+✅ 6. 下次最少摩擦記錄建議
 -`;
 }
 

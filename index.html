@@ -53,7 +53,16 @@
     .small{font-size:12px;color:#6b7280;line-height:1.45}
     .loading{opacity:.65;pointer-events:none}
     @media(max-width:420px){h1{font-size:25px}.title{font-size:21px}.nav button{font-size:10px}.photoGrid img{height:90px}}
-  </style>
+  
+.v12-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.v12-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px;background:#fff;font-weight:800;margin:4px}
+.v12-report{white-space:pre-wrap;line-height:1.55;font-weight:700}
+.v12-muted{color:#6b7280;font-size:14px;font-weight:700}
+.v12-chart{height:150px;display:flex;align-items:end;gap:10px;padding:16px;border:1px solid #e5e7eb;border-radius:18px;background:linear-gradient(180deg,#fff,#f8fafc)}
+.v12-bar{flex:1;border-radius:10px 10px 0 0;background:linear-gradient(180deg,#60a5fa,#7c3aed);min-height:12px;text-align:center;color:white;font-size:12px;font-weight:900;padding-top:6px}
+@media print{nav,.bottom-nav,.no-print{display:none!important}.card{box-shadow:none!important;border:1px solid #ddd!important}body{background:white!important}}
+
+</style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
   <link rel="manifest" href="/manifest.json">
@@ -75,13 +84,13 @@
 <body>
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v11 Stable AI Vision · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v12 Production Beta · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v11 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v12 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -217,6 +226,18 @@
     </div>
   </section>
 </main>
+
+
+<section id="v12ParentDashboard"></section>
+
+<section class="card">
+  <h2>👩‍🏫 Teacher Comment AI</h2>
+  <p class="v12-muted">貼上老師原句，AI 會幫你拆解重點、風險同下一步。</p>
+  <textarea id="teacherCommentInput" placeholder="例：Janice was a bit distracted during reading group today..." style="width:100%;min-height:120px;border-radius:18px;border:1px solid #e5e7eb;padding:14px;font-size:16px"></textarea>
+  <button class="primary" onclick="v12AnalyzeTeacherComment()">🤖 分析老師 Comment</button>
+  <button class="secondary" onclick="v12ExportParentPDF()">📄 Export / Print Parent Report</button>
+  <div id="teacherCommentAIResult"></div>
+</section>
 
 <nav class="nav">
   <button class="active" data-tab="home">🏠<br>首頁</button>
@@ -444,7 +465,85 @@ function voiceFill(id){
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('此瀏覽器未支援語音輸入。iPhone 可用鍵盤咪高峰。');return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const rec=new SR();rec.lang='zh-HK';rec.interimResults=false;rec.onresult=e=>{$(id).value+=e.results[0][0].transcript};rec.start();
 }
-(async()=>{await loadConfig();load();capture('app_loaded',{version:'v11'});})();
+(async()=>{await loadConfig();load();capture('app_loaded',{version:'v12'});})();
+</script>
+<script>
+function v12GetRecords(){
+  try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch{return[]}
+}
+function v12SaveRecords(records){
+  localStorage.setItem('childgrowth_records', JSON.stringify(records.slice(-80)));
+}
+function v12AddRecord(type, data){
+  const records=v12GetRecords();
+  records.push({id:Date.now(),type,createdAt:new Date().toISOString(),...data});
+  v12SaveRecords(records);
+  if(typeof capture==='function') capture('v12_record_saved',{type});
+}
+function v12RenderParentDashboard(){
+  const records=v12GetRecords();
+  const homework=records.filter(r=>r.type==='homework');
+  const comments=records.filter(r=>r.type==='teacher_comment');
+  const emotions=records.filter(r=>r.type==='emotion');
+  const recent=records.slice(-8).reverse();
+  const el=document.getElementById('v12ParentDashboard');
+  if(!el)return;
+  const days=[6,5,4,3,2,1,0].map(d=>{
+    const dt=new Date(); dt.setDate(dt.getDate()-d);
+    const key=dt.toISOString().slice(0,10);
+    const count=records.filter(r=>(r.createdAt||'').slice(0,10)===key).length;
+    return {key,count,label:dt.toLocaleDateString('en-AU',{weekday:'short'})};
+  });
+  el.innerHTML=`
+    <div class="card">
+      <h2>📊 Parent Dashboard</h2>
+      <p class="v12-muted">自動整理最近記錄，方便你睇 pattern。</p>
+      <div class="v12-mini-grid">
+        <div class="stat"><b>${homework.length}</b><span>功課 AI 分析</span></div>
+        <div class="stat"><b>${comments.length}</b><span>老師 comment</span></div>
+        <div class="stat"><b>${emotions.length}</b><span>情緒 tap</span></div>
+        <div class="stat"><b>${records.length}</b><span>全部記錄</span></div>
+      </div>
+      <h3>📈 7日 activity trend</h3>
+      <div class="v12-chart">${days.map(d=>`<div class="v12-bar" style="height:${Math.max(12,d.count*24)}px">${d.count}</div>`).join('')}</div>
+      <div style="display:flex;justify-content:space-between" class="v12-muted">${days.map(d=>`<span>${d.label}</span>`).join('')}</div>
+      <h3>🧾 Recent timeline</h3>
+      ${recent.length?recent.map(r=>`<div class="item"><b>${r.type}</b><br><span class="v12-muted">${new Date(r.createdAt).toLocaleString()}</span><br>${(r.summary||r.emotion||r.note||'').slice(0,120)}</div>`).join(''):'<p class="v12-muted">未有記錄。</p>'}
+    </div>`;
+}
+async function v12AnalyzeTeacherComment(){
+  const input=document.getElementById('teacherCommentInput');
+  const out=document.getElementById('teacherCommentAIResult');
+  if(!input||!out)return;
+  const comment=input.value.trim();
+  if(!comment){out.innerHTML='<div class="error">請先輸入老師 comment。</div>';return;}
+  out.innerHTML='<div class="info">AI 正在分析老師 comment...</div>';
+  if(typeof capture==='function') capture('teacher_comment_analysis_started');
+  try{
+    const res=await fetch('/.netlify/functions/analyze-teacher-comment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment, child:{name:'Janice',year:'Year 2'}})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'AI failed');
+    out.innerHTML='<div class="ai-box v12-report">'+data.analysis.replace(/[<>&]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[m]))+'</div>';
+    v12AddRecord('teacher_comment',{note:comment,summary:data.analysis.slice(0,180)});
+    if(typeof capture==='function') capture('teacher_comment_analysis_success');
+    v12RenderParentDashboard();
+  }catch(e){
+    out.innerHTML='<div class="error">AI error: '+e.message+'</div>';
+    if(typeof capture==='function') capture('teacher_comment_analysis_error',{message:e.message});
+  }
+}
+function v12ExportParentPDF(){
+  window.print();
+  if(typeof capture==='function') capture('parent_report_print_clicked');
+}
+document.addEventListener('click',function(e){
+  const t=(e.target&&e.target.innerText||'').trim();
+  if(['🙂 Normal','😫 Frustrated','😴 Tired','😭 Meltdown','✨ Confident','Normal','Frustrated','Tired','Meltdown','Confident'].includes(t)){
+    v12AddRecord('emotion',{emotion:t});
+    setTimeout(v12RenderParentDashboard,200);
+  }
+});
+setTimeout(v12RenderParentDashboard,700);
 </script>
 </body>
 </html>
