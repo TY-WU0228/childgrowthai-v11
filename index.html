@@ -479,6 +479,150 @@ body{padding-bottom:98px!important}
 }
 .v25-advanced-panel.show{display:block}
 
+
+/* V26 Bug Fix + UX Polish */
+
+/* 1) Date/input overflow fix across all tabs */
+.card,
+.v14-card,
+.v18-today,
+.v23-card,
+.v25-auto-level-card{
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+input,
+select,
+textarea{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  display:block!important;
+}
+input[type="date"]{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+label{display:block!important}
+
+/* 2) Chart overflow fix */
+.v14-trend,
+.v22-mini-trend,
+.v23-trend,
+.v26-trend{
+  height:150px!important;
+  max-height:150px!important;
+  overflow:hidden!important;
+  align-items:flex-end!important;
+}
+.v14-bar,
+.v22-bar,
+.v23-bar,
+.v26-bar{
+  max-height:130px!important;
+  min-height:14px!important;
+  box-sizing:border-box!important;
+}
+
+/* 3) Bottom tab label polish */
+.nav button,
+.v23-tab,
+.v21-tab{
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.nav button,
+.nav button *,
+.v23-tab .label,
+.v21-tab .v21-label{
+  white-space:nowrap!important;
+  word-break:keep-all!important;
+  writing-mode:horizontal-tb!important;
+  text-overflow:clip!important;
+}
+
+/* 4) V26 analysis card */
+.v26-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid #e5e7eb;
+  border-radius:28px;
+  padding:20px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+  overflow:hidden;
+}
+.v26-card h2{
+  font-size:28px;
+  margin:0 0 10px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v26-muted{color:#64748b;font-weight:800;line-height:1.45}
+.v26-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.v26-mini{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:22px;
+  padding:15px;
+  box-shadow:0 8px 24px rgba(15,23,42,.05);
+}
+.v26-mini b{display:block;font-size:24px;color:#db2777}
+.v26-mini span{font-size:13px;color:#64748b;font-weight:900}
+.v26-alert{
+  margin-top:14px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:22px;
+  padding:14px;
+  font-weight:850;
+  line-height:1.5;
+}
+.v26-trend{
+  display:flex;
+  gap:8px;
+  padding:14px;
+  border-radius:22px;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  border:1px solid #e5e7eb;
+  margin-top:14px;
+}
+.v26-bar{
+  flex:1;
+  border-radius:12px 12px 4px 4px;
+  background:linear-gradient(180deg,#38bdf8,#7c3aed);
+  color:white;
+  text-align:center;
+  font-size:11px;
+  font-weight:1000;
+  padding-top:5px;
+}
+.v26-days{display:flex;justify-content:space-between;font-size:12px;color:#64748b;font-weight:900;margin-top:6px}
+.v26-toast{
+  position:fixed;
+  left:50%;
+  bottom:104px;
+  transform:translateX(-50%) translateY(18px);
+  background:#0f172a;
+  color:white;
+  padding:13px 16px;
+  border-radius:999px;
+  box-shadow:0 15px 35px rgba(15,23,42,.28);
+  z-index:10000;
+  opacity:0;
+  pointer-events:none;
+  transition:all .25s ease;
+  font-weight:900;
+  max-width:88vw;
+  text-align:center;
+}
+.v26-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:430px){
+  .v26-card{border-radius:24px;padding:17px}
+  .v26-card h2{font-size:24px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -505,7 +649,7 @@ body{padding-bottom:98px!important}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v25 Auto Level Detection · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v26 Bug Fix + UX Polish · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -513,7 +657,7 @@ body{padding-bottom:98px!important}
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v25 Auto Level Detection 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v26 Bug Fix + UX Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -873,7 +1017,21 @@ function renderTimeline(){
   }).join(''):'<p class="helper">No records yet.</p>';
 }
 function quickMood(mood){
-  app.moods.unshift({id:Date.now(),date:today(),mood});save();flash('moodSaved');capture('emotion_tap',{mood});
+  const d=today();
+  const existing=(app.moods||[]).find(x=>x.date===d);
+  if(existing){
+    existing.mood=mood;
+    existing.updatedAt=new Date().toISOString();
+  }else{
+    app.moods.unshift({id:Date.now(),date:d,mood});
+  }
+  save();
+  flash('moodSaved');
+  try{
+    const el=$('moodSaved');
+    if(el) el.textContent='✅ 今日情緒已更新：'+mood;
+  }catch(e){}
+  capture('emotion_tap_daily_update',{mood});
 }
 function saveProfile(){
   app.profile={childName:$('childNameInput').value.trim(),yearLevel:$('childYearInput').value.trim(),focus:$('focusInput').value,busyDay:$('busyDayInput').value.trim()};
@@ -1734,6 +1892,214 @@ function v25InjectProfileYearSetting(){
 }
 setTimeout(()=>{v25InjectProfileYearSetting();v25RefreshYearViews();},1000);
 setInterval(v25RefreshYearViews,2500);
+</script>
+<script>
+(function(){
+  function $(id){return document.getElementById(id)}
+  function todayKey(){return new Date().toISOString().slice(0,10)}
+  function loadApp(){
+    try{return JSON.parse(localStorage.getItem('childgrowthai-v8')||'{}')}catch(e){return{}}
+  }
+  function saveApp(a){
+    try{localStorage.setItem('childgrowthai-v8',JSON.stringify(a))}catch(e){}
+  }
+  function toast(msg){
+    let el=$('v26Toast');
+    if(!el){
+      el=document.createElement('div');
+      el.id='v26Toast';
+      el.className='v26-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent=msg;
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),1800);
+  }
+
+  // A. Migrate old repeated emotion taps into one record per day
+  function normalizeEmotionData(){
+    const a=loadApp();
+    if(Array.isArray(a.moods) && a.moods.length){
+      const seen={};
+      const out=[];
+      // app.moods is newest first; keep latest record for each date.
+      a.moods.forEach(m=>{
+        const d=m.date || String(m.createdAt||'').slice(0,10) || todayKey();
+        if(!seen[d]){
+          seen[d]=true;
+          out.push(Object.assign({},m,{date:d}));
+        }
+      });
+      if(out.length !== a.moods.length){
+        a.moods=out;
+        saveApp(a);
+        if(window.app){window.app.moods=out}
+      }
+    }
+
+    // Also clean newer childgrowth_records if present
+    try{
+      const raw=localStorage.getItem('childgrowth_records');
+      if(raw){
+        const arr=JSON.parse(raw);
+        if(Array.isArray(arr)){
+          const seen2={};
+          const cleaned=[];
+          arr.forEach(r=>{
+            const isDailyEmotion = r.type==='emotion' && (r.scope==='daily' || !r.scope);
+            if(isDailyEmotion){
+              const d=String(r.createdAt||r.date||todayKey()).slice(0,10);
+              if(seen2[d]) return;
+              seen2[d]=true;
+            }
+            cleaned.push(r);
+          });
+          if(cleaned.length!==arr.length) localStorage.setItem('childgrowth_records',JSON.stringify(cleaned));
+        }
+      }
+    }catch(e){}
+  }
+
+  // B. Replace quickMood safely even if earlier versions defined it
+  window.quickMood=function(mood){
+    const d=todayKey();
+    if(!window.app) window.app=loadApp();
+    app.moods=app.moods||[];
+    const existing=app.moods.find(x=>x.date===d);
+    if(existing){
+      existing.mood=mood;
+      existing.updatedAt=new Date().toISOString();
+      toast('✅ 今日情緒已更新：'+mood);
+    }else{
+      app.moods.unshift({id:Date.now(),date:d,mood:mood});
+      toast('✅ 已記錄今日情緒：'+mood);
+    }
+    if(typeof save==='function') save(); else saveApp(app);
+    const ok=$('moodSaved');
+    if(ok){ok.textContent='✅ 今日情緒已更新：'+mood; ok.style.display='block'; setTimeout(()=>ok.style.display='none',1800)}
+    if(navigator.vibrate) try{navigator.vibrate(35)}catch(e){}
+  };
+
+  // C. Time range schedule
+  window.v18GetTodaySchedule=function(){
+    const day=new Date().getDay();
+    const schedules={
+      2:[{time:'3:30 PM – 4:30 PM',title:'💻 Minecraft Coding',note:'放學後 coding class'}],
+      4:[
+        {time:'3:30 PM – 4:30 PM',title:'⚽ Soccer',note:'記得帶水樽同運動鞋'},
+        {time:'6:00 PM',title:'🏊 Swimming',note:'活動較多，今晚功課建議早啲開始'}
+      ],
+      5:[{time:'3:30 PM – 4:30 PM',title:'♟️ Chess',note:'放學後 chess class'}],
+      6:[{time:'3:30 PM – 5:30 PM',title:'🎹 Piano + Art',note:'30分鐘 piano + 1.5 小時 art'}],
+      0:[{time:'9:00 AM – 12:20 PM',title:'📚 Chinese Class',note:'中文閱讀 / 寫字'}]
+    };
+    return schedules[day]||[];
+  };
+
+  window.v18RenderTodayPlanner=function(){
+    const host=$('v18TodayPlanner');
+    if(!host) return;
+    const schedule=window.v18GetTodaySchedule();
+    const dateText=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});
+    const aiMessage=schedule.length>=2
+      ? '今日課外活動較多，AI 建議先完成閱讀類 homework，再安排沖涼和休息。'
+      : '今日活動不算太多，可以安排閱讀或輕鬆 homework。';
+
+    host.innerHTML=`
+      <section class="v18-today">
+        <h2>🌸 Janice Today</h2>
+        <div class="v18-date">${dateText}</div>
+        <div class="v18-schedule">
+          <div class="v18-item">
+            <div class="v18-time">8:45 AM – 3:30 PM</div>
+            <div>
+              <div class="v18-title">🏫 School</div>
+              <div class="v18-note">正常上課日</div>
+            </div>
+          </div>
+          ${schedule.map(item=>`
+            <div class="v18-item">
+              <div class="v18-time">${item.time}</div>
+              <div>
+                <div class="v18-title">${item.title}</div>
+                <div class="v18-note">${item.note}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="v18-ai">🤖 AI Parent Insight：${aiMessage}</div>
+        <div class="v18-reminder">📚 Tonight Focus：Reading log + English spelling</div>
+        <div class="v18-mini-actions">
+          <div class="v18-chip">😊 Emotion Check</div>
+          <div class="v18-chip">📚 Homework AI</div>
+          <div class="v18-chip">👩‍🏫 Teacher Comment</div>
+        </div>
+      </section>
+    `;
+  };
+
+  // D. Bounded / deduped analysis chart
+  function getCounts(){
+    const a=window.app || loadApp();
+    const homework=(a.homework||[]).length;
+    const teacher=(a.teacher||[]).length;
+    const moods=(a.moods||[]).length;
+    const total=homework+teacher+moods+(a.school||[]).length;
+    return {homework,teacher,moods,total};
+  }
+  function last7(){
+    const a=window.app || loadApp();
+    const all=[...(a.homework||[]),...(a.teacher||[]),...(a.school||[]),...(a.moods||[])];
+    return [6,5,4,3,2,1,0].map(n=>{
+      const d=new Date(); d.setDate(d.getDate()-n);
+      const key=d.toISOString().slice(0,10);
+      const count=all.filter(x=>(x.date||String(x.createdAt||'').slice(0,10))===key).length;
+      return {label:d.toLocaleDateString('en-AU',{weekday:'short'}),count};
+    });
+  }
+  function renderV26Analysis(){
+    const analysis=$('analysis');
+    if(!analysis) return;
+    // Hide old experimental analysis cards that can show huge bars
+    ['v23AnalysisPolish','v22AnalysisPolish'].forEach(id=>{const el=$(id); if(el) el.style.display='none'});
+    let box=$('v26AnalysisPolish');
+    if(!box){
+      box=document.createElement('div');
+      box.id='v26AnalysisPolish';
+      box.className='v26-card';
+      analysis.insertBefore(box, analysis.firstChild);
+    }
+    const c=getCounts();
+    const days=last7();
+    const max=Math.max(1,...days.map(x=>x.count));
+    box.innerHTML=`
+      <h2>🤖 分析 Dashboard</h2>
+      <div class="v26-muted">已修正：情緒同一日只計一次，圖表高度會自動縮放，不會再爆出框外。</div>
+      <div class="v26-grid">
+        <div class="v26-mini"><b>${c.homework}</b><span>功課分析</span></div>
+        <div class="v26-mini"><b>${c.moods}</b><span>情緒記錄</span></div>
+        <div class="v26-mini"><b>${c.teacher}</b><span>老師 Comment</span></div>
+        <div class="v26-mini"><b>${c.total}</b><span>總記錄</span></div>
+      </div>
+      <div class="v26-trend">
+        ${days.map(d=>`<div class="v26-bar" style="height:${Math.max(14,Math.round((d.count/max)*120))}px">${d.count}</div>`).join('')}
+      </div>
+      <div class="v26-days">${days.map(d=>`<span>${d.label}</span>`).join('')}</div>
+      <div class="v26-alert">📈 建議：睇每日趨勢，而唔係重複點擊次數。情緒記錄會用每日最後一次為準。</div>
+    `;
+  }
+
+  // E. Update date display / inputs after load
+  function run(){
+    normalizeEmotionData();
+    if(typeof renderAll==='function') try{renderAll()}catch(e){}
+    window.v18RenderTodayPlanner();
+    renderV26Analysis();
+  }
+  setTimeout(run,900);
+  setTimeout(run,1800);
+  setInterval(()=>{renderV26Analysis()},3500);
+})();
 </script>
 </body>
 </html>
