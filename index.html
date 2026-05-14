@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>ChildGrowth AI v8</title>
+  <style>
+    :root{
+      --bg:#f8fafc;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
+      --pink:#ec4899;--orange:#fb923c;--blue:#2563eb;--purple:#7c3aed;--green:#10b981;
+      --shadow:0 12px 30px rgba(15,23,42,.08);--radius:22px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;padding-bottom:94px}
+    header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);padding:18px 18px 16px;border-bottom:1px solid var(--line);text-align:center}
+    h1{font-size:28px;margin:0 0 4px;font-weight:950;letter-spacing:-.04em}
+    .subtitle{color:var(--muted);font-weight:850;font-size:15px;line-height:1.25}
+    .profileline{font-size:13px;color:#6b7280;margin-top:4px;font-weight:800}
+    main{max-width:760px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin:16px 0}
+    .title{font-size:23px;font-weight:950;margin:0 0 10px;letter-spacing:-.02em}
+    .helper{font-size:14px;color:var(--muted);line-height:1.55;margin:6px 0 12px;font-weight:650}
+    .notice{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:18px;padding:14px;font-weight:850;line-height:1.55;margin:12px 0}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .stat{border:1px solid var(--line);border-radius:18px;padding:14px;text-align:center;background:#fff}
+    .num{font-size:30px;font-weight:950;color:#c2185b}
+    .label{font-weight:900}
+    .btn{border:0;border-radius:16px;padding:14px 16px;font-weight:950;font-size:16px;width:100%;margin:7px 0;cursor:pointer}
+    .primary{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff}
+    .secondary{background:#eef2ff;color:#3730a3}
+    .soft{background:#e0f2fe;color:#075985}
+    .green{background:#d1fae5;color:#065f46}
+    .danger{background:#fee2e2;color:#991b1b}
+    label{display:block;margin:12px 0 6px;color:#6b7280;font-weight:900}
+    input,select,textarea{width:100%;border:1.5px solid var(--line);border-radius:16px;padding:13px;font-size:16px;background:#fff}
+    textarea{min-height:110px;resize:vertical}
+    .quickchips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+    .quickchip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:10px 12px;font-size:14px;font-weight:900}
+    .win{background:linear-gradient(135deg,#ecfdf5,#f0fdfa);border:1px solid #a7f3d0;border-radius:16px;padding:12px;margin:8px 0;font-size:14px;line-height:1.5}
+    .reminder{background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:12px;margin:8px 0;font-size:14px;line-height:1.5;color:#9a3412}
+    .ai{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #bfdbfe;border-radius:18px;padding:14px;white-space:pre-wrap;line-height:1.6;font-weight:650}
+    .ok{display:none;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:14px;padding:10px;margin:8px 0;font-weight:900}
+    .err{display:none;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:14px;padding:10px;margin:8px 0;font-weight:900;white-space:pre-wrap}
+    .section{display:none}.section.active{display:block}
+    .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:20}
+    .nav button{border:0;background:transparent;color:#6b7280;font-weight:950;font-size:11px;border-radius:16px;padding:8px 2px}
+    .nav button.active{background:#eef2ff;color:#3730a3}
+    .photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .photoGrid img{width:100%;height:110px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+    .entry{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:10px 0}
+    .entrytop{display:flex;justify-content:space-between;gap:10px}
+    .date{color:#6b7280;font-size:13px;font-weight:800}.tag{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;margin:2px}
+    .small{font-size:12px;color:#6b7280;line-height:1.45}
+    .loading{opacity:.65;pointer-events:none}
+    @media(max-width:420px){h1{font-size:25px}.title{font-size:21px}.nav button{font-size:10px}.photoGrid img{height:90px}}
+  </style>
+
+  <!-- ChildGrowth AI v9 PWA / iOS icon support -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <meta name="application-name" content="ChildGrowth AI">
+  <meta name="apple-mobile-web-app-title" content="ChildGrowth AI">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ec4899">
+  <meta name="msapplication-TileColor" content="#fff8fc">
+  <meta name="msapplication-TileImage" content="/icon-192.png">
+
+</head>
+<body>
+<header>
+  <h1>🌸 ChildGrowth AI</h1>
+  <div class="subtitle">v11 Stable AI Vision · AI Vision / Analytics / Cloud-ready</div>
+  <div id="profileLine" class="profileline">Your child</div>
+</header>
+
+<main>
+  <section id="home" class="section active">
+    <div class="notice">⚠️ v11 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="card">
+      <div class="title">🏠 今日 Dashboard</div>
+      <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
+      <div class="grid2">
+        <div class="stat"><div class="num" id="teacherCount">0</div><div class="label">老師評語</div></div>
+        <div class="stat"><div class="num" id="homeworkCount">0</div><div class="label">功課記錄</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">😊 Quick Emotion Tap</div>
+      <div class="helper">一撳就記錄今日狀態。這是日後做 fatigue / confidence / meltdown pattern 最有價值的低摩擦資料。</div>
+      <div class="quickchips">
+        <button class="quickchip" data-mood="🙂 Normal">🙂 Normal</button>
+        <button class="quickchip" data-mood="😫 Frustrated">😫 Frustrated</button>
+        <button class="quickchip" data-mood="😴 Tired">😴 Tired</button>
+        <button class="quickchip" data-mood="😭 Meltdown">😭 Meltdown</button>
+        <button class="quickchip" data-mood="✨ Confident">✨ Confident</button>
+      </div>
+      <div id="moodSaved" class="ok">✅ Emotion saved.</div>
+    </div>
+
+    <div class="card">
+      <div class="title">✨ 快速入口</div>
+      <button class="btn primary" onclick="go('homework')">📚 上傳/分析功課</button>
+      <button class="btn secondary" onclick="go('record')">👩‍🏫 記錄老師 Comment</button>
+      <button class="btn soft" onclick="go('analysis')">🤖 查看 AI 成長分析</button>
+    </div>
+
+    <div class="card"><div class="title">🏆 Parent Wins</div><div id="parentWins"></div></div>
+    <div class="card"><div class="title">🔔 Smart Reminders</div><div id="smartReminders"></div></div>
+    <div class="card">
+      <div class="title">📅 One-click Weekly Review</div>
+      <button class="btn primary" onclick="generateWeeklyReview()">✨ Generate Weekly Review</button>
+      <div id="weeklyReview" class="ai" style="margin-top:12px">儲存幾日記錄後，按一下就會產生 weekly review。</div>
+    </div>
+  </section>
+
+  <section id="record" class="section">
+    <div class="card">
+      <div class="title">👩‍🏫 老師 Comment / 課堂觀察</div>
+      <label>日期</label><input type="date" id="teacherDate">
+      <label>類別</label><select id="teacherType"><option>School</option><option>Piano</option><option>Swimming</option><option>Soccer</option><option>Chess</option><option>Other</option></select>
+      <label>內容</label><textarea id="teacherText" placeholder="例：老師話今日閱讀較主動，但做數時太快..."></textarea>
+      <div class="quickchips">
+        <button class="quickchip" onclick="voiceFill('teacherText')">🎤 語音輸入</button>
+      </div>
+      <button class="btn primary" onclick="saveTeacher()">💾 儲存</button>
+      <div id="savedTeacher" class="ok">✅ 已儲存。</div>
+    </div>
+  </section>
+
+  <section id="school" class="section">
+    <div class="card">
+      <div class="title">🏫 Daily Reading / School Log</div>
+      <label>日期</label><input type="date" id="schoolDate">
+      <label>Reading book</label><input id="readingBook" placeholder="例如：The Lovely One">
+      <label>Reading done?</label><select id="readingDone"><option>Done</option><option>Not done</option><option>Partial</option></select>
+      <label>家長備註</label><textarea id="schoolNote" placeholder="例：讀得流暢，但不願意大聲讀..."></textarea>
+      <button class="btn primary" onclick="saveSchool()">💾 儲存 School Log</button>
+      <div id="savedSchool" class="ok">✅ 已儲存。</div>
+    </div>
+  </section>
+
+  <section id="homework" class="section">
+    <div class="card">
+      <div class="title">📚 Homework / Worksheet AI Vision</div>
+      <div class="helper">可以一次上傳多張功課相。v8 會透過 Netlify Function 安全 call OpenAI Vision，不會把 API key 放在 browser。</div>
+      <label>日期</label><input type="date" id="hwDate">
+      <label>類別</label><select id="hwType"><option>QS Math</option><option>English</option><option>Spelling</option><option>Reading</option><option>School Homework</option><option>Test Paper</option><option>Other</option></select>
+      <label>完成情況</label><select id="hwStatus"><option>Completed</option><option>Partial</option><option>Not completed</option></select>
+      <label>上傳照片</label><input type="file" id="hwPhotos" accept="image/*" multiple>
+      <div id="photoPreview" class="photoGrid"></div>
+      <label>備註 / 錯題觀察</label><textarea id="hwNote" placeholder="例：第3題錯，做得太快；reading main idea 唔肯定..."></textarea>
+      <div class="quickchips">
+        <button class="quickchip" onclick="voiceFill('hwNote')">🎤 講錯題原因</button>
+      </div>
+      <button class="btn soft" id="previewBtn" onclick="analyzeHomework()">🤖 Real AI Vision Preview</button>
+      <div id="aiErr" class="err"></div>
+      <div id="hwAI" class="ai" style="margin-top:12px">未分析。上傳照片後按 Real AI Vision Preview。</div>
+      <div id="aiFollowupQuestion" class="reminder" style="display:none"></div>
+      <button class="btn primary" onclick="saveHomework()">💾 儲存功課 + AI 分析</button>
+      <div id="savedHomework" class="ok">✅ 功課已儲存。</div>
+    </div>
+  </section>
+
+  <section id="analysis" class="section">
+    <div class="card">
+      <div class="title">🤖 AI 成長分析</div>
+      <button class="btn primary" onclick="generateWeeklyReview()">✨ 更新 Weekly Review</button>
+      <div id="analysisBox" class="ai" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <div class="title">📊 簡單統計</div>
+      <div class="grid2">
+        <div class="stat"><div class="num" id="moodCount">0</div><div class="label">Emotion taps</div></div>
+        <div class="stat"><div class="num" id="schoolCount">0</div><div class="label">School logs</div></div>
+      </div>
+      <div id="compareBox" class="ai" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section id="timeline" class="section">
+    <div class="card">
+      <div class="title">📖 Timeline</div>
+      <div id="timelineList"></div>
+    </div>
+    <div class="card">
+      <div class="title">🔁 Backup / Restore</div>
+      <button class="btn secondary" onclick="exportBackup()">Export backup</button>
+      <input type="file" id="importFile" accept="application/json">
+      <button class="btn secondary" onclick="importBackup()">Import backup</button>
+      <button class="btn danger" onclick="clearAll()">Clear local data</button>
+    </div>
+  </section>
+
+  <section id="profile" class="section">
+    <div class="card">
+      <div class="title">👤 Child Profile</div>
+      <div class="helper">Beta 測試先用最少資料，避免家長覺得 onboarding 太煩。</div>
+      <label>Child nickname</label><input type="text" id="childNameInput" placeholder="Example: Janice">
+      <label>Year level</label><input type="text" id="childYearInput" placeholder="Example: Year 2">
+      <label>Main focus</label><select id="focusInput"><option>Academic + Emotional Balance</option><option>Homework / Academic Progress</option><option>Emotion / Routine / Confidence</option><option>Activities / Potential Discovery</option></select>
+      <label>Most busy day</label><input type="text" id="busyDayInput" placeholder="Example: Thursday">
+      <button class="btn primary" onclick="saveProfile()">💾 Save Profile</button>
+      <div id="savedProfile" class="ok">✅ Profile saved.</div>
+    </div>
+    <div class="card">
+      <div class="title">☁️ Cloud Sync Status</div>
+      <div class="helper">v8 會嘗試用 Supabase 同步；如果 table 未建立，會自動 fallback 到本機儲存。</div>
+      <button class="btn green" onclick="cloudSave()">☁️ Test Cloud Save</button>
+      <div id="cloudStatus" class="ai" style="margin-top:12px">Not tested yet.</div>
+    </div>
+  </section>
+</main>
+
+<nav class="nav">
+  <button class="active" data-tab="home">🏠<br>首頁</button>
+  <button data-tab="record">🎤<br>記錄</button>
+  <button data-tab="school">🏫<br>學校</button>
+  <button data-tab="homework">📚<br>功課</button>
+  <button data-tab="analysis">🤖<br>分析</button>
+  <button data-tab="timeline">📖<br>時間線</button>
+  <button data-tab="profile">👤<br>Profile</button>
+</nav>
+
+<script>
+let config={};
+let app={teacher:[],homework:[],school:[],moods:[],profile:{},errorTags:[]};
+let imageDataList=[];
+let lastAIResult='';
+
+function $(id){return document.getElementById(id)}
+function today(){return new Date().toISOString().slice(0,10)}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function flash(id){const el=$(id);if(!el)return;el.style.display='block';setTimeout(()=>el.style.display='none',1800)}
+function capture(event,props={}){try{if(window.posthog)posthog.capture(event,props)}catch(e){}}
+
+async function loadConfig(){
+  try{
+    const r=await fetch('/.netlify/functions/config');
+    config=await r.json();
+    if(config.posthogKey){
+      const s=document.createElement('script');
+      s.innerHTML=`!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags reloadFeatureFlags getFeatureFlag getFeatureFlagPayload group".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+      posthog.init('${config.posthogKey}',{api_host:'${config.posthogHost||'https://us.i.posthog.com'}',capture_pageview:true,session_recording:{maskAllInputs:false}});`;
+      document.head.appendChild(s);
+    }
+  }catch(e){console.warn('config not loaded',e)}
+}
+
+function load(){
+  try{const s=localStorage.getItem('childgrowthai-v8'); if(s) app=JSON.parse(s)}catch(e){}
+  app.teacher=app.teacher||[];app.homework=app.homework||[];app.school=app.school||[];app.moods=app.moods||[];app.profile=app.profile||{};app.errorTags=app.errorTags||[];
+  ['teacherDate','schoolDate','hwDate'].forEach(id=>{if($(id))$(id).value=today()});
+  renderAll();
+}
+function save(){localStorage.setItem('childgrowthai-v8',JSON.stringify(app));renderAll();}
+
+function go(tab){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const sec=$(tab); if(sec) sec.classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  capture('tab_opened',{tab});
+}
+document.addEventListener('click',e=>{
+  const nav=e.target.closest('nav button[data-tab]'); if(nav)go(nav.dataset.tab);
+  const mood=e.target.closest('[data-mood]'); if(mood)quickMood(mood.dataset.mood);
+});
+
+function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)}
+function recordsInLast(days){
+  const cut=daysAgo(days), f=a=>(a||[]).filter(x=>(x.date||'')>=cut);
+  return {teacher:f(app.teacher),homework:f(app.homework),school:f(app.school),moods:f(app.moods)};
+}
+
+function renderAll(){
+  $('teacherCount').textContent=app.teacher.length;
+  $('homeworkCount').textContent=app.homework.length;
+  $('moodCount').textContent=app.moods.length;
+  $('schoolCount').textContent=app.school.length;
+  renderProfile();renderWins();renderReminders();renderTimeline();renderCompare();
+}
+function renderProfile(){
+  const p=app.profile||{};
+  $('profileLine').textContent=(p.childName||'Your child')+(p.yearLevel?' · '+p.yearLevel:'')+(p.focus?' · '+p.focus:'');
+  if($('childNameInput')&&!$('childNameInput').dataset.loaded){
+    $('childNameInput').value=p.childName||'';$('childYearInput').value=p.yearLevel||'';$('focusInput').value=p.focus||'Academic + Emotional Balance';$('busyDayInput').value=p.busyDay||'';$('childNameInput').dataset.loaded='1';
+  }
+}
+function renderWins(){
+  const r=recordsInLast(7), wins=[];
+  if(r.school.length>=5)wins.push('✨ Reading / school daily record captured 5+ times this week.');
+  if(r.homework.length>=2)wins.push('📚 Homework evidence is building. This creates stronger AI pattern detection.');
+  if(r.teacher.length>=2)wins.push('👩‍🏫 Teacher comments are being preserved instead of forgotten.');
+  if(r.moods.length>=3)wins.push('😊 Emotional pattern data is starting to form.');
+  if(!wins.length)wins.push('🌱 今日只需一個 tap、一張相或一句 voice note，已經開始建立長期 pattern。');
+  $('parentWins').innerHTML=wins.map(w=>`<div class="win">${esc(w)}</div>`).join('');
+}
+function renderReminders(){
+  const r=recordsInLast(7), p=app.profile||{}, rem=[];
+  if(r.school.length<4)rem.push('📖 Reading log is light this week. 可以今晚做一個 quick reading entry。');
+  if(r.homework.length<1)rem.push('📚 今星期未有 homework upload。一張 worksheet 相已經足夠。');
+  if(r.moods.length<2)rem.push('😊 Mood data is low。用 Quick Emotion Tap 一兩次就可以。');
+  if(p.busyDay)rem.push(`🗓 Busy day noted: ${esc(p.busyDay)}。之後可以觀察該日後是否較易 tired / careless。`);
+  if(!rem.length)rem.push('✅ 今星期記錄幾平均，可以 generate weekly review。');
+  $('smartReminders').innerHTML=rem.map(w=>`<div class="reminder">${w}</div>`).join('');
+}
+function renderCompare(){
+  const r7=recordsInLast(7), r30=recordsInLast(30);
+  const prev=Math.max(0,r30.homework.length-r7.homework.length);
+  $('compareBox').textContent=`Last 7 days homework records: ${r7.homework.length}\nPrevious 3 weeks combined: ${prev}\nEmotion taps last 7 days: ${r7.moods.length}`;
+}
+function renderTimeline(){
+  const all=[...app.moods.map(x=>({...x,kind:'mood'})),...app.teacher.map(x=>({...x,kind:'teacher'})),...app.school.map(x=>({...x,kind:'school'})),...app.homework.map(x=>({...x,kind:'homework'}))].sort((a,b)=>b.id-a.id);
+  $('timelineList').innerHTML=all.length?all.map(x=>{
+    if(x.kind==='mood')return `<div class="entry"><div class="entrytop"><div><div class="date">${esc(x.date)}</div><b>Emotion Tap</b></div></div><p>${esc(x.mood)}</p></div>`;
+    if(x.kind==='teacher')return `<div class="entry"><div class="date">${esc(x.date)} · ${esc(x.type)}</div><b>Teacher Comment</b><p>${esc(x.text)}</p></div>`;
+    if(x.kind==='school')return `<div class="entry"><div class="date">${esc(x.date)} · ${esc(x.done)}</div><b>${esc(x.book||'School log')}</b><p>${esc(x.note)}</p></div>`;
+    return `<div class="entry"><div class="date">${esc(x.date)} · ${esc(x.type)}</div><b>Homework</b><p>${esc(x.note)}</p><div>${(x.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><div class="ai">${esc(x.ai||'')}</div></div>`;
+  }).join(''):'<p class="helper">No records yet.</p>';
+}
+function quickMood(mood){
+  app.moods.unshift({id:Date.now(),date:today(),mood});save();flash('moodSaved');capture('emotion_tap',{mood});
+}
+function saveProfile(){
+  app.profile={childName:$('childNameInput').value.trim(),yearLevel:$('childYearInput').value.trim(),focus:$('focusInput').value,busyDay:$('busyDayInput').value.trim()};
+  save();flash('savedProfile');capture('profile_saved',{focus:app.profile.focus});
+}
+function saveTeacher(){
+  app.teacher.unshift({id:Date.now(),date:$('teacherDate').value,type:$('teacherType').value,text:$('teacherText').value.trim()});
+  $('teacherText').value='';save();flash('savedTeacher');capture('teacher_saved');
+}
+function saveSchool(){
+  app.school.unshift({id:Date.now(),date:$('schoolDate').value,book:$('readingBook').value.trim(),done:$('readingDone').value,note:$('schoolNote').value.trim()});
+  $('schoolNote').value='';save();flash('savedSchool');capture('school_log_saved');
+}
+$('hwPhotos').addEventListener('change',async e=>{
+  imageDataList=[];
+  const files=[...e.target.files].slice(0,3);
+  for(const f of files) imageDataList.push(await fileToDataURL(f));
+  $('photoPreview').innerHTML=imageDataList.map(src=>`<img src="${src}">`).join('');
+  capture('homework_photos_selected',{count:imageDataList.length});
+});
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=1400;
+        let w=img.width,h=img.height;
+        if(w>h && w>max){h=Math.round(h*max/w);w=max;}
+        else if(h>=w && h>max){w=Math.round(w*max/h);h=max;}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.78));
+      };
+      img.onerror=()=>resolve(reader.result);
+      img.src=reader.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function analyzeHomework(){
+  $('aiErr').style.display='none';
+  if(!imageDataList.length){$('aiErr').textContent='請先上傳至少一張功課相。';$('aiErr').style.display='block';return}
+  const btn=$('previewBtn');btn.classList.add('loading');btn.textContent='AI analyzing... V11 正在讀圖，請等 10–25 秒';
+  try{
+    const r=await fetch('/.netlify/functions/analyze-homework',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+      images:imageDataList, note:$('hwNote').value, subject:$('hwType').value, status:$('hwStatus').value, child:app.profile
+    })});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||'AI analysis failed');
+    lastAIResult=data.analysis||'No analysis returned.';
+    $('hwAI').textContent=lastAIResult;
+    $('aiFollowupQuestion').style.display='block';
+    $('aiFollowupQuestion').innerHTML='🤖 Quick follow-up：<b>做功課時情緒如何？</b><div class="quickchips"><button class="quickchip" data-mood="🙂 Homework smooth">🙂 Smooth</button><button class="quickchip" data-mood="😫 Homework frustrated">😫 Frustrated</button><button class="quickchip" data-mood="😴 Homework tired">😴 Tired</button><button class="quickchip" data-mood="😭 Homework meltdown">😭 Meltdown</button></div>';
+    capture('ai_homework_analysis_success',{photos:imageDataList.length,subject:$('hwType').value});
+  }catch(err){
+    $('aiErr').textContent='AI error: '+err.message+'\n先打開 /.netlify/functions/debug-openai 檢查 API key；再用一張清晰 JPG 相測試。';
+    $('aiErr').style.display='block';
+    capture('ai_homework_analysis_error',{message:err.message});
+  }finally{
+    btn.classList.remove('loading');btn.textContent='🤖 Real AI Vision Preview';
+  }
+}
+function saveHomework(){
+  const note=$('hwNote').value.trim();
+  app.homework.unshift({id:Date.now(),date:$('hwDate').value,type:$('hwType').value,status:$('hwStatus').value,note,photos:imageDataList,ai:lastAIResult,tags:extractTags(note+' '+lastAIResult)});
+  save();flash('savedHomework');capture('homework_saved',{photos:imageDataList.length,hasAI:!!lastAIResult});
+}
+function extractTags(text){
+  const tags=[]; const t=text.toLowerCase();
+  if(/careless|太快|粗心|double/.test(t))tags.push('careless');
+  if(/concept|概念|唔明|understand/.test(t))tags.push('concept');
+  if(/main idea|reading|comprehension|理解/.test(t))tags.push('reading comprehension');
+  if(/tired|攰|fatigue/.test(t))tags.push('fatigue');
+  return [...new Set(tags)];
+}
+function generateWeeklyReview(){
+  const r=recordsInLast(7), moodText=r.moods.map(x=>x.mood).join(', ')||'no mood data';
+  const err={};r.homework.forEach(h=>(h.tags||[]).forEach(t=>err[t]=(err[t]||0)+1));
+  const topErr=Object.keys(err).sort((a,b)=>err[b]-err[a]).slice(0,3).map(k=>`${k} (${err[k]})`).join(', ')||'not enough error tags';
+  let out=`Weekly Review\n\nRecords this week: ${r.school.length} school daily, ${r.homework.length} homework, ${r.teacher.length} comments, ${r.moods.length} emotion taps.\n\nMood snapshot: ${moodText}.\nHomework pattern: ${topErr}.\n\nAI-style observation:\n`;
+  if(r.homework.length&&topErr!=='not enough error tags')out+='• Error tags are beginning to reveal patterns.\n';
+  if(r.school.length>=5)out+='• Reading / school routine appears consistent this week.\n';
+  if(r.moods.some(x=>/Tired|Frustrated|Meltdown/.test(x.mood)))out+='• Emotional fatigue/frustration appeared this week. Compare with activity days and homework timing.\n';
+  if(r.teacher.length)out+='• Teacher comments are available for longer-term comparison.\n';
+  out+='\nParent action:\n1. Keep input tiny: one photo, one tap or one voice note.\n2. Mark only the likely reason.\n3. Look for repeated patterns, not single-day performance.';
+  $('weeklyReview').textContent=out;$('analysisBox').textContent=out;capture('weekly_review_generated');
+}
+async function cloudSave(){
+  $('cloudStatus').textContent='Saving to cloud...';
+  try{
+    const r=await fetch('/.netlify/functions/cloud-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({app})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||'cloud save failed');
+    $('cloudStatus').textContent='✅ Cloud save request sent. '+(data.message||'');
+    capture('cloud_save_success');
+  }catch(e){
+    $('cloudStatus').textContent='⚠️ Cloud save not active yet: '+e.message+'\n本機儲存仍然正常。若要正式 cloud save，需要先在 Supabase 建立 table。';
+    capture('cloud_save_error',{message:e.message});
+  }
+}
+function exportBackup(){
+  const blob=new Blob([JSON.stringify(app,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='childgrowthai-backup.json';a.click();
+}
+function importBackup(){
+  const f=$('importFile').files[0]; if(!f)return alert('Please choose backup file');
+  const r=new FileReader();r.onload=()=>{try{app=JSON.parse(r.result);save();alert('Imported')}catch(e){alert('Invalid file')}};r.readAsText(f);
+}
+function clearAll(){if(confirm('Clear all local data?')){app={teacher:[],homework:[],school:[],moods:[],profile:{},errorTags:[]};save();}}
+function voiceFill(id){
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('此瀏覽器未支援語音輸入。iPhone 可用鍵盤咪高峰。');return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const rec=new SR();rec.lang='zh-HK';rec.interimResults=false;rec.onresult=e=>{$(id).value+=e.results[0][0].transcript};rec.start();
+}
+(async()=>{await loadConfig();load();capture('app_loaded',{version:'v11'});})();
+</script>
+</body>
+</html>
