@@ -702,6 +702,149 @@ label{display:block!important}
   overflow:auto;
 }
 
+
+/* V28 Layout + Today Plan */
+
+/* Compact app header: hide version from main UI */
+header{
+  padding:calc(8px + env(safe-area-inset-top)) 16px 10px!important;
+  min-height:auto!important;
+  text-align:left!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+}
+header h1{
+  font-size:22px!important;
+  line-height:1.1!important;
+  margin:0!important;
+  letter-spacing:-.04em!important;
+  white-space:nowrap!important;
+}
+header .subtitle{
+  display:none!important;
+}
+header .profileline{
+  font-size:12px!important;
+  margin:0!important;
+  max-width:42vw!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#64748b!important;
+}
+body.v28-subpage header h1{
+  font-size:20px!important;
+}
+body.v28-subpage header .profileline{
+  display:none!important;
+}
+
+/* Hide version/debug banners in customer UI */
+.v28-version-hide{
+  display:none!important;
+}
+
+/* Improve top spacing after compact header */
+main{
+  padding-top:10px!important;
+}
+
+/* Today's plan card */
+.v28-plan-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:28px;
+  padding:18px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+}
+.v28-plan-card h2{
+  font-size:26px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v28-muted{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.45;
+}
+.v28-plan-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.v28-plan-grid .full{
+  grid-column:1/-1;
+}
+.v28-task-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:12px;
+}
+.v28-task-row{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.v28-task-row b{
+  color:#0f172a;
+}
+.v28-task-row small{
+  color:#64748b;
+  font-weight:800;
+}
+.v28-delete{
+  border:0!important;
+  background:#fee2e2!important;
+  color:#991b1b!important;
+  border-radius:999px!important;
+  padding:7px 10px!important;
+  font-weight:900!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v28-mini-btn{
+  width:auto!important;
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:10px 13px!important;
+  font-weight:900!important;
+  margin:6px 6px 0 0!important;
+}
+.v28-primary-mini{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+.v28-ai-note{
+  background:#ecfeff;
+  border:1px solid #a5f3fc;
+  color:#155e75;
+  border-radius:18px;
+  padding:12px;
+  font-weight:850;
+  line-height:1.45;
+  margin-top:12px;
+}
+@media(max-width:430px){
+  header h1{font-size:20px!important}
+  header .profileline{font-size:11px!important;max-width:38vw!important}
+  .v28-plan-card{border-radius:24px;padding:16px}
+  .v28-plan-card h2{font-size:23px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -728,7 +871,7 @@ label{display:block!important}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v27 Weekly Report + Cloud Polish · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v28 Layout + Today Plan · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -736,7 +879,7 @@ label{display:block!important}
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v27 Weekly Report + Cloud Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v28 Layout + Today Plan 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -2256,6 +2399,150 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(run,900);
   setTimeout(run,1800);
   setInterval(()=>{renderV26Analysis()},3500);
+})();
+</script>
+<script>
+(function(){
+  function $(id){return document.getElementById(id)}
+  function todayKey(){return new Date().toISOString().slice(0,10)}
+  function dayName(){return new Date().toLocaleDateString('en-AU',{weekday:'long'})}
+
+  function loadTasks(){
+    try{
+      const all=JSON.parse(localStorage.getItem('cg_v28_today_tasks')||'{}');
+      return all[todayKey()]||[];
+    }catch(e){return[]}
+  }
+  function saveTasks(list){
+    let all={};
+    try{all=JSON.parse(localStorage.getItem('cg_v28_today_tasks')||'{}')}catch(e){}
+    all[todayKey()]=list.slice(-20);
+    localStorage.setItem('cg_v28_today_tasks',JSON.stringify(all));
+  }
+  window.v28AddTask=function(name,time,note){
+    name = name || (($('v28TaskName')||{}).value||'').trim();
+    time = time || (($('v28TaskTime')||{}).value||'').trim();
+    note = note || (($('v28TaskNote')||{}).value||'').trim();
+    if(!name){alert('請先輸入今日任務，例如 Piano practice');return}
+    const list=loadTasks();
+    list.push({id:Date.now(),name,time,note});
+    saveTasks(list);
+    ['v28TaskName','v28TaskTime','v28TaskNote'].forEach(id=>{const el=$(id);if(el)el.value=''});
+    renderTodayPlan();
+    if(typeof capture==='function')capture('v28_today_task_added',{name});
+  };
+  window.v28DeleteTask=function(id){
+    saveTasks(loadTasks().filter(x=>String(x.id)!==String(id)));
+    renderTodayPlan();
+  };
+
+  function todayCustomActivities(){
+    try{
+      const list=JSON.parse(localStorage.getItem('cg_v24_custom_activities')||'[]');
+      return list.filter(x=>x.day===dayName());
+    }catch(e){return[]}
+  }
+
+  function taskInsight(){
+    const tasks=loadTasks();
+    const names=tasks.map(x=>(x.name||'').toLowerCase()).join(' ');
+    if(/piano|琴|練琴/.test(names)){
+      return '今日已加入練琴；建議安排短時間高質練習，例如 10–15 分鐘，再做 reading log。';
+    }
+    if(tasks.length){
+      return '今日已有自訂任務；建議只保留 1–2 個最重要 focus，避免行程太滿。';
+    }
+    return '如果今晚想加練琴、閱讀或溫習，可以在這裡加入今日任務。';
+  }
+
+  function renderTodayPlan(){
+    const home=$('home');
+    if(!home) return;
+    let card=$('v28TodayPlanCard');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v28TodayPlanCard';
+      card.className='v28-plan-card';
+      const planner=$('v18TodayPlanner');
+      if(planner && planner.parentNode) planner.parentNode.insertBefore(card, planner.nextSibling);
+      else home.insertBefore(card, home.firstChild);
+    }
+    const tasks=loadTasks();
+    const acts=todayCustomActivities();
+    card.innerHTML=`
+      <h2>🎯 今日任務 / Today Plan</h2>
+      <div class="v28-muted">用嚟加一日限定嘅安排，例如今晚練琴、閱讀、溫習 spelling。固定課外活動可以放喺「我的」自訂活動。</div>
+      <div class="v28-ai-note">🤖 Parent Insight：${taskInsight()}</div>
+
+      <div class="v28-plan-grid">
+        <div class="full">
+          <label>今日任務</label>
+          <input id="v28TaskName" placeholder="例：Piano practice / Reading log / Spelling">
+        </div>
+        <div>
+          <label>時間</label>
+          <input id="v28TaskTime" placeholder="例：6:30 PM">
+        </div>
+        <div>
+          <label>備註</label>
+          <input id="v28TaskNote" placeholder="例：10分鐘、先慢練">
+        </div>
+      </div>
+      <button class="v28-mini-btn v28-primary-mini" onclick="v28AddTask()">➕ 加入今日任務</button>
+      <button class="v28-mini-btn" onclick="v28AddTask('🎹 Piano practice','6:30 PM','10–15分鐘，慢練一小段')">🎹 快速加練琴</button>
+      <button class="v28-mini-btn" onclick="v28AddTask('📚 Reading log','7:00 PM','讀一本書並記錄')">📚 快速加 Reading</button>
+
+      <div class="v28-task-list">
+        ${tasks.length?tasks.map(x=>`
+          <div class="v28-task-row">
+            <div><b>${x.time?x.time+' · ':''}${x.name}</b><br><small>${x.note||''}</small></div>
+            <button class="v28-delete" onclick="v28DeleteTask('${x.id}')">刪除</button>
+          </div>
+        `).join(''):'<div class="v28-task-row"><div><b>未有今日自訂任務</b><br><small>可以加練琴、閱讀、溫習或其他家庭安排。</small></div></div>'}
+      </div>
+
+      ${acts.length?`<div class="v28-ai-note">🗓️ 今日固定自訂活動：${acts.map(a=>(a.time?a.time+' · ':'')+a.name).join('、')}</div>`:''}
+    `;
+  }
+
+  function updateHeader(tab){
+    const h=document.querySelector('header h1');
+    const sub=document.querySelector('header .subtitle');
+    const line=document.querySelector('header .profileline');
+    if(!h) return;
+    const titles={home:'🌸 ChildGrowth AI',record:'🎤 記錄',school:'🏫 學校',homework:'📚 功課',analysis:'🤖 分析',timeline:'📖 時間線',profile:'👤 我的'};
+    const active=tab || (document.querySelector('.section.active')||{}).id || 'home';
+    h.textContent=titles[active]||'ChildGrowth AI';
+    document.body.classList.toggle('v28-subpage', active!=='home');
+    if(sub) sub.style.display='none';
+    if(line){
+      line.style.display= active==='home' ? '' : 'none';
+      if(active==='home' && (!line.textContent || line.textContent==='Your child')) line.textContent='Janice · Year 2';
+    }
+  }
+
+  function hideVersionNotices(){
+    document.querySelectorAll('.notice,.v27-cloud-info,.v27-cloud-warn,.v27-cloud-ok').forEach(el=>{
+      const t=(el.innerText||'');
+      if(/v\d+ .*已接入|Environment Variables 設定好/.test(t)){
+        el.classList.add('v28-version-hide');
+      }
+    });
+  }
+
+  // Wrap original go so header changes on every tab.
+  const oldGo=window.go;
+  if(typeof oldGo==='function'){
+    window.go=function(tab){
+      oldGo(tab);
+      setTimeout(()=>{updateHeader(tab);hideVersionNotices();renderTodayPlan();},50);
+    };
+  }
+
+  // Re-render home today plan after existing V18 planner renders.
+  setTimeout(()=>{updateHeader();hideVersionNotices();renderTodayPlan();},900);
+  setTimeout(()=>{updateHeader();hideVersionNotices();renderTodayPlan();},1800);
+  setInterval(()=>{hideVersionNotices();},3000);
 })();
 </script>
 </body>
