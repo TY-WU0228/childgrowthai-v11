@@ -244,13 +244,13 @@ button:active{transform:translateY(1px)}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v15 UX + Voice Polish · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v16 Parent Intelligence Platform · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v15 UX + Voice Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v16 Parent Intelligence Platform 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -389,6 +389,28 @@ button:active{transform:translateY(1px)}
 
 
 <div id="v14ParentDashboard"></div>
+
+<section class="card">
+  <h2>🌏 Language / 語言</h2>
+  <select id="languageSelect">
+    <option value="hk">繁體中文（香港家長版）</option>
+    <option value="cn">简体中文（普通话版）</option>
+    <option value="en">English</option>
+  </select>
+  <p class="v14-muted">AI 會根據你選擇的語言，用不同家長語氣回覆。</p>
+</section>
+
+<section class="card">
+  <h2>🧠 Weekly Parent Insight</h2>
+  <div class="v14-reportbox">
+    Janice 今星期整體狀態穩定，數學推理開始有進步。
+
+    閱讀理解方面，對 all / most / some 呢類字眼有時會太快作答。
+
+    建議做題時先圈出關鍵字，再慢一步確認答案。
+  </div>
+</section>
+
 <section id="v12ParentDashboard" style="display:none"></section>
 
 <section class="card">
@@ -920,5 +942,35 @@ function v15EnhanceVoiceUI(){
 setTimeout(v15EnhanceVoiceUI,600);
 document.addEventListener('click',()=>setTimeout(v15EnhanceVoiceUI,150));
 </script>
+
+<script>
+window.childGrowthLanguage = localStorage.getItem('cg_lang') || 'hk';
+
+function v16ApplyLanguage(lang){
+  window.childGrowthLanguage = lang;
+  localStorage.setItem('cg_lang', lang);
+
+  const note = document.querySelector('.v14-reportbox');
+  if(!note) return;
+
+  if(lang==='hk'){
+    note.innerHTML = `Janice 今星期整體狀態穩定，數學推理開始有進步。<br><br>閱讀理解方面，對 all / most / some 呢類字眼有時會太快作答。<br><br>建議做題時先圈出關鍵字，再慢一步確認答案。`;
+  }else if(lang==='cn'){
+    note.innerHTML = `Janice 本周整体状态比较稳定，数学推理能力开始提升。<br><br>阅读理解方面，遇到 all / most / some 等词语时，偶尔会过快作答。<br><br>建议先圈出关键词，再确认答案。`;
+  }else{
+    note.innerHTML = `Janice showed a more stable learning pattern this week, with improving maths reasoning confidence.<br><br>Reading comprehension is improving, although she may rush through all / most / some style questions.<br><br>Encourage her to highlight keywords before answering.`;
+  }
+}
+
+setTimeout(()=>{
+  const select = document.getElementById('languageSelect');
+  if(select){
+    select.value = window.childGrowthLanguage;
+    v16ApplyLanguage(select.value);
+    select.addEventListener('change', e=>v16ApplyLanguage(e.target.value));
+  }
+},500);
+</script>
+
 </body>
 </html>
