@@ -623,6 +623,85 @@ label{display:block!important}
   .v26-card h2{font-size:24px}
 }
 
+
+/* V27 Weekly Report + Cloud Polish */
+.v27-report{
+  background:#ffffff;
+  border:1px solid #dbeafe;
+  border-radius:22px;
+  padding:16px;
+  line-height:1.55;
+  color:#0f172a;
+  font-weight:800;
+}
+.v27-report h3{
+  font-size:22px;
+  margin:0 0 10px;
+  letter-spacing:-.03em;
+}
+.v27-section{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+  margin:10px 0;
+}
+.v27-section b{color:#1e3a8a}
+.v27-pill-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.v27-pill{
+  background:#eef2ff;
+  color:#3730a3;
+  border:1px solid #dbeafe;
+  border-radius:999px;
+  padding:7px 10px;
+  font-size:12px;
+  font-weight:900;
+}
+.v27-low{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+.v27-good{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+.v27-cloud-ok{
+  background:#ecfdf5;
+  border:1px solid #bbf7d0;
+  color:#166534;
+  border-radius:20px;
+  padding:14px;
+  font-weight:850;
+  line-height:1.5;
+}
+.v27-cloud-warn{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:20px;
+  padding:14px;
+  font-weight:850;
+  line-height:1.5;
+}
+.v27-cloud-info{
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1e3a8a;
+  border-radius:20px;
+  padding:14px;
+  font-weight:850;
+  line-height:1.5;
+}
+.v27-tech{
+  margin-top:10px;
+  font-size:12px;
+  color:#475569;
+}
+.v27-tech pre{
+  white-space:pre-wrap;
+  word-break:break-word;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:10px;
+  max-height:180px;
+  overflow:auto;
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -649,7 +728,7 @@ label{display:block!important}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v26 Bug Fix + UX Polish · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v27 Weekly Report + Cloud Polish · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -657,7 +736,7 @@ label{display:block!important}
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v26 Bug Fix + UX Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v27 Weekly Report + Cloud Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -1113,28 +1192,106 @@ function extractTags(text){
   return [...new Set(tags)];
 }
 function generateWeeklyReview(){
-  const r=recordsInLast(7), moodText=r.moods.map(x=>x.mood).join(', ')||'no mood data';
-  const err={};r.homework.forEach(h=>(h.tags||[]).forEach(t=>err[t]=(err[t]||0)+1));
-  const topErr=Object.keys(err).sort((a,b)=>err[b]-err[a]).slice(0,3).map(k=>`${k} (${err[k]})`).join(', ')||'not enough error tags';
-  let out=`Weekly Review\n\nRecords this week: ${r.school.length} school daily, ${r.homework.length} homework, ${r.teacher.length} comments, ${r.moods.length} emotion taps.\n\nMood snapshot: ${moodText}.\nHomework pattern: ${topErr}.\n\nAI-style observation:\n`;
-  if(r.homework.length&&topErr!=='not enough error tags')out+='• Error tags are beginning to reveal patterns.\n';
-  if(r.school.length>=5)out+='• Reading / school routine appears consistent this week.\n';
-  if(r.moods.some(x=>/Tired|Frustrated|Meltdown/.test(x.mood)))out+='• Emotional fatigue/frustration appeared this week. Compare with activity days and homework timing.\n';
-  if(r.teacher.length)out+='• Teacher comments are available for longer-term comparison.\n';
-  out+='\nParent action:\n1. Keep input tiny: one photo, one tap or one voice note.\n2. Mark only the likely reason.\n3. Look for repeated patterns, not single-day performance.';
-  $('weeklyReview').textContent=out;$('analysisBox').textContent=out;capture('weekly_review_generated');
+  const r=recordsInLast(7);
+
+  // Use one mood per day to avoid repeated tap noise
+  const moodByDay={};
+  (r.moods||[]).forEach(m=>{
+    const d=m.date || String(m.createdAt||'').slice(0,10) || 'unknown';
+    if(!moodByDay[d]) moodByDay[d]=m.mood || m.emotion || 'Recorded';
+  });
+  const uniqueMoods=Object.values(moodByDay);
+  const moodCounts={};
+  uniqueMoods.forEach(m=>moodCounts[m]=(moodCounts[m]||0)+1);
+  const moodSummary=Object.keys(moodCounts).length
+    ? Object.entries(moodCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} × ${v}`).join('、')
+    : '暫時未有足夠情緒資料';
+
+  const err={};
+  (r.homework||[]).forEach(h=>(h.tags||[]).forEach(t=>err[t]=(err[t]||0)+1));
+  const topTags=Object.entries(err).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const tagText=topTags.length ? topTags.map(([k,v])=>`${k} × ${v}`).join('、') : '暫時未見穩定錯因 pattern';
+
+  const total=(r.school||[]).length+(r.homework||[]).length+(r.teacher||[]).length+uniqueMoods.length;
+  const confidence = total>=8 ? '較可靠' : total>=4 ? '初步可參考' : '資料仍偏少';
+  const confidenceClass = total>=8 ? 'v27-good' : 'v27-low';
+
+  const homeworkLine = r.homework.length
+    ? `本週有 ${r.homework.length} 份功課分析。暫時見到的重點是：${tagText}。`
+    : '本週未有功課分析；如果想出更準的學習建議，建議先 upload 1–2 份功課。';
+
+  const emotionLine = uniqueMoods.length
+    ? `本週每日情緒概況：${moodSummary}。這裏已用「每日一次」方式整理，避免重複 tap 影響判斷。`
+    : '暫時未有足夠情緒記錄；建議每日只記錄一次最接近的狀態。';
+
+  const teacherLine = r.teacher.length
+    ? `本週有 ${r.teacher.length} 條老師 / 課堂觀察，可用來對照功課和情緒。`
+    : '本週未有老師 comment；如果老師有一句簡短觀察，貼入 app 會令 weekly report 更有用。';
+
+  const nextActions=[];
+  if(topTags.some(([k])=>/careless|粗心/.test(k))) nextActions.push('數學做完後加一個「慢 30 秒檢查」步驟。');
+  if(topTags.some(([k])=>/reading|comprehension|理解/.test(k))) nextActions.push('英文閱讀先圈題目 keyword，再返文章搵證據。');
+  if(uniqueMoods.some(m=>/Tired|Frustrated|Meltdown|frustrated|tired/i.test(m))) nextActions.push('有活動日先減少額外 worksheet，重點放在完成感。');
+  if(!nextActions.length) nextActions.push('下星期先保持每日一個小記錄：一張功課相 / 一個 emotion / 一句老師 comment。');
+
+  const html=`<div class="v27-report">
+    <h3>📅 Weekly Parent Review</h3>
+    <div class="v27-pill-row">
+      <span class="v27-pill ${confidenceClass}">資料可信度：${confidence}</span>
+      <span class="v27-pill">功課 ${r.homework.length}</span>
+      <span class="v27-pill">老師 ${r.teacher.length}</span>
+      <span class="v27-pill">情緒日數 ${uniqueMoods.length}</span>
+    </div>
+
+    <div class="v27-section"><b>🌟 本週一句總結</b><br>
+      ${total<4 ? '目前資料仍偏少，report 只適合作為初步觀察。' : '本週已開始見到一些學習和情緒線索，可以用來安排下星期的細小跟進。'}
+    </div>
+
+    <div class="v27-section"><b>📚 學習觀察</b><br>${homeworkLine}</div>
+    <div class="v27-section"><b>😊 情緒 / 精力觀察</b><br>${emotionLine}</div>
+    <div class="v27-section"><b>👩‍🏫 老師 / 課堂資料</b><br>${teacherLine}</div>
+
+    <div class="v27-section"><b>🎯 下星期 3 個小行動</b><br>
+      ${nextActions.slice(0,3).map((x,i)=>`${i+1}. ${x}`).join('<br>')}
+    </div>
+
+    <div class="v27-section"><b>💬 給家長一句提醒</b><br>
+      唔需要一次記錄好多；穩定、少量、真實的資料，會比大量重複 tap 更有價值。
+    </div>
+  </div>`;
+
+  $('weeklyReview').innerHTML=html;
+  $('analysisBox').innerHTML=html;
+  capture('weekly_review_generated_v27',{confidence,total});
 }
 async function cloudSave(){
-  $('cloudStatus').textContent='Saving to cloud...';
+  const status=$('cloudStatus');
+  status.innerHTML='<div class="v27-cloud-info">☁️ 正在測試 Cloud Save...</div>';
   try{
     const r=await fetch('/.netlify/functions/cloud-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({app})});
-    const data=await r.json();
-    if(!r.ok)throw new Error(data.error||'cloud save failed');
-    $('cloudStatus').textContent='✅ Cloud save request sent. '+(data.message||'');
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){
+      const err=new Error(data.message||data.error||'cloud save failed');
+      err.data=data;
+      throw err;
+    }
+    status.innerHTML=`<div class="v27-cloud-ok">✅ Cloud Save 已啟用。<br>${data.message||'已成功儲存到 Supabase。'}${data.mode?`<br>模式：${data.mode}`:''}</div>`;
     capture('cloud_save_success');
   }catch(e){
-    $('cloudStatus').textContent='⚠️ Cloud save not active yet: '+e.message+'\n本機儲存仍然正常。若要正式 cloud save，需要先在 Supabase 建立 table。';
-    capture('cloud_save_error',{message:e.message});
+    const data=e.data||{};
+    const raw=String(data.technical||data.error||e.message||'');
+    let friendly='Cloud save 暫未啟用，但本機儲存仍然正常。';
+    let next='稍後我可以 step by step 教你建立 Supabase table。';
+    if(data.code==='TABLE_MISSING' || /family_records|PGRST205|schema cache/i.test(raw)){
+      friendly='Supabase 已連到，但未搵到 family_records table。';
+      next='下一步：去 Supabase SQL Editor 建立 family_records table。';
+    }else if(/SUPABASE_URL|SUPABASE_ANON_KEY|missing/i.test(raw)){
+      friendly='Netlify Environment Variables 仍未完整。';
+      next='下一步：檢查 SUPABASE_URL / SUPABASE_ANON_KEY。';
+    }
+    status.innerHTML=`<div class="v27-cloud-warn">⚠️ ${friendly}<br>${next}<br><br>✅ 目前資料仍會保存在手機 / browser 本機。</div>
+      <details class="v27-tech"><summary>Technical details</summary><pre>${raw.replace(/[<>&]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[m]))}</pre></details>`;
+    capture('cloud_save_error',{message:e.message,code:data.code||''});
   }
 }
 function exportBackup(){

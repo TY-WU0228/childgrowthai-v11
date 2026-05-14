@@ -1,0 +1,17 @@
+Safer Cloud Save mode notes
+
+Simple MVP mode:
+- Uses SUPABASE_ANON_KEY in the Netlify function.
+- Requires an anon insert policy on family_records.
+- Easiest for testing.
+
+Safer server mode:
+- Add SUPABASE_SERVICE_ROLE_KEY to Netlify Environment Variables.
+- The updated cloud-save function will automatically use it if present.
+- In this mode, the server can insert without exposing service role key to the browser.
+- For real production with child data, the next step should be user login/auth and per-family permissions.
+
+Recommended order:
+1. First create family_records table using SUPABASE_SETUP_MVP.sql so the app works.
+2. After it works, add SUPABASE_SERVICE_ROLE_KEY to Netlify.
+3. Later add login/auth before real public launch.
