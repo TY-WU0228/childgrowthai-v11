@@ -336,27 +336,41 @@ button:active{transform:translateY(1px)}
 }
 
 
-/* V20 Production Build */
+/* V21 Professional Information Architecture Fix */
 body{background:linear-gradient(180deg,#f8fbff,#f3f6fb)!important;padding-bottom:96px!important}
-.v20-hide{display:none!important}
-.v20-command{background:linear-gradient(135deg,#eef2ff,#fdf2f8);border:1px solid #dbeafe;border-radius:30px;padding:22px;margin:16px auto;box-shadow:0 18px 50px rgba(15,23,42,.08);max-width:820px}
-.v20-command h2{margin:0 0 8px;font-size:30px;letter-spacing:-.04em;color:#0f172a}
-.v20-muted{color:#64748b;font-weight:800;line-height:1.45}
-.v20-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.v20-stat{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:15px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
-.v20-stat b{display:block;font-size:27px;color:#db2777}
-.v20-stat span{font-size:13px;color:#64748b;font-weight:900}
-.v20-alert{margin-top:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:22px;padding:14px;font-weight:850;line-height:1.5}
-.v20-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.v20-chip{border:1px solid #dbeafe!important;background:#fff!important;color:#1d4ed8!important;border-radius:999px!important;padding:10px 14px!important;font-weight:900!important;font-size:14px!important;min-height:42px!important;text-decoration:none!important}
-.v20-toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(18px);background:#0f172a;color:white;padding:13px 16px;border-radius:999px;box-shadow:0 15px 35px rgba(15,23,42,.28);z-index:10000;opacity:0;pointer-events:none;transition:all .25s ease;font-weight:900;max-width:88vw;text-align:center}
-.v20-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-nav,.bottom-nav,.tabbar{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
-nav *,.bottom-nav *,.tabbar *{writing-mode:horizontal-tb!important;word-break:keep-all!important;white-space:nowrap!important}
-nav span,nav div,nav button,nav a,.bottom-nav span,.bottom-nav div,.bottom-nav button,.bottom-nav a,.tabbar span,.tabbar div,.tabbar button,.tabbar a{line-height:1.15!important}
-nav button,nav a,.bottom-nav button,.bottom-nav a,.tabbar button,.tabbar a{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
-nav{font-size:12px!important}
-@media(max-width:480px){.v20-command{margin:12px 10px;padding:18px;border-radius:24px}.v20-command h2{font-size:25px}.v20-grid{grid-template-columns:1fr 1fr}nav,.bottom-nav,.tabbar{font-size:11px!important}}
+.v21-hidden{display:none!important}
+.v21-app{max-width:860px;margin:0 auto;padding:10px 12px 110px}
+.v21-page{display:none}
+.v21-page.active{display:block}
+.v21-card{background:rgba(255,255,255,.96);border:1px solid #e5e7eb;border-radius:28px;padding:20px;margin:14px 0;box-shadow:0 16px 45px rgba(15,23,42,.07);overflow:hidden}
+.v21-card h2{font-size:28px;margin:0 0 10px;letter-spacing:-.04em;color:#0f172a}
+.v21-muted{color:#64748b;font-weight:800;line-height:1.45}
+.v21-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.v21-stat{background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:15px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+.v21-stat b{display:block;font-size:27px;color:#db2777}
+.v21-stat span{font-size:13px;color:#64748b;font-weight:900}
+.v21-alert{margin-top:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:22px;padding:14px;font-weight:850;line-height:1.5}
+.v21-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.v21-btn{border:1px solid #dbeafe!important;background:#fff!important;color:#1d4ed8!important;border-radius:999px!important;padding:10px 14px!important;font-weight:900!important;font-size:14px!important;min-height:42px!important;text-decoration:none!important}
+.v21-primary{background:linear-gradient(135deg,#2563eb,#7c3aed)!important;color:#fff!important;border:none!important}
+.v21-empty{background:#f8fafc;border:1px dashed #cbd5e1;color:#64748b;border-radius:22px;padding:18px;font-weight:800;line-height:1.5}
+.v21-toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(18px);background:#0f172a;color:white;padding:13px 16px;border-radius:999px;box-shadow:0 15px 35px rgba(15,23,42,.28);z-index:10000;opacity:0;pointer-events:none;transition:all .25s ease;font-weight:900;max-width:88vw;text-align:center}
+.v21-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.v21-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-top:1px solid rgba(226,232,240,.95);box-shadow:0 -14px 34px rgba(15,23,42,.08)}
+.v21-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;border-radius:20px;padding:8px 2px;color:#64748b;font-weight:900;text-decoration:none;border:none;background:transparent}
+.v21-tab .v21-icon{font-size:21px;line-height:1}
+.v21-tab .v21-label{font-size:12px;line-height:1;white-space:nowrap!important;writing-mode:horizontal-tb!important;word-break:keep-all!important;overflow:visible!important;text-overflow:clip!important;max-width:100%}
+.v21-tab.active{background:#eef2ff;color:#3730a3;box-shadow:inset 0 0 0 1px #dbeafe}
+/* hide original navigation and repeated old page wrappers */
+nav:not(.v21-tabbar),.bottom-nav:not(.v21-tabbar),.tabbar:not(.v21-tabbar){display:none!important}
+.v15-note{display:none!important}
+.v21-source-bank{display:none!important}
+@media(max-width:430px){
+  .v21-app{padding:8px 10px 106px}
+  .v21-card{border-radius:24px;padding:17px}
+  .v21-card h2{font-size:24px}
+  .v21-tab .v21-label{font-size:11px}
+}
 
 </style>
 
@@ -384,16 +398,15 @@ nav{font-size:12px!important}
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v20 Production Build · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v21 Professional IA Fix · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
-<div id="v20CommandCenter"></div>
 <div id="v18TodayPlanner"></div>
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v20 Production Build 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v21 Professional IA Fix 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -1304,17 +1317,104 @@ function v18RenderTodayPlanner(){
 setTimeout(v18RenderTodayPlanner,600);
 </script>
 <script>
-function v20Records(){try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch(e){return[]}}
-function v20Save(r){localStorage.setItem('childgrowth_records',JSON.stringify(r.slice(-150)))}
-function v20Today(){return new Date().toISOString().slice(0,10)}
-function v20Toast(msg){let e=document.getElementById('v20Toast');if(!e){e=document.createElement('div');e.id='v20Toast';e.className='v20-toast';document.body.appendChild(e)}e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1900)}
-function v20Emotion(emotion){let today=v20Today(),r=v20Records();let i=r.findIndex(x=>x.type==='emotion'&&(x.createdAt||'').slice(0,10)===today&&x.scope!=='homework');if(i>=0){r[i].emotion=emotion;r[i].scope='daily';r[i].updatedAt=new Date().toISOString();v20Toast('✅ 已更新今日情緒：'+emotion)}else{r.push({id:Date.now(),type:'emotion',scope:'daily',emotion:emotion,createdAt:new Date().toISOString()});v20Toast('✅ 已記錄今日情緒：'+emotion)}v20Save(r);if(navigator.vibrate)try{navigator.vibrate(35)}catch(e){};if(typeof capture==='function')capture('v20_daily_emotion_saved',{emotion});v20Render()}
-function v20Schedule(){let d=new Date().getDay();let m={2:[['3:30 PM','💻 Minecraft Coding','放學後 coding class']],4:[['4:30 PM','⚽ Soccer','記得帶水樽同運動鞋'],['6:00 PM','🏊 Swimming','活動較多，今晚功課建議早啲開始']],5:[['4:30 PM','♟️ Chess','放學後 chess class']],6:[['3:30 PM','🎹 Piano + Art','30分鐘 piano + 1.5 小時 art']],0:[['9:00 AM','📚 Chinese Class','中文閱讀 / 寫字']]};return m[d]||[]}
-function v20Render(){let el=document.getElementById('v20CommandCenter');if(!el)return;let r=v20Records(),today=v20Today(),latest=[...r].reverse().find(x=>x.type==='emotion'),todayR=r.filter(x=>(x.createdAt||'').slice(0,10)===today),hw=r.filter(x=>x.type==='homework').length,tc=r.filter(x=>x.type==='teacher_comment').length,sch=v20Schedule(),date=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});let insight=sch.length>=2?'今日活動較多，建議先完成閱讀類 homework，再安排沖涼和休息。':'今日活動不算太多，可以安排閱讀或輕鬆 homework。';el.innerHTML=`<section class="v20-command"><h2>🌸 AI Command Center</h2><div class="v20-muted">${date} · Janice · Year 2</div><div class="v20-grid"><div class="v20-stat"><b>${latest?latest.emotion:'—'}</b><span>最近情緒</span></div><div class="v20-stat"><b>${todayR.length}</b><span>今日記錄</span></div><div class="v20-stat"><b>${hw}</b><span>功課分析</span></div><div class="v20-stat"><b>${tc}</b><span>老師 Comment</span></div></div><div class="v20-alert">🤖 Quick Insight：${insight}</div><div class="v20-actions"><button class="v20-chip" onclick="v20Emotion('🙂 Normal')">🙂 記錄情緒</button><button class="v20-chip" onclick="v20GoTab('功課')">📚 Upload 功課</button><button class="v20-chip" onclick="v20GoTab('記錄')">👩‍🏫 老師 Comment</button></div></section>`}
-function v20GoTab(k){let all=[...document.querySelectorAll('button,a,div,span')];let hit=all.find(x=>(x.innerText||'').trim()===k || (x.innerText||'').trim().includes(k));if(hit)hit.click()}
-function v20Clean(){document.querySelectorAll('section.card,.card,section,div').forEach(sec=>{let t=(sec.innerText||'').trim();if(!t)return;if(t.includes('V15 已優化手機版面')||t.includes('v20 Production Build 已接入 Real AI Vision 後端'))sec.classList.add('v20-hide');if(t.includes('Language / 語言')&&!t.includes('Profile')&&!t.includes('我的'))sec.classList.add('v20-hide');if(t.includes('今日 Dashboard')&&t.includes('老師評語')&&t.includes('功課記錄'))sec.classList.add('v20-hide')})}
-document.addEventListener('click',function(e){let m=e.target.closest&&e.target.closest('[data-mood]');if(m){e.preventDefault();e.stopPropagation();v20Emotion(m.dataset.mood||m.innerText.trim());return false}let t=(e.target&&e.target.innerText||'').trim();let arr=['🙂 Normal','😫 Frustrated','😴 Tired','😭 Meltdown','✨ Confident','Normal','Frustrated','Tired','Meltdown','Confident'];if(arr.includes(t)){e.preventDefault();e.stopPropagation();v20Emotion(t);return false}},true);
-setTimeout(()=>{v20Render();v20Clean()},700);setInterval(v20Clean,1600);
+(function(){
+  const V21 = {};
+  V21.records = function(){try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch(e){return[]}};
+  V21.save = function(r){localStorage.setItem('childgrowth_records',JSON.stringify(r.slice(-150)))};
+  V21.today = function(){return new Date().toISOString().slice(0,10)};
+  V21.toast = function(msg){
+    let e=document.getElementById('v21Toast');
+    if(!e){e=document.createElement('div');e.id='v21Toast';e.className='v21-toast';document.body.appendChild(e)}
+    e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1900);
+  };
+  V21.emotion = function(emotion){
+    let today=V21.today(),r=V21.records();
+    let i=r.findIndex(x=>x.type==='emotion'&&(x.createdAt||'').slice(0,10)===today&&x.scope!=='homework');
+    if(i>=0){r[i].emotion=emotion;r[i].scope='daily';r[i].updatedAt=new Date().toISOString();V21.toast('✅ 已更新今日情緒：'+emotion)}
+    else{r.push({id:Date.now(),type:'emotion',scope:'daily',emotion:emotion,createdAt:new Date().toISOString()});V21.toast('✅ 已記錄今日情緒：'+emotion)}
+    V21.save(r); if(navigator.vibrate)try{navigator.vibrate(35)}catch(e){};
+    V21.renderHome();
+  };
+  V21.schedule = function(){
+    let d=new Date().getDay();
+    let m={2:[['3:30 PM','💻 Minecraft Coding','放學後 coding class']],4:[['4:30 PM','⚽ Soccer','記得帶水樽同運動鞋'],['6:00 PM','🏊 Swimming','活動較多，今晚功課建議早啲開始']],5:[['4:30 PM','♟️ Chess','放學後 chess class']],6:[['3:30 PM','🎹 Piano + Art','30分鐘 piano + 1.5 小時 art']],0:[['9:00 AM','📚 Chinese Class','中文閱讀 / 寫字']]};
+    return m[d]||[];
+  };
+  V21.renderHome = function(){
+    let el=document.getElementById('v21-home-overview'); if(!el)return;
+    let r=V21.records(),today=V21.today();
+    let latest=[...r].reverse().find(x=>x.type==='emotion');
+    let todayR=r.filter(x=>(x.createdAt||'').slice(0,10)===today);
+    let hw=r.filter(x=>x.type==='homework').length;
+    let tc=r.filter(x=>x.type==='teacher_comment').length;
+    let sch=V21.schedule();
+    let date=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});
+    let insight=sch.length>=2?'今日活動較多，建議先完成閱讀類 homework，再安排沖涼和休息。':'今日活動不算太多，可以安排閱讀或輕鬆 homework。';
+    el.innerHTML=`<div class="v21-card"><h2>🌸 今日 Overview</h2><div class="v21-muted">${date} · Janice · Year 2</div><div class="v21-grid"><div class="v21-stat"><b>${latest?latest.emotion:'—'}</b><span>最近情緒</span></div><div class="v21-stat"><b>${todayR.length}</b><span>今日記錄</span></div><div class="v21-stat"><b>${hw}</b><span>功課分析</span></div><div class="v21-stat"><b>${tc}</b><span>老師 Comment</span></div></div><div class="v21-alert">🤖 Quick Insight：${insight}</div><div class="v21-actions"><button class="v21-btn" data-v21-mood="🙂 Normal">🙂 記錄情緒</button><button class="v21-btn" data-v21-go="homework">📚 Upload 功課</button><button class="v21-btn" data-v21-go="record">👩‍🏫 老師 Comment</button></div></div>`;
+    let sched=document.getElementById('v21-schedule'); if(sched){sched.innerHTML=`<div class="v21-card"><h2>🗓️ Janice Today</h2><div class="v21-card-row"></div><div class="v21-muted">${date}</div><div class="v19-card-row" style="display:flex;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;padding:13px;margin:10px 0"><div style="min-width:72px;color:#7c3aed;font-weight:950">8:45 AM</div><div><b>🏫 School</b><div class="v21-muted">正常上課日</div></div></div>${sch.map(s=>`<div style="display:flex;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;padding:13px;margin:10px 0"><div style="min-width:72px;color:#7c3aed;font-weight:950">${s[0]}</div><div><b>${s[1]}</b><div class="v21-muted">${s[2]}</div></div></div>`).join('')}</div>`}
+  };
+  V21.build = function(){
+    if(document.getElementById('v21Shell'))return;
+    // bank all existing functional cards after header
+    let header = document.querySelector('header') || document.body.firstElementChild;
+    let shell=document.createElement('div');
+    shell.id='v21Shell';
+    shell.innerHTML=`<main class="v21-app">
+      <section id="v21-home" class="v21-page active"><div id="v21-home-overview"></div><div id="v21-schedule"></div></section>
+      <section id="v21-record" class="v21-page"><div class="v21-card"><h2>🎤 記錄</h2><div class="v21-muted">情緒、老師 comment、語音輸入集中喺呢頁。</div><div class="v21-actions">${['🙂 Normal','😫 Frustrated','😴 Tired','😭 Meltdown','✨ Confident'].map(m=>`<button class="v21-btn" data-v21-mood="${m}">${m}</button>`).join('')}</div></div></section>
+      <section id="v21-homework" class="v21-page"></section>
+      <section id="v21-insights" class="v21-page"></section>
+      <section id="v21-profile" class="v21-page"><div class="v21-card"><h2>👤 我的</h2><div class="v21-muted">語言、設定、小朋友資料集中喺呢頁。</div><select id="languageSelectV21"><option value="hk">繁體中文（香港家長版）</option><option value="cn">简体中文（普通话版）</option><option value="en">English</option></select></div></section>
+    </main><nav class="v21-tabbar">
+      <button class="v21-tab active" data-v21-tab="home"><span class="v21-icon">🏠</span><span class="v21-label">首頁</span></button>
+      <button class="v21-tab" data-v21-tab="record"><span class="v21-icon">🎤</span><span class="v21-label">記錄</span></button>
+      <button class="v21-tab" data-v21-tab="homework"><span class="v21-icon">📚</span><span class="v21-label">功課</span></button>
+      <button class="v21-tab" data-v21-tab="insights"><span class="v21-icon">🤖</span><span class="v21-label">分析</span></button>
+      <button class="v21-tab" data-v21-tab="profile"><span class="v21-icon">👤</span><span class="v21-label">我的</span></button>
+    </nav>`;
+    document.body.appendChild(shell);
+    V21.moveFunctionalSections();
+    V21.renderHome();
+    document.querySelectorAll('[data-v21-tab]').forEach(b=>b.onclick=()=>V21.switch(b.dataset.v21Tab));
+    document.addEventListener('click',function(e){
+      let m=e.target.closest&&e.target.closest('[data-v21-mood]'); if(m){V21.emotion(m.dataset.v21Mood)}
+      let go=e.target.closest&&e.target.closest('[data-v21-go]'); if(go){V21.switch(go.dataset.v21Go)}
+    });
+    let last=localStorage.getItem('v21_tab')||'home'; V21.switch(last);
+  };
+  V21.moveFunctionalSections = function(){
+    // Hide old content wrappers but move useful cards into correct pages so functions remain working.
+    let candidates=[...document.querySelectorAll('section.card,.card,section')].filter(el=>!el.closest('#v21Shell'));
+    let homework=document.getElementById('v21-homework'), record=document.getElementById('v21-record'), insights=document.getElementById('v21-insights');
+    let used=new Set();
+    candidates.forEach(el=>{
+      let t=(el.innerText||'').trim();
+      if(!t || used.has(el))return;
+      if(t.includes('上傳')||t.includes('Real AI Vision')||t.includes('功課')&&t.includes('照片')){
+        homework.appendChild(el); el.classList.remove('v21-hidden'); used.add(el); return;
+      }
+      if(t.includes('Teacher Comment AI')||t.includes('老師 Comment')||t.includes('語音轉文字')){
+        record.appendChild(el); el.classList.remove('v21-hidden'); used.add(el); return;
+      }
+      if(t.includes('AI Weekly Report')||t.includes('Weekly')||t.includes('7 日活動趨勢')||t.includes('分析')){
+        insights.appendChild(el); el.classList.remove('v21-hidden'); used.add(el); return;
+      }
+    });
+    if(!homework.children.length) homework.innerHTML='<div class="v21-card"><h2>📚 功課</h2><div class="v21-empty">未搵到功課 upload 區。如果上一版仍有 upload，請回報截圖，我再幫你修正 selector。</div></div>';
+    if(!insights.children.length) insights.innerHTML='<div class="v21-card"><h2>🤖 分析</h2><div class="v21-empty">暫時未有足夠記錄。做幾次功課分析後，呢頁會集中顯示 weekly report / trend。</div></div>';
+    // hide remaining old duplicates that are not inside v21 shell
+    candidates.forEach(el=>{ if(!el.closest('#v21Shell')) el.classList.add('v21-hidden'); });
+    document.querySelectorAll('#v18TodayPlanner,#v17HomeOverview,#v14ParentDashboard,#v12ParentDashboard').forEach(el=>el.classList.add('v21-hidden'));
+  };
+  V21.switch = function(tab){
+    document.querySelectorAll('.v21-page').forEach(p=>p.classList.remove('active'));
+    let p=document.getElementById('v21-'+tab); if(p)p.classList.add('active');
+    document.querySelectorAll('.v21-tab').forEach(b=>b.classList.toggle('active',b.dataset.v21Tab===tab));
+    localStorage.setItem('v21_tab',tab);
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+  setTimeout(V21.build,900);
+})();
 </script>
 </body>
 </html>
