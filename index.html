@@ -336,35 +336,28 @@ button:active{transform:translateY(1px)}
 }
 
 
-/* V19 Product UX Cleanup */
-body{padding-bottom:98px!important;background:linear-gradient(180deg,#f8fbff,#f3f6fb)!important}
-.v19-hide{display:none!important}
-.v19-page{display:none;max-width:820px;margin:0 auto;padding:10px 12px 112px}
-.v19-page.active{display:block}
-.v19-section{background:rgba(255,255,255,.94);border:1px solid #e5e7eb;border-radius:28px;padding:20px;margin:14px 0;box-shadow:0 16px 45px rgba(15,23,42,.07);overflow:hidden}
-.v19-section h2{font-size:28px;margin:0 0 10px;letter-spacing:-.04em}
-.v19-muted{color:#64748b;font-weight:800;line-height:1.45}
-.v19-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.v19-stat{background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:15px}
-.v19-stat b{display:block;font-size:27px;color:#db2777}
-.v19-stat span{font-size:13px;color:#64748b;font-weight:900}
-.v19-alert{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:22px;padding:14px;font-weight:850;line-height:1.5;margin-top:12px}
-.v19-card-row{display:flex;gap:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;padding:13px;margin:10px 0}
-.v19-time{min-width:72px;color:#7c3aed;font-weight:950}
-.v19-title{font-weight:950;color:#0f172a}
-.v19-note{font-size:14px;color:#64748b;font-weight:750;margin-top:2px}
-.v19-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.v19-action{border:1px solid #dbeafe!important;background:#fff!important;color:#1d4ed8!important;border-radius:999px!important;padding:10px 14px!important;font-weight:900!important;font-size:14px!important;min-height:42px!important}
-.v19-primary{background:linear-gradient(135deg,#2563eb,#7c3aed)!important;color:#fff!important;border:none!important}
-.v19-toast{position:fixed;left:50%;bottom:102px;transform:translateX(-50%) translateY(18px);background:#0f172a;color:white;padding:13px 16px;border-radius:999px;box-shadow:0 15px 35px rgba(15,23,42,.28);z-index:10000;opacity:0;pointer-events:none;transition:all .25s ease;font-weight:900;max-width:88vw;text-align:center}
-.v19-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.v19-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:9998;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(255,255,255,.95);backdrop-filter:blur(18px);border-top:1px solid rgba(226,232,240,.95);box-shadow:0 -14px 34px rgba(15,23,42,.08)}
-.v19-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;border-radius:20px;padding:8px 2px;color:#64748b;font-weight:900;text-decoration:none;border:none;background:transparent}
-.v19-tab .icon{font-size:21px;line-height:1}
-.v19-tab .label{font-size:12px;line-height:1;white-space:nowrap!important;writing-mode:horizontal-tb!important;word-break:keep-all!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.v19-tab.active{background:#eef2ff;color:#3730a3;box-shadow:inset 0 0 0 1px #dbeafe}
-nav:not(.v19-tabbar),.bottom-nav:not(.v19-tabbar),.tabbar:not(.v19-tabbar){display:none!important}
-@media(max-width:430px){.v19-page{padding:8px 10px 106px}.v19-section{border-radius:24px;padding:17px}.v19-section h2{font-size:24px}.v19-tab .label{font-size:11px}}
+/* V20 Production Build */
+body{background:linear-gradient(180deg,#f8fbff,#f3f6fb)!important;padding-bottom:96px!important}
+.v20-hide{display:none!important}
+.v20-command{background:linear-gradient(135deg,#eef2ff,#fdf2f8);border:1px solid #dbeafe;border-radius:30px;padding:22px;margin:16px auto;box-shadow:0 18px 50px rgba(15,23,42,.08);max-width:820px}
+.v20-command h2{margin:0 0 8px;font-size:30px;letter-spacing:-.04em;color:#0f172a}
+.v20-muted{color:#64748b;font-weight:800;line-height:1.45}
+.v20-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.v20-stat{background:white;border:1px solid #e5e7eb;border-radius:22px;padding:15px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+.v20-stat b{display:block;font-size:27px;color:#db2777}
+.v20-stat span{font-size:13px;color:#64748b;font-weight:900}
+.v20-alert{margin-top:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:22px;padding:14px;font-weight:850;line-height:1.5}
+.v20-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.v20-chip{border:1px solid #dbeafe!important;background:#fff!important;color:#1d4ed8!important;border-radius:999px!important;padding:10px 14px!important;font-weight:900!important;font-size:14px!important;min-height:42px!important;text-decoration:none!important}
+.v20-toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(18px);background:#0f172a;color:white;padding:13px 16px;border-radius:999px;box-shadow:0 15px 35px rgba(15,23,42,.28);z-index:10000;opacity:0;pointer-events:none;transition:all .25s ease;font-weight:900;max-width:88vw;text-align:center}
+.v20-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+nav,.bottom-nav,.tabbar{padding-bottom:calc(8px + env(safe-area-inset-bottom))!important}
+nav *,.bottom-nav *,.tabbar *{writing-mode:horizontal-tb!important;word-break:keep-all!important;white-space:nowrap!important}
+nav span,nav div,nav button,nav a,.bottom-nav span,.bottom-nav div,.bottom-nav button,.bottom-nav a,.tabbar span,.tabbar div,.tabbar button,.tabbar a{line-height:1.15!important}
+nav button,nav a,.bottom-nav button,.bottom-nav a,.tabbar button,.tabbar a{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
+nav{font-size:12px!important}
+@media(max-width:480px){.v20-command{margin:12px 10px;padding:18px;border-radius:24px}.v20-command h2{font-size:25px}.v20-grid{grid-template-columns:1fr 1fr}nav,.bottom-nav,.tabbar{font-size:11px!important}}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -391,15 +384,16 @@ nav:not(.v19-tabbar),.bottom-nav:not(.v19-tabbar),.tabbar:not(.v19-tabbar){displ
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v19 Product UX Cleanup · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v20 Production Build · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
+<div id="v20CommandCenter"></div>
 <div id="v18TodayPlanner"></div>
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v19 Product UX Cleanup 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v20 Production Build 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -1310,21 +1304,17 @@ function v18RenderTodayPlanner(){
 setTimeout(v18RenderTodayPlanner,600);
 </script>
 <script>
-function v19Records(){try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch(e){return[]}}
-function v19Save(r){localStorage.setItem('childgrowth_records',JSON.stringify(r.slice(-150)))}
-function v19Today(){return new Date().toISOString().slice(0,10)}
-function v19Toast(msg){let e=document.getElementById('v19Toast');if(!e){e=document.createElement('div');e.id='v19Toast';e.className='v19-toast';document.body.appendChild(e)}e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1900)}
-function v19Emotion(emotion){let today=v19Today(),r=v19Records();let i=r.findIndex(x=>x.type==='emotion'&&x.scope==='daily'&&(x.createdAt||'').slice(0,10)===today);if(i>=0){r[i].emotion=emotion;r[i].updatedAt=new Date().toISOString();v19Toast('✅ 已更新今日情緒：'+emotion)}else{r.push({id:Date.now(),type:'emotion',scope:'daily',emotion,createdAt:new Date().toISOString()});v19Toast('✅ 已記錄今日情緒：'+emotion)}v19Save(r);if(navigator.vibrate)try{navigator.vibrate(35)}catch(e){};if(typeof capture==='function')capture('v19_emotion_saved',{emotion});v19RenderAll()}
-function v19Schedule(){let d=new Date().getDay();let m={2:[['3:30 PM','💻 Minecraft Coding','放學後 coding class']],4:[['4:30 PM','⚽ Soccer','記得帶水樽同運動鞋'],['6:00 PM','🏊 Swimming','活動較多，今晚功課建議早啲開始']],5:[['4:30 PM','♟️ Chess','放學後 chess class']],6:[['3:30 PM','🎹 Piano + Art','30分鐘 piano + 1.5 小時 art']],0:[['9:00 AM','📚 Chinese Class','中文閱讀 / 寫字']]};return m[d]||[]}
-function v19Home(){let el=document.getElementById('v19-home');if(!el)return;let r=v19Records(),today=v19Today(),todayR=r.filter(x=>(x.createdAt||'').slice(0,10)===today),latest=[...r].reverse().find(x=>x.type==='emotion'),hw=r.filter(x=>x.type==='homework').length,tc=r.filter(x=>x.type==='teacher_comment').length,sch=v19Schedule(),date=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});el.innerHTML=`<section class="v19-section"><h2>🌸 今日 Overview</h2><div class="v19-muted">${date} · Janice · Year 2</div><div class="v19-grid" style="margin-top:14px"><div class="v19-stat"><b>${latest?latest.emotion:'—'}</b><span>最近情緒</span></div><div class="v19-stat"><b>${todayR.length}</b><span>今日記錄</span></div><div class="v19-stat"><b>${hw}</b><span>功課分析</span></div><div class="v19-stat"><b>${tc}</b><span>老師 Comment</span></div></div><div class="v19-alert">💡 今日建議：資料唔需要多，最重要係穩定記錄一個真實狀態。</div></section><section class="v19-section"><h2>🗓️ 今日時間表</h2><div class="v19-card-row"><div class="v19-time">8:45 AM</div><div><div class="v19-title">🏫 School</div><div class="v19-note">正常上課日</div></div></div>${sch.map(s=>`<div class="v19-card-row"><div class="v19-time">${s[0]}</div><div><div class="v19-title">${s[1]}</div><div class="v19-note">${s[2]}</div></div></div>`).join('')}<div class="v19-alert">🤖 AI Parent Insight：${sch.length>=2?'今日活動較多，建議先完成閱讀類 homework，再安排沖涼和休息。':'今日活動不算太多，可以安排閱讀或輕鬆 homework。'}</div></section>`}
-function v19Record(){let el=document.getElementById('v19-record');if(!el)return;el.innerHTML=`<section class="v19-section"><h2>🎤 記錄</h2><div class="v19-muted">呢頁只做 input：情緒、老師 comment、語音、觀察。</div><div class="v19-actions">${['🙂 Normal','😫 Frustrated','😴 Tired','😭 Meltdown','✨ Confident'].map(m=>`<button class="v19-action" data-v19-mood="${m}">${m}</button>`).join('')}</div></section><section class="v19-section"><h2>👩‍🏫 Teacher Comment AI</h2><textarea id="teacherCommentInput" placeholder="例：老師話今日閱讀較主動，但做數時太快..."></textarea><div class="v19-actions"><button class="v19-action" onclick="v15StartVoiceInput&&v15StartVoiceInput('teacherCommentInput',this)">🎤 語音轉文字</button><button class="v19-action v19-primary" onclick="v12AnalyzeTeacherComment&&v12AnalyzeTeacherComment()">🤖 分析老師 Comment</button></div><div id="teacherCommentAIResult"></div></section>`}
-function v19Learning(){let el=document.getElementById('v19-learning');if(!el)return;el.innerHTML=`<section class="v19-section"><h2>📚 學習</h2><div class="v19-muted">呢頁集中功課與學校相關資料。功課 AI 分析可以繼續用原本功能。</div><div class="v19-alert">📌 下一版可以將 upload 功課區正式搬入呢頁。</div></section>`}
-function v19Insights(){let el=document.getElementById('v19-insights');if(!el)return;let r=v19Records(),days=[6,5,4,3,2,1,0].map(d=>{let dt=new Date();dt.setDate(dt.getDate()-d);let k=dt.toISOString().slice(0,10);return{l:dt.toLocaleDateString('en-AU',{weekday:'short'}),c:r.filter(x=>(x.createdAt||'').slice(0,10)===k).length}});el.innerHTML=`<section class="v19-section"><h2>🤖 分析</h2><div class="v19-muted">所有 trend / weekly report / pattern 集中喺呢頁。</div><div class="v14-trend" style="margin-top:14px">${days.map(d=>`<div class="v14-bar" style="height:${Math.max(14,d.c*26)}px">${d.c}</div>`).join('')}</div><div style="display:flex;justify-content:space-between" class="v19-muted">${days.map(d=>`<span>${d.l}</span>`).join('')}</div><div class="v19-actions"><button class="v19-action v19-primary" onclick="v14GenerateWeeklyReport&&v14GenerateWeeklyReport()">生成 AI 週報</button><button class="v19-action" onclick="window.print()">📄 Export</button></div><div id="v14WeeklyReportResult"></div></section>`}
-function v19Profile(){let el=document.getElementById('v19-profile');if(!el)return;el.innerHTML=`<section class="v19-section"><h2>👤 我的</h2><div class="v19-muted">設定、語言、小朋友資料集中喺呢頁，唔再每頁重複。</div><label class="v19-muted">語言</label><select id="languageSelectV19"><option value="hk">繁體中文（香港家長版）</option><option value="cn">简体中文（普通话版）</option><option value="en">English</option></select><div class="v19-alert">📱 建議：加到 iPhone Home Screen，當成每日家長 planner 使用。</div></section>`;let s=document.getElementById('languageSelectV19');if(s){s.value=localStorage.getItem('cg_lang')||'hk';s.onchange=e=>localStorage.setItem('cg_lang',e.target.value)}}
-function v19RenderAll(){v19Home();v19Record();v19Learning();v19Insights();v19Profile()}
-function v19Switch(tab){document.querySelectorAll('.v19-page').forEach(p=>p.classList.remove('active'));let p=document.getElementById('v19-'+tab);if(p)p.classList.add('active');document.querySelectorAll('.v19-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));scrollTo({top:0,behavior:'smooth'});localStorage.setItem('v19_tab',tab)}
-function v19HideOld(){['v18TodayPlanner','v17HomeOverview','v14ParentDashboard','v12ParentDashboard'].forEach(id=>{let e=document.getElementById(id);if(e)e.classList.add('v19-hide')});document.querySelectorAll('section.card,.card,section').forEach(sec=>{let t=(sec.innerText||'').trim();if(t.includes('Language / 語言')||t.includes('Weekly Parent Insight')||t.includes('今日 Dashboard')||t.includes('Quick Emotion Tap')||t.includes('最近記錄')||t.includes('AI Weekly Report')||t.includes('Teacher Comment AI'))sec.classList.add('v19-hide')})}
-function v19Build(){if(document.getElementById('v19Shell'))return;let shell=document.createElement('div');shell.id='v19Shell';shell.innerHTML=`<main><div id="v19-home" class="v19-page active"></div><div id="v19-record" class="v19-page"></div><div id="v19-learning" class="v19-page"></div><div id="v19-insights" class="v19-page"></div><div id="v19-profile" class="v19-page"></div></main><nav class="v19-tabbar"><button class="v19-tab active" data-tab="home"><span class="icon">🏠</span><span class="label">首頁</span></button><button class="v19-tab" data-tab="record"><span class="icon">🎤</span><span class="label">記錄</span></button><button class="v19-tab" data-tab="learning"><span class="icon">📚</span><span class="label">學習</span></button><button class="v19-tab" data-tab="insights"><span class="icon">🤖</span><span class="label">分析</span></button><button class="v19-tab" data-tab="profile"><span class="icon">👤</span><span class="label">我的</span></button></nav>`;document.body.appendChild(shell);document.querySelectorAll('.v19-tab').forEach(b=>b.onclick=()=>v19Switch(b.dataset.tab));document.addEventListener('click',e=>{let m=e.target.closest&&e.target.closest('[data-v19-mood]');if(m)v19Emotion(m.dataset.v19Mood)});v19RenderAll();v19Switch(localStorage.getItem('v19_tab')||'home')}
-setTimeout(()=>{v19HideOld();v19Build()},800);setInterval(v19HideOld,2000);
-</script></body>
+function v20Records(){try{return JSON.parse(localStorage.getItem('childgrowth_records')||'[]')}catch(e){return[]}}
+function v20Save(r){localStorage.setItem('childgrowth_records',JSON.stringify(r.slice(-150)))}
+function v20Today(){return new Date().toISOString().slice(0,10)}
+function v20Toast(msg){let e=document.getElementById('v20Toast');if(!e){e=document.createElement('div');e.id='v20Toast';e.className='v20-toast';document.body.appendChild(e)}e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1900)}
+function v20Emotion(emotion){let today=v20Today(),r=v20Records();let i=r.findIndex(x=>x.type==='emotion'&&(x.createdAt||'').slice(0,10)===today&&x.scope!=='homework');if(i>=0){r[i].emotion=emotion;r[i].scope='daily';r[i].updatedAt=new Date().toISOString();v20Toast('✅ 已更新今日情緒：'+emotion)}else{r.push({id:Date.now(),type:'emotion',scope:'daily',emotion:emotion,createdAt:new Date().toISOString()});v20Toast('✅ 已記錄今日情緒：'+emotion)}v20Save(r);if(navigator.vibrate)try{navigator.vibrate(35)}catch(e){};if(typeof capture==='function')capture('v20_daily_emotion_saved',{emotion});v20Render()}
+function v20Schedule(){let d=new Date().getDay();let m={2:[['3:30 PM','💻 Minecraft Coding','放學後 coding class']],4:[['4:30 PM','⚽ Soccer','記得帶水樽同運動鞋'],['6:00 PM','🏊 Swimming','活動較多，今晚功課建議早啲開始']],5:[['4:30 PM','♟️ Chess','放學後 chess class']],6:[['3:30 PM','🎹 Piano + Art','30分鐘 piano + 1.5 小時 art']],0:[['9:00 AM','📚 Chinese Class','中文閱讀 / 寫字']]};return m[d]||[]}
+function v20Render(){let el=document.getElementById('v20CommandCenter');if(!el)return;let r=v20Records(),today=v20Today(),latest=[...r].reverse().find(x=>x.type==='emotion'),todayR=r.filter(x=>(x.createdAt||'').slice(0,10)===today),hw=r.filter(x=>x.type==='homework').length,tc=r.filter(x=>x.type==='teacher_comment').length,sch=v20Schedule(),date=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'short'});let insight=sch.length>=2?'今日活動較多，建議先完成閱讀類 homework，再安排沖涼和休息。':'今日活動不算太多，可以安排閱讀或輕鬆 homework。';el.innerHTML=`<section class="v20-command"><h2>🌸 AI Command Center</h2><div class="v20-muted">${date} · Janice · Year 2</div><div class="v20-grid"><div class="v20-stat"><b>${latest?latest.emotion:'—'}</b><span>最近情緒</span></div><div class="v20-stat"><b>${todayR.length}</b><span>今日記錄</span></div><div class="v20-stat"><b>${hw}</b><span>功課分析</span></div><div class="v20-stat"><b>${tc}</b><span>老師 Comment</span></div></div><div class="v20-alert">🤖 Quick Insight：${insight}</div><div class="v20-actions"><button class="v20-chip" onclick="v20Emotion('🙂 Normal')">🙂 記錄情緒</button><button class="v20-chip" onclick="v20GoTab('功課')">📚 Upload 功課</button><button class="v20-chip" onclick="v20GoTab('記錄')">👩‍🏫 老師 Comment</button></div></section>`}
+function v20GoTab(k){let all=[...document.querySelectorAll('button,a,div,span')];let hit=all.find(x=>(x.innerText||'').trim()===k || (x.innerText||'').trim().includes(k));if(hit)hit.click()}
+function v20Clean(){document.querySelectorAll('section.card,.card,section,div').forEach(sec=>{let t=(sec.innerText||'').trim();if(!t)return;if(t.includes('V15 已優化手機版面')||t.includes('v20 Production Build 已接入 Real AI Vision 後端'))sec.classList.add('v20-hide');if(t.includes('Language / 語言')&&!t.includes('Profile')&&!t.includes('我的'))sec.classList.add('v20-hide');if(t.includes('今日 Dashboard')&&t.includes('老師評語')&&t.includes('功課記錄'))sec.classList.add('v20-hide')})}
+document.addEventListener('click',function(e){let m=e.target.closest&&e.target.closest('[data-mood]');if(m){e.preventDefault();e.stopPropagation();v20Emotion(m.dataset.mood||m.innerText.trim());return false}let t=(e.target&&e.target.innerText||'').trim();let arr=['🙂 Normal','😫 Frustrated','😴 Tired','😭 Meltdown','✨ Confident','Normal','Frustrated','Tired','Meltdown','Confident'];if(arr.includes(t)){e.preventDefault();e.stopPropagation();v20Emotion(t);return false}},true);
+setTimeout(()=>{v20Render();v20Clean()},700);setInterval(v20Clean,1600);
+</script>
+</body>
 </html>
