@@ -84,13 +84,13 @@
 <body>
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v12 Production Beta · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v13 HK Parent Tone · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v12 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v13 香港家長語氣版已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -102,7 +102,7 @@
 
     <div class="card">
       <div class="title">😊 Quick Emotion Tap</div>
-      <div class="helper">一撳就記錄今日狀態。這是日後做 fatigue / confidence / meltdown pattern 最有價值的低摩擦資料。</div>
+      <div class="helper">一撳就記錄今日狀態。這是日後做 fatigue / confidence / meltdown pattern 最有價值的低操作阻力資料。</div>
       <div class="quickchips">
         <button class="quickchip" data-mood="🙂 Normal">🙂 Normal</button>
         <button class="quickchip" data-mood="😫 Frustrated">😫 Frustrated</button>
@@ -465,7 +465,7 @@ function voiceFill(id){
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('此瀏覽器未支援語音輸入。iPhone 可用鍵盤咪高峰。');return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const rec=new SR();rec.lang='zh-HK';rec.interimResults=false;rec.onresult=e=>{$(id).value+=e.results[0][0].transcript};rec.start();
 }
-(async()=>{await loadConfig();load();capture('app_loaded',{version:'v12'});})();
+(async()=>{await loadConfig();load();capture('app_loaded',{version:'v13'});})();
 </script>
 <script>
 function v12GetRecords(){
