@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v50 Coach Voice Notes</title>
+  <title>ChildGrowth AI v51 Home Repair + Splash</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -219,14 +219,41 @@
     .voiceLive{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
     .voiceWarn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
 
+  
+    /* V51 Home Repair + Splash */
+    .splashScreen{
+      position:fixed;inset:0;z-index:9999;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);
+      color:#0f172a;text-align:center;
+      transition:opacity .45s ease, visibility .45s ease;
+    }
+    .splashScreen.hide{opacity:0;visibility:hidden;pointer-events:none}
+    .splashLogo{font-size:54px;line-height:1;margin-bottom:12px;animation:splashFloat 1.3s ease-in-out infinite alternate}
+    .splashTitle{font-size:34px;font-weight:1000;letter-spacing:-.06em;margin-bottom:8px}
+    .splashSlogan{font-size:18px;font-weight:950;color:#334155;margin-bottom:6px}
+    .splashSub{font-size:14px;font-weight:850;color:#64748b}
+    @keyframes splashFloat{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+    .bootError{
+      margin:calc(18px + env(safe-area-inset-top)) 16px;
+      background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;
+      border-radius:22px;padding:16px;font-weight:850;line-height:1.45;
+    }
+
   </style>
 </head>
 <body>
+<div id="splashScreen" class="splashScreen">
+  <div class="splashLogo">🌸</div>
+  <div class="splashTitle">ChildGrowth AI</div>
+  <div class="splashSlogan">陪孩子成長，看見每一步</div>
+  <div class="splashSub">Let’s grow together, one step at a time.</div>
+</div>
 <div class="app">
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v50 Coach Voice Notes · Faster activity comments</div>
+    <div class="version">v51 Home Repair · Splash restored</div>
   </header>
 
   <main>
@@ -419,7 +446,8 @@ function go(tab){
   currentTab=tab;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===tab));
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
-  renderCurrent();
+  try{renderCurrent();}catch(e){console.error(e);const home=document.getElementById('home');if(home)home.innerHTML='<div class="bootError">⚠️ 首頁載入失敗，已阻止空白畫面。請更新到 V51 或重新整理。<br><small>'+String(e.message||e)+'</small></div>';}
+hideSplash();
   window.scrollTo({top:0,behavior:'auto'});
 }
 window.go=go;
@@ -456,10 +484,6 @@ function todaySummaryHTML(day, routines, tasks, notices){
       <span class="priority">📚 Reading / spelling 短練</span>
       <span class="priority">😌 活動多就減量</span>
     </div>
-  </div>
-  <div class="card">
-    <h2>🏅 最近活動進度</h2>
-    ${acts.slice(-5).reverse().map(a=>rowHTML(`${new Date(a.date).toLocaleString()} · ${esc(a.activity)}`,`模式：${esc(a.mode)}<br>下次重點：${esc(a.report?.nextPractice||'')}`)).join('') || '<div class="notice bluebox">未有活動進度記錄。</div>'}
   </div>`;
 }
 
@@ -590,6 +614,24 @@ function activityProgressCardHTML(){
       <img id="activityPreview" class="activityPreview">
       <div id="activityFrames" class="activityFrameGrid"></div>
     </div>
+
+    <div class="coachVoiceBox">
+      <b>🎙️ Coach Voice Note</b>
+      <div class="muted">聽完 piano / swimming / tennis / chess coach comment 後，可以用你自己把聲快速講返重點。AI 會整理成中文家長易明版和下次練習重點。</div>
+      <div class="notice" style="margin-top:10px">安全提示：建議由家長自己轉述，不要未經同意直接錄教練本人說話。</div>
+      <div class="coachVoiceRow">
+        <select id="coachVoiceLang">
+          <option value="zh-HK">廣東話 / English mix</option>
+          <option value="en-AU">English</option>
+          <option value="zh-CN">普通話</option>
+        </select>
+        <button class="btn primary" onclick="startCoachVoiceNote()">🎙️ 開始語音</button>
+        <button class="btn" onclick="stopCoachVoiceNote()">停止</button>
+        <button class="btn" onclick="clearCoachVoiceNote()">清空語音文字</button>
+      </div>
+      <div id="coachVoiceStatus" class="voiceStatus">例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。</div>
+    </div>
+
     <label>補充內容 / 家長觀察 / 教練 comment</label>
     <textarea id="activityNote" placeholder="例：今日游水老師話 kick 有進步，但轉身仲未熟。或者：這是 piano 第 1–2 行，佢一錯就想由頭彈。"></textarea>
     <div class="actions"><button class="btn primary" onclick="analyzeActivityProgress()">🤖 Analyze Activity</button><button class="btn" onclick="clearActivityProgress()">Clear</button></div>
@@ -989,6 +1031,16 @@ window.saveSetup=()=>{
   Object.assign(app.profile,{childName:$('pName').value.trim()||app.profile.childName,year:$('pYear').value.trim()||app.profile.year,age:$('pAge').value.trim(),region:$('pRegion').value.trim(),school:$('pSchool').value.trim(),strengths:$('pStrengths').value.split(/[、,，]/).map(x=>x.trim()).filter(Boolean),watchAreas:$('pWatch').value.split(/[、,，]/).map(x=>x.trim()).filter(Boolean),parentGoals:$('pGoals').value.split(/[、,，]/).map(x=>x.trim()).filter(Boolean)});
   save();updateHeader();window.closeSetup();renderProfile();renderHome();
 }
+
+
+function hideSplash(){setTimeout(()=>{const s=document.getElementById('splashScreen'); if(s) s.classList.add('hide');},1200);}
+window.addEventListener('error', function(e){
+  const home=document.getElementById('home');
+  if(home && !home.innerHTML.trim()){
+    home.innerHTML='<div class="bootError">⚠️ App 載入時遇到錯誤。請先重新整理；如果仍然空白，請重新 upload V51 package。<br><small>'+String(e.message||'unknown error')+'</small></div>';
+  }
+  const s=document.getElementById('splashScreen'); if(s) s.classList.add('hide');
+});
 
 function renderCurrent(){updateHeader();({home:renderHome,record:renderRecord,homework:renderHomework,analytics:renderAnalytics,profile:renderProfile}[currentTab]||renderHome)()}
 window.renderCurrent=renderCurrent;

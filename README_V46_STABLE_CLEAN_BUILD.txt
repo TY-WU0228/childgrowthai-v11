@@ -81,3 +81,9 @@ V49 patch:
 - Activity Progress AI.
 - Photo / video frame / voice note text / coach comment modes.
 - Activity reports in Analytics and Weekly Review.
+
+
+V51 patch:
+- Fixed blank Home screen caused by todaySummaryHTML referencing undefined acts.
+- Restored splash screen.
+- Ensured Coach Voice Note UI appears.
