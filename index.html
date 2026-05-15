@@ -1919,6 +1919,33 @@ body.v29-home-active #v28TodayPlanCard{
   margin-top:10px;
 }
 
+
+/* V41 Profile No-Jump Fix */
+#profile{
+  overflow-anchor:none;
+}
+.v41-stable-note{
+  background:#ecfdf5;
+  border:1px solid #bbf7d0;
+  color:#166534;
+  border-radius:16px;
+  padding:10px;
+  font-weight:850;
+  line-height:1.45;
+  margin:10px 0;
+}
+.v41-refresh-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:8px 6px 0 0!important;
+  white-space:nowrap!important;
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1965,7 +1992,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v40 Stable Weekly Overview · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v41 Profile No-Jump Fix · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1973,7 +2000,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v40 Stable Weekly Overview 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v41 Profile No-Jump Fix 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -3214,7 +3241,7 @@ setTimeout(v18RenderTodayPlanner,600);
     switchTab(localStorage.getItem('v23_tab') || 'home');
   }
   setTimeout(run,900);
-  setInterval(()=>{hideGlobalDuplicates();},2500);
+  setTimeout(()=>{hideGlobalDuplicates();},1500); /* V41 interval removed */
 })();
 </script>
 <script>
@@ -3492,7 +3519,7 @@ setInterval(v25RefreshYearViews,2500);
   }
   setTimeout(run,900);
   setTimeout(run,1800);
-  setInterval(()=>{renderV26Analysis()},3500);
+  setTimeout(()=>{renderV26Analysis()},1500); /* V41 interval removed */
 })();
 </script>
 <script>
@@ -3636,7 +3663,7 @@ setInterval(v25RefreshYearViews,2500);
   // Re-render home today plan after existing V18 planner renders.
   setTimeout(()=>{updateHeader();hideVersionNotices();renderTodayPlan();},900);
   setTimeout(()=>{updateHeader();hideVersionNotices();renderTodayPlan();},1800);
-  setInterval(()=>{hideVersionNotices();},3000);
+  setTimeout(()=>{hideVersionNotices();},1500); /* V41 interval removed */
 })();
 </script>
 <script>
@@ -3916,7 +3943,7 @@ setInterval(v25RefreshYearViews,2500);
     }
   },1000);
 
-  setInterval(()=>{updateHeaderProfile();renderProfileSummary();},5000);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 <script>
@@ -4395,7 +4422,7 @@ setInterval(v25RefreshYearViews,2500);
 
   setTimeout(()=>{wrapOnboarding();renderAllV33();},700);
   setTimeout(()=>{wrapOnboarding();renderAllV33();},1500);
-  setInterval(()=>{wrapOnboarding();renderAllV33();},4500);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 <script>
@@ -4520,7 +4547,7 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(renderConsolidatedProfile,500);
   setTimeout(renderConsolidatedProfile,1200);
   setTimeout(renderConsolidatedProfile,2500);
-  setInterval(()=>{hideDuplicates();renderConsolidatedProfile();},4000);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 <script>
@@ -4850,7 +4877,7 @@ setInterval(v25RefreshYearViews,2500);
 
   setTimeout(()=>{renderV35();injectOnboardingVoice();},700);
   setTimeout(()=>{renderV35();injectOnboardingVoice();},1600);
-  setInterval(()=>{renderV35();injectOnboardingVoice();},4500);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 <script>
@@ -5004,7 +5031,7 @@ setInterval(v25RefreshYearViews,2500);
 
   setTimeout(()=>{patchAddGuard();renderOverview();},700);
   setTimeout(()=>{patchAddGuard();renderOverview();},1600);
-  setInterval(()=>{patchAddGuard();renderOverview();},4000);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 <script>
@@ -5213,7 +5240,7 @@ setInterval(v25RefreshYearViews,2500);
 
   setTimeout(()=>{clearStuckVoiceState();patchVoiceButtons();addResetButton();renderHomeWarnings();},700);
   setTimeout(()=>{clearStuckVoiceState();patchVoiceButtons();addResetButton();renderHomeWarnings();},1700);
-  setInterval(()=>{patchVoiceButtons();addResetButton();renderHomeWarnings();},3500);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 
@@ -5231,7 +5258,7 @@ setInterval(v25RefreshYearViews,2500);
   function startLongVoice(){clearVoice(); const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){msg('⚠️ 呢個 browser 暫時唔支援語音輸入。請用文字輸入再按「讀取文字」。',false);return} let rec,finished=false; const startBtn=[...document.querySelectorAll('button')].find(b=>(b.innerText||'').includes('開始語音輸入')); try{rec=new SR();currentRecognition=rec;rec.lang='zh-HK';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;let finalText='',interimText=''; if(startBtn)startBtn.classList.add('v37-disabled'); msg('🎤 已開始聆聽。你可以慢慢講，最多等約 20 秒；完成後系統會自動讀取。',true); currentTimer=setTimeout(()=>{if(finished)return;finished=true;const text=(finalText||interimText||'').trim();try{rec.stop()}catch(e){} if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;currentTimer=null; if(text){const input=$('v35FreeText');if(input)input.value=text;const tr=$('v35Transcript');if(tr)tr.textContent=text;if(typeof window.v35ParseTypedRoutine==='function')window.v35ParseTypedRoutine();else msg('✅ 已讀取語音：'+text,true)}else{msg('⚠️ 20 秒內未聽到清楚內容。請再試一次，或者用文字輸入會較穩定。',false)}},20000); rec.onresult=function(e){interimText='';for(let i=e.resultIndex;i<e.results.length;i++){const part=e.results[i][0].transcript||'';if(e.results[i].isFinal)finalText+=part;else interimText+=part}const display=(finalText||interimText||'').trim();const tr=$('v35Transcript');if(tr&&display)tr.textContent=display}; rec.onerror=function(e){if(finished)return;finished=true;if(currentTimer)clearTimeout(currentTimer);if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;currentTimer=null;msg('⚠️ 語音輸入未成功：'+((e&&e.error)||'unknown')+'。請用文字輸入會較穩定。',false)}; rec.onend=function(){if(finished)return;finished=true;if(currentTimer)clearTimeout(currentTimer);if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;currentTimer=null;const text=(finalText||interimText||'').trim();if(text){const input=$('v35FreeText');if(input)input.value=text;const tr=$('v35Transcript');if(tr)tr.textContent=text;if(typeof window.v35ParseTypedRoutine==='function')window.v35ParseTypedRoutine()}else msg('⚠️ 語音已停止，但未收到完整內容。iPhone 有時會自動截斷，建議用文字輸入。',false)}; rec.start()}catch(e){if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;if(currentTimer)clearTimeout(currentTimer);currentTimer=null;msg('⚠️ 語音功能啟動失敗。請用文字輸入。原因：'+(e.message||e),false)}}
   window.v38StartVoiceRoutine=startLongVoice; window.v37StartVoiceRoutine=startLongVoice; window.v35StartVoiceRoutine=startLongVoice;
   document.addEventListener('click',function(e){const btn=e.target.closest('button');if(!btn)return;const text=(btn.innerText||'').replace(/\s+/g,'').trim();if(text==='關閉'||text==='关闭'||text.toLowerCase()==='close'){e.preventDefault();e.stopPropagation();closeManager();return false} if((btn.innerText||'').includes('開始語音輸入')){e.preventDefault();e.stopPropagation();startLongVoice();return false} if(text.includes('管理固定行程')){e.preventDefault();e.stopPropagation();openManager();return false}},true);
-  setTimeout(patchUI,500);setTimeout(patchUI,1200);setInterval(patchUI,3000);
+  setTimeout(patchUI,500);setTimeout(patchUI,1200);/* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 
@@ -5555,7 +5582,7 @@ setInterval(v25RefreshYearViews,2500);
 
   setTimeout(()=>{patchModal();patchAddButton();addOverviewNote();},700);
   setTimeout(()=>{patchModal();patchAddButton();addOverviewNote();},1600);
-  setInterval(()=>{patchModal();patchAddButton();addOverviewNote();},3500);
+  /* V41 disabled periodic re-render to prevent page jumping */
 })();
 </script>
 <script>
@@ -5705,7 +5732,107 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(run,500);
   setTimeout(run,1200);
   setTimeout(run,2200);
-  setInterval(run,900);
+  /* V41 disabled periodic re-render to prevent page jumping */
+})();
+</script>
+<script>
+(function(){
+  let lastProfileHeight=0;
+  function $(id){return document.getElementById(id)}
+  function stableMessage(){
+    const card=$('v36WeeklyOverview') || $('v40TodayRoutineSummary') || $('v35RoutineSummary');
+    if(card && !$('v41StableNote')){
+      const note=document.createElement('div');
+      note.id='v41StableNote';
+      note.className='v41-stable-note';
+      note.innerHTML='✅ V41 已停止「我的」頁面自動重畫。資料更新後如需要，可按下面刷新總覽。';
+      card.parentNode.insertBefore(note, card);
+    }
+  }
+
+  function renderOnce(){
+    try{ if(typeof window.v35Render==='function') window.v35Render(); }catch(e){}
+    try{ if(typeof window.v36RenderAll==='function') window.v36RenderAll(); }catch(e){}
+    try{ if(typeof window.v33RenderAll==='function') window.v33RenderAll(); }catch(e){}
+    try{ if(typeof window.v40ToggleWeekOverview==='function'){} }catch(e){}
+    stableMessage();
+    addRefreshButton();
+  }
+
+  function addRefreshButton(){
+    const card=$('v36WeeklyOverview') || $('v35RoutineSummary');
+    if(!card || $('v41ManualRefresh')) return;
+    const btn=document.createElement('button');
+    btn.id='v41ManualRefresh';
+    btn.className='v41-refresh-btn';
+    btn.textContent='刷新總覽';
+    btn.onclick=function(e){
+      if(e){e.preventDefault();e.stopPropagation();}
+      const y=window.scrollY;
+      renderOnce();
+      setTimeout(()=>window.scrollTo({top:y,behavior:'auto'}),20);
+      return false;
+    };
+    card.appendChild(btn);
+  }
+
+  // When opening Profile tab, render once only and preserve scroll.
+  const oldGo=window.go;
+  if(typeof oldGo==='function' && !oldGo.v41Wrapped){
+    const wrapped=function(tab){
+      const beforeY=window.scrollY;
+      oldGo(tab);
+      if(tab==='profile'){
+        setTimeout(()=>{
+          renderOnce();
+          window.scrollTo({top:beforeY,behavior:'auto'});
+        },120);
+      }
+    };
+    wrapped.v41Wrapped=true;
+    window.go=wrapped;
+  }
+
+  // After routine add/delete, update once without repeated polling.
+  function patchRoutineMutations(){
+    ['v35AddRoutine','v35DeleteRoutine','v39QuickAddWeekdaySchool','v40ImportJaniceCoreSchedule'].forEach(name=>{
+      const fn=window[name];
+      if(typeof fn==='function' && !fn.v41Wrapped){
+        const wrapped=function(){
+          const y=window.scrollY;
+          const res=fn.apply(this,arguments);
+          setTimeout(()=>{
+            renderOnce();
+            window.scrollTo({top:y,behavior:'auto'});
+          },250);
+          return res;
+        };
+        wrapped.v41Wrapped=true;
+        window[name]=wrapped;
+      }
+    });
+  }
+
+  // Mutation guard: if older leftover scripts change profile height, keep scroll stable.
+  function installScrollGuard(){
+    const profile=$('profile');
+    if(!profile || profile.v41Guarded) return;
+    profile.v41Guarded=true;
+    const observer=new MutationObserver(()=>{
+      if(!profile.classList.contains('active')) return;
+      const h=profile.getBoundingClientRect().height;
+      if(lastProfileHeight && Math.abs(h-lastProfileHeight)>80){
+        const y=window.scrollY;
+        requestAnimationFrame(()=>window.scrollTo({top:y,behavior:'auto'}));
+      }
+      lastProfileHeight=h;
+    });
+    observer.observe(profile,{childList:true,subtree:true,attributes:true});
+    lastProfileHeight=profile.getBoundingClientRect().height;
+  }
+
+  setTimeout(()=>{renderOnce();patchRoutineMutations();installScrollGuard();},600);
+  setTimeout(()=>{renderOnce();patchRoutineMutations();installScrollGuard();},1600);
 })();
 </script>
 </body>
