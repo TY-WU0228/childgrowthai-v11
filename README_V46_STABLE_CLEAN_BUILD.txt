@@ -68,3 +68,16 @@ Test checklist:
 V47 patch:
 - Compact header.
 - Native time picker for Today Task and Routine time fields.
+
+
+V48 patch:
+- Home Today Snapshot.
+- School Notice Manager with Done status.
+- Better weekly review and homework report format.
+- UI polish.
+
+
+V49 patch:
+- Activity Progress AI.
+- Photo / video frame / voice note text / coach comment modes.
+- Activity reports in Analytics and Weekly Review.

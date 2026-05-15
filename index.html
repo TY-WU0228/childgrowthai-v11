@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v47 Compact Header + Time Picker</title>
+  <title>ChildGrowth AI v50 Coach Voice Notes</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -108,6 +108,117 @@
     }
     .top .version{display:none!important}
 
+  
+    /* V48 UI Polish + Report Quality */
+    body{font-weight:760}
+    .card{padding:17px;margin:13px 0}
+    .card h2{font-size:25px;line-height:1.12}
+    .card h3{font-size:19px;line-height:1.18}
+    .muted{font-size:15px}
+    .heroSummary{
+      background:linear-gradient(135deg,#eff6ff,#f5f3ff);
+      border:1px solid #bfdbfe;
+      border-radius:22px;
+      padding:14px;
+      margin-top:14px;
+    }
+    .heroSummary .big{
+      font-size:20px;
+      font-weight:1000;
+      letter-spacing:-.04em;
+      color:#0f172a;
+      line-height:1.25;
+    }
+    .heroSummary .subline{
+      color:#475569;
+      font-weight:850;
+      line-height:1.45;
+      margin-top:7px;
+    }
+    .priorityStrip{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .priority{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:999px;
+      padding:7px 10px;
+      color:#334155;
+      font-size:13px;
+      font-weight:950;
+    }
+    .reportBlock{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:20px;
+      padding:13px;
+      margin-top:10px;
+    }
+    .reportBlock b{
+      display:block;
+      color:#0f172a;
+      font-size:17px;
+      margin-bottom:6px;
+    }
+    .reportBlock ul{
+      margin:8px 0 0 20px;
+      padding:0;
+      color:#475569;
+      font-weight:820;
+      line-height:1.5;
+    }
+    .reportBlock li{margin:4px 0}
+    .sectionTag{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:5px 9px;
+      background:#ecfeff;
+      border:1px solid #67e8f9;
+      color:#155e75;
+      font-size:12px;
+      font-weight:950;
+      margin-bottom:8px;
+    }
+    .noticeDone{
+      opacity:.68;
+      filter:saturate(.7);
+    }
+    .noticeDone b{text-decoration:line-through}
+    .premiumDivider{
+      height:1px;
+      background:linear-gradient(90deg,transparent,#dbeafe,transparent);
+      margin:14px 0;
+    }
+    @media(max-width:430px){
+      .card h2{font-size:23px}
+      .heroSummary .big{font-size:18px}
+      .priority{font-size:12px}
+    }
+
+  
+    /* V49 Activity Progress AI */
+    .activityModeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+    .modeBtn{border:1px solid #dbeafe;background:#fff;color:#1d4ed8;border-radius:18px;padding:10px 8px;font-weight:950;text-align:center;min-height:58px}
+    .modeBtn.active{background:#eef2ff;color:#3730a3;border-color:#818cf8;box-shadow:0 0 0 3px rgba(99,102,241,.10)}
+    .activityPreview{max-width:100%;max-height:240px;object-fit:contain;border:1px solid #e5e7eb;border-radius:18px;background:#f8fafc;margin-top:10px;display:none}
+    .activityFrameGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .activityFrameGrid img{width:100%;height:90px;object-fit:cover;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc}
+    @media(max-width:430px){.activityModeGrid{grid-template-columns:1fr 1fr}.activityFrameGrid{grid-template-columns:1fr 1fr 1fr}.activityFrameGrid img{height:72px}}
+
+  
+    /* V50 Coach Voice Notes */
+    .coachVoiceBox{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #bfdbfe;color:#1e3a8a;border-radius:20px;padding:13px;margin:12px 0}
+    .coachVoiceBox b{display:block;color:#0f172a;margin-bottom:6px;font-size:17px}
+    .coachVoiceRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    .coachVoiceRow select{width:auto;min-width:145px;min-height:44px;padding:8px 12px;border-radius:999px;background:#fff}
+    .voiceStatus{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:10px;color:#334155;font-weight:850;line-height:1.45;margin-top:10px;min-height:42px}
+    .voiceLive{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+    .voiceWarn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+
   </style>
 </head>
 <body>
@@ -115,7 +226,7 @@
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v47 Compact UI · Time picker inputs</div>
+    <div class="version">v50 Coach Voice Notes · Faster activity comments</div>
   </header>
 
   <main>
@@ -167,6 +278,7 @@ const DEFAULT_DATA={
   emotions:[],
   teacherComments:[],
   homeworkReports:[],
+  activityReports:[],
   settings:{weekExpanded:false, onboardingDone:true}
 };
 
@@ -286,6 +398,7 @@ function migrate(){
   return data;
 }
 let app=migrate();
+app.activityReports = Array.isArray(app.activityReports) ? app.activityReports : [];
 save();
 
 function mirrorLegacy(){
@@ -326,6 +439,44 @@ function freeWindows(day,items){
   let cur=start,free=[];blocks.forEach(b=>{if(b.s>cur+20)free.push([cur,b.s]);cur=Math.max(cur,b.e)}); if(end>cur+20)free.push([cur,end]); return free;
 }
 
+function todaySummaryHTML(day, routines, tasks, notices){
+  const mainSchool = routines.find(r=>/school|primary|返學|學校|学校/i.test(r.name||'')) || routines[0];
+  const afterSchool = routines.filter(r=>r!==mainSchool).slice(0,2);
+  const nextNotice = notices.find(n=>!n.done);
+  const taskText = tasks.length ? `${tasks.length} 個今日任務` : '未有今日任務';
+  const schoolText = mainSchool ? `${mainSchool.start||''}${mainSchool.end?'–'+mainSchool.end:''} ${mainSchool.name||''}` : '今日未有固定學校/活動';
+  const afterText = afterSchool.length ? afterSchool.map(r=>`${r.start||''} ${r.name}`).join('；') : '課後暫時較彈性';
+  const prep = routines.map(r=>r.prep).filter(Boolean).join('、').split(/[、,，]/).map(x=>x.trim()).filter(Boolean).slice(0,4);
+  return `<div class="heroSummary">
+    <div class="sectionTag">Today Snapshot</div>
+    <div class="big">${esc(taskText)} · ${esc(routines.length)} 個行程 · ${nextNotice?'有學校通知':'暫無學校通知'}</div>
+    <div class="subline"><b>今日：</b>${esc(schoolText)}<br><b>課後：</b>${esc(afterText)}${prep.length?`<br><b>記得：</b>${prep.map(esc).join('、')}`:''}</div>
+    <div class="priorityStrip">
+      <span class="priority">📌 先做最重要一項</span>
+      <span class="priority">📚 Reading / spelling 短練</span>
+      <span class="priority">😌 活動多就減量</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🏅 最近活動進度</h2>
+    ${acts.slice(-5).reverse().map(a=>rowHTML(`${new Date(a.date).toLocaleString()} · ${esc(a.activity)}`,`模式：${esc(a.mode)}<br>下次重點：${esc(a.report?.nextPractice||'')}`)).join('') || '<div class="notice bluebox">未有活動進度記錄。</div>'}
+  </div>`;
+}
+
+function dailyInsight(routines,tasks,notices){
+  if(routines.length>=3) return '今日活動較多，建議只安排一個核心功課目標，再保留休息時間。';
+  if(tasks.length>=2) return '今日已有任務，建議按時間排序，先完成最短最容易開始的一項。';
+  if(notices.some(n=>!n.done)) return '有學校通知需要跟進，建議先確認要帶物品或付款。';
+  if(routines.length) return '今日有活動，建議短時間高質練習，例如 10–15 分鐘。';
+  return '今日暫時較空，可以安排閱讀、練琴或溫習 spelling。';
+}
+
+function compactList(items, empty='暫時未有資料'){
+  if(!items || !items.length) return `<ul><li>${esc(empty)}</li></ul>`;
+  return `<ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+}
+
+
 function renderHome(){
   const today=dayName(0), tomorrow=dayName(1);
   const tr=routinesForDay(today), tm=routinesForDay(tomorrow);
@@ -336,11 +487,12 @@ function renderHome(){
       <div class="chip" style="margin-bottom:10px;background:#fff;color:#1e3a8a;border-color:#dbeafe">🌸 ChildGrowth AI · ${esc(app.profile.childName)}</div>
       <h2>🌸 ${esc(app.profile.childName)} Today</h2>
       <div class="muted">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
+      ${todaySummaryHTML(today,tr,tasks,notices)}
       <div class="grid" style="margin-top:12px">
         <div class="metric"><b>${tasks.length}</b><span>今日任務</span></div>
         <div class="metric"><b>${tr.length}</b><span>今日固定行程</span></div>
       </div>
-      <div class="insight">🤖 Parent Insight：${tr.length>=3?'今日活動較多，功課建議輕量，先完成最重要一項。':tr.length?'今日有活動，建議短時間高質練習。':'今日暫時較空，可以安排閱讀、練琴或溫習 spelling。'}</div>
+      <div class="insight">🤖 Parent Insight：${dailyInsight(tr,tasks,notices)}</div>
       <div class="actions">
         <button class="btn primary" onclick="go('homework')">📚 Upload 功課</button>
         <button class="btn" onclick="go('record')">🎙️ 記錄 / School Notice</button>
@@ -393,9 +545,8 @@ function taskRow(t){
     `<button class="btn" onclick="editTask('${esc(t.id)}')">修改</button><button class="btn danger" onclick="deleteTask('${esc(t.id)}')">刪除</button>`);
 }
 function noticeRow(n){
-  return rowHTML(`${esc(n.date||'未定日期')} ${n.time?esc(n.time)+' · ':''}${esc(n.title)}`,
-    `分類：${esc(n.category||'school event')}<br>準備：${(n.bringItems||[]).map(esc).join('、')||'未填'}<br>提醒：${(n.reminders||[]).map(esc).join('、')||'前一晚 8:00 PM'}`,
-    `<button class="btn" onclick="editNotice('${esc(n.id)}')">修改</button><button class="btn danger" onclick="deleteNotice('${esc(n.id)}')">刪除</button>`);
+  const doneClass=n.done?' noticeDone':'';
+  return `<div class="row${doneClass}"><div><b>${esc(n.date||'未定日期')} ${n.time?esc(n.time)+' · ':''}${esc(n.title)}</b><small>分類：${esc(n.category||'school event')}<br>準備：${(n.bringItems||[]).map(esc).join('、')||'未填'}<br>提醒：${(n.reminders||[]).map(esc).join('、')||'前一晚 8:00 PM'}${n.done?'<br>狀態：已完成':''}</small></div><div class="rowActions"><button class="btn" onclick="toggleNoticeDone('${esc(n.id)}')">${n.done?'未完成':'完成'}</button><button class="btn" onclick="editNotice('${esc(n.id)}')">修改</button><button class="btn danger" onclick="deleteNotice('${esc(n.id)}')">刪除</button></div></div>`;
 }
 
 window.quickTask=(title,pref,note)=>{addTask({title,time:nextFutureTime(pref),note,date:todayISO()})}
@@ -412,6 +563,111 @@ window.saveTaskFromForm=()=>{
 window.editTask=(id)=>{const t=app.todayTasks.find(x=>x.id===id);if(!t)return;taskEditId=id;renderHome();$('taskTitle').value=t.title;$('taskTime').value=timeInputValue(t.time);$('taskNote').value=t.note||'';$('taskTitle').scrollIntoView({behavior:'smooth',block:'center'})}
 window.cancelTaskEdit=()=>{taskEditId=null;renderHome()}
 window.deleteTask=(id)=>{if(confirm('確定刪除今日任務？')){app.todayTasks=app.todayTasks.filter(t=>t.id!==id);save();renderHome()}}
+
+
+let activityMode='photo';
+let activityImage='';
+let activityVideoFrames=[];
+let activityFileType='';
+
+function activityProgressCardHTML(){
+  return `<div class="card">
+    <h2>🏅 Activity Progress AI</h2>
+    <div class="muted">記錄課外活動進度，例如 piano、swimming、tennis、chess、soccer、art。呢個同「老師 comment」唔重複：老師 comment 是一般學校/課堂觀察；Activity Progress 是針對某一個課外活動的進度、練習重點和下次可問教練的問題。</div>
+    <div class="notice">Beta：AI 只做家長角度觀察，不能取代鋼琴老師、游水教練、網球教練或醫療/專業評估。短片模式會抽取幾張畫面作參考，不會做精準動作評分。</div>
+    <label>活動類型</label>
+    <select id="actType"><option>Piano</option><option>Swimming</option><option>Tennis</option><option>Chess</option><option>Soccer</option><option>Art</option><option>Dance / Gymnastics</option><option>Custom</option></select>
+    <label>輸入模式</label>
+    <div class="activityModeGrid">
+      <button class="modeBtn active" id="modePhoto" onclick="setActivityMode('photo')">📷 Photo<br><small>樂譜/棋盤/作品</small></button>
+      <button class="modeBtn" id="modeVideo" onclick="setActivityMode('video')">🎥 Short video<br><small>動作活動 beta</small></button>
+      <button class="modeBtn" id="modeVoice" onclick="setActivityMode('voice')">🎙️ Voice note<br><small>家長口述</small></button>
+      <button class="modeBtn" id="modeCoach" onclick="setActivityMode('coach')">📝 Coach comment<br><small>教練評語</small></button>
+    </div>
+    <div id="activityFileWrap">
+      <label>Upload photo / short video / audio</label>
+      <input id="activityFile" type="file" accept="image/*,video/*,audio/*">
+      <img id="activityPreview" class="activityPreview">
+      <div id="activityFrames" class="activityFrameGrid"></div>
+    </div>
+    <label>補充內容 / 家長觀察 / 教練 comment</label>
+    <textarea id="activityNote" placeholder="例：今日游水老師話 kick 有進步，但轉身仲未熟。或者：這是 piano 第 1–2 行，佢一錯就想由頭彈。"></textarea>
+    <div class="actions"><button class="btn primary" onclick="analyzeActivityProgress()">🤖 Analyze Activity</button><button class="btn" onclick="clearActivityProgress()">Clear</button></div>
+    <div id="activityStatus"></div><div id="activityResult"></div>
+  </div>`;
+}
+function setActivityMode(mode){
+  activityMode=mode;
+  ['Photo','Video','Voice','Coach'].forEach(x=>{const el=$('mode'+x); if(el) el.classList.toggle('active', mode===x.toLowerCase());});
+  const file=$('activityFile'); if(file) file.accept = mode==='photo' ? 'image/*' : mode==='video' ? 'video/*' : mode==='voice' ? 'audio/*' : 'image/*';
+  const wrap=$('activityFileWrap'); if(wrap) wrap.style.display = (mode==='voice' || mode==='coach') ? 'none' : 'block';
+}
+function bindActivityUpload(){
+  const f=$('activityFile'); if(!f || f.v49Bound) return; f.v49Bound=true;
+  f.onchange=async e=>{
+    const file=e.target.files && e.target.files[0]; if(!file) return;
+    activityFileType=file.type || ''; activityImage=''; activityVideoFrames=[];
+    const preview=$('activityPreview'), frames=$('activityFrames');
+    if(preview){preview.style.display='none';preview.src='';} if(frames) frames.innerHTML='';
+    if(file.type.startsWith('image/')){
+      const reader=new FileReader(); reader.onload=ev=>{activityImage=ev.target.result; if(preview){preview.src=activityImage; preview.style.display='block';}}; reader.readAsDataURL(file);
+    } else if(file.type.startsWith('video/')){
+      $('activityStatus').innerHTML='<div class="notice bluebox">正在抽取短片畫面作 beta 分析...</div>';
+      try{activityVideoFrames=await extractVideoFrames(file,3); if(frames) frames.innerHTML=activityVideoFrames.map(src=>`<img src="${src}">`).join(''); $('activityStatus').innerHTML='<div class="notice good">已抽取短片畫面。AI 會用這些畫面 + 你的補充文字作家長角度觀察。</div>';}
+      catch(err){$('activityStatus').innerHTML='<div class="notice">短片畫面抽取未成功，請改用截圖或補充文字。</div>';}
+    } else if(file.type.startsWith('audio/')){
+      $('activityStatus').innerHTML='<div class="notice bluebox">已選擇 audio。現階段請在補充內容簡述教練/家長觀察。</div>';
+    }
+  };
+}
+function extractVideoFrames(file,count=3){
+  return new Promise((resolve,reject)=>{
+    const video=document.createElement('video'); const url=URL.createObjectURL(file); video.src=url; video.muted=true; video.playsInline=true; video.preload='metadata';
+    const frames=[], canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
+    video.onloadedmetadata=()=>{const dur=Math.min(video.duration||1,20); const times=[dur*0.2,dur*0.5,dur*0.8].map(x=>Math.max(0.1,Math.min(dur-0.1,x))); let i=0;
+      const grab=()=>{if(i>=times.length){URL.revokeObjectURL(url); resolve(frames); return;} video.currentTime=times[i++];};
+      video.onseeked=()=>{canvas.width=Math.min(video.videoWidth||640,900); canvas.height=Math.round(canvas.width*((video.videoHeight||360)/(video.videoWidth||640))); ctx.drawImage(video,0,0,canvas.width,canvas.height); frames.push(canvas.toDataURL('image/jpeg',0.78)); grab();}; grab();
+    };
+    video.onerror=()=>{URL.revokeObjectURL(url); reject(new Error('video load failed'))};
+  });
+}
+function localActivityFallback(activity,note){
+  const lower=(note||'').toLowerCase();
+  const byType={Piano:['分小節慢練','不要一錯就由頭開始','先練第 1–2 行或最難 2 小節'],Swimming:['留意身體是否放鬆','下次問教練 breathing / kicking / body position','活動後功課要減量'],Tennis:['留意預備姿勢和 follow-through','下次問教練 footwork / timing','不要只追求大力擊球'],Chess:['回顧是否太快落子','練習 fork / pin / checkmate pattern','每步棋前先看對方威脅'],Soccer:['留意控球和跑位','下次問教練 first touch / passing','活動後安排輕量功課'],Art:['保留作品作進度比較','鼓勵描述創作想法','下次集中一個技巧例如線條/顏色'],'Dance / Gymnastics':['留意動作連貫性','安全第一，不作技術診斷','下次問教練伸展/核心控制'],Custom:['記錄教練 comment','只設定一個下次練習目標','活動後觀察情緒和疲倦度']};
+  return {activity,summary:note?`家長/教練提供的觀察：${note.slice(0,220)}`:`已記錄 ${activity} 練習，需要更多相片/短片/文字才可更準。`,strengths:(lower.includes('好')||lower.includes('進步'))?['已有進步訊號，值得肯定。']:['能夠持續參與練習本身已經是進步。'],watchPoints:byType[activity]||byType.Custom,nextPractice:(byType[activity]||byType.Custom)[0],coachQuestion:activity==='Piano'?'下次可問老師：應該先練哪兩個小節？':`下次可問教練：${(byType[activity]||byType.Custom)[1]}`,confidence:note?'medium':'low',safetyNote:'AI 只作家長角度整理，不取代正式教練評估。'};
+}
+async function analyzeActivityProgress(){
+  const activity=$('actType').value, note=$('activityNote').value.trim(); const images=[...(activityImage?[activityImage]:[]),...activityVideoFrames];
+  if(!note && !images.length){$('activityStatus').innerHTML='<div class="notice">請先上載相片/短片，或輸入家長觀察 / 教練 comment。</div>'; return;}
+  $('activityStatus').innerHTML='<div class="notice bluebox">正在分析課外活動進度...</div>';
+  try{let report=null; try{const res=await fetch('/.netlify/functions/analyze-activity-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({activity,mode:activityMode,note,images,child:{name:app.profile.childName,year:app.profile.year}})}); if(!res.ok) throw new Error('AI function failed '+res.status); const data=await res.json(); report=data.report;} catch(aiErr){report=localActivityFallback(activity,note);} const entry={id:'act_'+Date.now(),date:new Date().toISOString(),activity,mode:activityMode,note,imageCount:images.length,report}; app.activityReports.push(entry); save(); $('activityResult').innerHTML=activityReportHTML(report); $('activityStatus').innerHTML='<div class="notice good">分析完成，已加入 Activity Progress 記錄。</div>';}
+  catch(e){$('activityStatus').innerHTML='<div class="notice">分析未成功，請稍後再試。</div>';}
+}
+function activityReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>🏅 Activity Progress Report</h2><div class="reportBlock"><b>1. 今日活動</b><div class="muted">${esc(r.activity||'Activity')}</div></div><div class="reportBlock"><b>2. 我睇到 / 家長提供咗咩</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div><div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'能夠持續參與練習本身已經值得肯定。')}</div><div class="reportBlock"><b>4. 需要留意</b>${compactList(r.watchPoints||[],'暫時未有明顯需要留意事項。')}</div><div class="reportBlock"><b>5. 下次練習重點</b><div class="muted">${esc(r.nextPractice||'只設定一個細目標，避免一次練太多。')}</div></div><div class="reportBlock"><b>6. 可以問教練一句</b><div class="muted">${esc(r.coachQuestion||'下次可以問教練：今星期最應該集中練哪一個小地方？')}</div></div><div class="notice">${esc(r.safetyNote||'AI 只作家長角度整理，不取代正式教練評估。')}</div></div>`;}
+function clearActivityProgress(){activityImage='';activityVideoFrames=[];activityFileType=''; ['activityFile','activityNote'].forEach(id=>{const el=$(id); if(el) el.value='';}); const p=$('activityPreview'); if(p){p.src='';p.style.display='none';} const frames=$('activityFrames'); if(frames) frames.innerHTML=''; const s=$('activityStatus'); if(s) s.innerHTML=''; const r=$('activityResult'); if(r) r.innerHTML='';}
+
+
+let coachRecognition=null;
+let coachVoiceTimer=null;
+let coachInterimText='';
+function setVoiceStatus(text, mode=''){const el=$('coachVoiceStatus');if(!el)return;el.className='voiceStatus '+(mode==='live'?'voiceLive ':mode==='warn'?'voiceWarn ':'');el.innerHTML=text;}
+function appendCoachText(text){const area=$('activityNote');if(!area||!text)return;const current=area.value.trim();area.value=current?current+'\n'+text.trim():text.trim();}
+function startCoachVoiceNote(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){setVoiceStatus('⚠️ 呢個 browser 暫時唔支援語音。請直接打字輸入 coach comment。','warn');return;}
+  stopCoachVoiceNote(false);
+  const lang=($('coachVoiceLang')?.value)||'zh-HK';
+  coachRecognition=new SR();coachRecognition.lang=lang;coachRecognition.interimResults=true;coachRecognition.continuous=false;coachRecognition.maxAlternatives=1;
+  let finalText='';coachInterimText='';
+  setVoiceStatus('🎙️ 正在聽你講 coach comment。可以中英夾雜，最多約 25 秒。','live');
+  coachVoiceTimer=setTimeout(()=>{const text=(finalText||coachInterimText||'').trim();try{coachRecognition&&coachRecognition.stop()}catch(e){} if(text){appendCoachText(text);setVoiceStatus('✅ 已加入語音文字。你可以補充更多，或直接 Analyze Activity。','live');}else{setVoiceStatus('⚠️ 未聽到清楚內容。可以再試一次或直接打字。','warn');} coachRecognition=null;},25000);
+  coachRecognition.onresult=(e)=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const part=e.results[i][0].transcript||'';if(e.results[i].isFinal)finalText+=part;else interim+=part;}coachInterimText=interim;const display=(finalText||interim||'').trim();if(display)setVoiceStatus('🎙️ 聽到：'+esc(display),'live');};
+  coachRecognition.onerror=(e)=>{clearTimeout(coachVoiceTimer);coachRecognition=null;setVoiceStatus('⚠️ 語音輸入未成功：'+esc(e.error||'unknown')+'。可以再試或直接打字。','warn');};
+  coachRecognition.onend=()=>{clearTimeout(coachVoiceTimer);const text=(finalText||coachInterimText||'').trim();if(text){appendCoachText(text);setVoiceStatus('✅ 已加入語音文字。請檢查後 Analyze Activity。','live');}else{setVoiceStatus('語音已停止。如未加入文字，可以再試一次。','warn');}coachRecognition=null;};
+  try{coachRecognition.start();}catch(e){setVoiceStatus('⚠️ 語音功能啟動失敗。請直接打字。','warn');coachRecognition=null;}
+}
+function stopCoachVoiceNote(show=true){if(coachVoiceTimer)clearTimeout(coachVoiceTimer);coachVoiceTimer=null;try{if(coachRecognition)coachRecognition.stop();}catch(e){}coachRecognition=null;if(show)setVoiceStatus('已停止語音。','warn');}
+function clearCoachVoiceNote(){const area=$('activityNote');if(area)area.value='';setVoiceStatus('已清空。可以重新語音輸入或打字。');}
 
 function renderRecord(){
   $('record').innerHTML=`
@@ -433,13 +689,27 @@ function renderRecord(){
       <div class="actions"><button class="btn primary" onclick="saveTeacherComment()">保存 comment</button></div>
       <div>${app.teacherComments.slice(-5).reverse().map(c=>rowHTML(`${new Date(c.date).toLocaleString()} · ${esc(c.category||'School')}`,esc(c.text))).join('') || ''}</div>
     </div>
+    ${activityProgressCardHTML()}
     ${schoolNoticeCardHTML()}
+    ${noticeManagerHTML()}
   `;
   bindNoticeUpload();
+  bindActivityUpload();
+  setActivityMode(activityMode);
 }
 function moodIcon(m){return {Normal:'🙂',Tired:'😴',Frustrated:'😫',Happy:'😊'}[m]||'🙂'}
 window.addEmotion=(m)=>{app.emotions.push({id:'em_'+Date.now(),date:new Date().toISOString(),mood:m});save();renderRecord();renderHome()}
 window.saveTeacherComment=()=>{const text=$('teacherText').value.trim();if(!text)return;app.teacherComments.push({id:'tc_'+Date.now(),date:new Date().toISOString(),category:'School',text});save();renderRecord()}
+
+
+function noticeManagerHTML(){
+  const list=app.schoolNotices.slice().sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
+  return `<div class="card">
+    <h2>📋 School Notice Manager</h2>
+    <div class="muted">已加入嘅學校通知集中喺度，可以修改、刪除或標記完成，避免 Compass notice 越積越亂。</div>
+    ${list.length?list.map(n=>noticeRow(n)).join(''):'<div class="notice bluebox">暫時未有學校通知。</div>'}
+  </div>`;
+}
 
 function schoolNoticeCardHTML(){
   return `<div class="card">
@@ -507,14 +777,15 @@ window.editNoticePending=()=>{if(!noticePending)return;noticePending.title=promp
 window.confirmNotice=()=>{
   if(!noticePending)return; if(!noticePending.date){const d=prompt('請輸入日期，例如 2026-05-18 或 next Monday',''); if(!d)return;noticePending.date=parseNaturalDate(d)||d}
   if(!noticePending.reminders?.length)noticePending.reminders=['前一晚 8:00 PM','當日早上 7:30 AM'];
-  app.schoolNotices.push(noticePending);
+  noticePending.done=false; app.schoolNotices.push(noticePending);
   const day=new Date(noticePending.date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long'});
   app.routines.push({id:'notice_r_'+Date.now(),day,name:'📣 '+noticePending.title,start:noticePending.time||'',end:'',prep:(noticePending.bringItems||[]).join('、'),reminder:noticePending.reminders.join(' / '),impact:'正常',oneOffDate:noticePending.date,source:'schoolNotice'});
   noticePending=null; save(); clearNoticeScan(); renderHome();
 }
 window.clearNoticeScan=()=>{noticePending=null;window._noticeImage=''; if($('noticeText'))$('noticeText').value=''; if($('noticeFile'))$('noticeFile').value=''; if($('noticePreview')){$('noticePreview').src='';$('noticePreview').style.display='none'} if($('noticeStatus'))$('noticeStatus').innerHTML=''; if($('noticeResult'))$('noticeResult').innerHTML=''}
 window.editNotice=(id)=>{const n=app.schoolNotices.find(x=>x.id===id); if(!n)return; n.title=prompt('事項名稱',n.title)||n.title; n.date=prompt('日期 YYYY-MM-DD',n.date)||n.date; const prep=prompt('要準備物品',(n.bringItems||[]).join('、')); if(prep!==null)n.bringItems=prep.split(/[、,，]/).map(x=>x.trim()).filter(Boolean); save(); renderHome()}
-window.deleteNotice=(id)=>{if(confirm('刪除這個學校提醒？')){app.schoolNotices=app.schoolNotices.filter(n=>n.id!==id);save();renderHome()}}
+window.toggleNoticeDone=(id)=>{const n=app.schoolNotices.find(x=>x.id===id);if(n){n.done=!n.done;save();renderCurrent();}}
+window.deleteNotice=(id)=>{if(confirm('刪除這個學校提醒？')){app.schoolNotices=app.schoolNotices.filter(n=>n.id!==id);save();renderCurrent()}}
 
 function renderHomework(){
   $('homework').innerHTML=`<div class="card">
@@ -543,10 +814,16 @@ window.analyzeHomework=async()=>{
     $('hwResult').innerHTML=homeworkReportHTML(report); $('hwStatus').innerHTML='<div class="notice">AI 分析未成功。</div>';
   }
 }
-function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>功課分析</h2>${rowHTML('Summary',esc(r.summary||''))}${rowHTML('Level awareness',esc(r.levelAwareness||'按目前年級和題目難度作觀察。'))}${rowHTML('做得好',(r.strengths||[]).map(esc).join('、')||'未有足夠資料')}${rowHTML('需要覆核',(r.checkPoints||[]).map(esc).join('<br>')||'未見明顯需要覆核')}${rowHTML('下一步',esc(r.nextStep||''))}</div>`}
+function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>📚 功課分析</h2>
+  <div class="reportBlock"><b>1. 我睇到嘅內容</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
+  <div class="reportBlock"><b>2. Level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察；如題目年份高於目前年級，應同時肯定孩子已在挑戰較高水平。')}</div></div>
+  <div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
+  <div class="reportBlock"><b>4. 需要覆核</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>5. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
+</div>`}
 
 function renderAnalytics(){
-  const emotions=app.emotions, hw=app.homeworkReports, comments=app.teacherComments, notices=app.schoolNotices;
+  const emotions=app.emotions, hw=app.homeworkReports, comments=app.teacherComments, notices=app.schoolNotices, acts=app.activityReports||[];
   const lastMood=emotions.length?emotions[emotions.length-1].mood:'未記錄';
   $('analytics').innerHTML=`<div class="card">
     <h2>🤖 分析 Dashboard</h2>
@@ -555,17 +832,40 @@ function renderAnalytics(){
       <div class="metric"><b>${emotions.length}</b><span>情緒記錄</span></div>
       <div class="metric"><b>${comments.length}</b><span>老師 Comment</span></div>
       <div class="metric"><b>${notices.length}</b><span>學校通知</span></div>
+      <div class="metric"><b>${acts.length}</b><span>活動進度</span></div>
     </div>
     <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。記錄越穩定，weekly report 越準。</div>
   </div>
   <div class="card">
-    <h2>🧾 Weekly Review</h2>
+    <h2>🧾 Weekly Review / 家長小結</h2>
     ${weeklyReportHTML()}
   </div>`;
 }
 function weeklyReportHTML(){
-  const thisWeek=app.todayTasks.length+app.schoolNotices.length+app.routines.length+app.emotions.length+app.homeworkReports.length;
-  return `<div class="notice bluebox"><b>Records summary</b><br>本週/目前已記錄：${thisWeek} 項資料。<br><br><b>AI-style observation</b><br>${app.routines.length?'固定行程已開始建立，之後可以比較活動量同功課/情緒狀態。':'未有足夠固定行程，建議先加入 Mon–Fri School 同主要課外活動。'}<br><br><b>Parent action</b><br>每日只需要：一個情緒、一張功課相、或一條老師 comment。資料穩定比資料多更重要。</div>`;
+  const total=app.todayTasks.length+app.schoolNotices.length+app.routines.length+app.emotions.length+app.homeworkReports.length+app.teacherComments.length+(app.activityReports||[]).length;
+  const recentMoods=app.emotions.slice(-7).map(e=>e.mood);
+  const tired=recentMoods.filter(m=>/tired|frustrated/i.test(m)).length;
+  const busyDays=DAYS.map(d=>[d,routinesForDay(d,false).length]).sort((a,b)=>b[1]-a[1]);
+  const topBusy=busyDays[0];
+  const latestHW=app.homeworkReports.slice(-1)[0]?.report;
+  const latestAct=(app.activityReports||[]).slice(-1)[0]?.report;
+  const openNotices=app.schoolNotices.filter(n=>!n.done && (!n.date || n.date>=todayISO()));
+  const observations=[
+    app.routines.length?`固定行程已建立 ${app.routines.filter(r=>!r.oneOffDate).length} 項，可開始比較活動量與功課狀態。`:'固定行程資料仍不足，建議先加入 Mon–Fri school 及主要課外活動。',
+    recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。${tired?'有疲倦/挫敗訊號，活動多的日子要減量。':'暫時未見明顯疲倦模式。'}`:'未有足夠情緒記錄。',
+    openNotices.length?`有 ${openNotices.length} 個未完成學校通知，需檢查要帶物品 / 付款 / deadline。`:'暫時沒有未完成學校通知。',
+    latestHW?`最近功課重點：${latestHW.nextStep||latestHW.summary||'可按 homework report 下一步跟進。'}`:'未有足夠功課分析資料.',
+    latestAct?`最近活動重點：${latestAct.nextPractice||latestAct.summary||'可按 Activity Progress report 下一步跟進。'}`:'未有活動進度分析資料。'
+  ];
+  const nextActions=[
+    '下星期只揀一個學習重點，例如 number patterns / reading details。',
+    '每天最多記錄一個情緒或一張功課相，保持資料穩定。',
+    topBusy&&topBusy[1]>=2?`${DAY_LABEL[topBusy[0]]} 較忙，當日功課建議輕量。`:'活動量暫時不算密集，可以安排短練習。'
+  ];
+  return `<div class="reportBlock"><b>1. 本週資料</b><ul><li>目前共有 ${total} 項資料。</li><li>固定行程：${app.routines.filter(r=>!r.oneOffDate).length} 項。</li><li>功課分析：${app.homeworkReports.length} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
+  <div class="reportBlock"><b>2. AI 觀察</b>${compactList(observations)}</div>
+  <div class="reportBlock"><b>3. 家長下一步</b>${compactList(nextActions)}</div>
+  <div class="notice">提醒：呢份 weekly review 係 beta，資料越穩定越準；唔需要每日填好多，最重要係持續。</div>`;
 }
 
 function renderProfile(){
