@@ -1440,6 +1440,347 @@ body.v29-home-active #v28TodayPlanCard{
   .v34-mini b{font-size:21px}
 }
 
+
+/* V35 Routine Manager + Voice */
+/* Keep Profile short: hide the long inline V33 manager */
+#v33RoutineManager{
+  display:none!important;
+}
+
+.v35-routine-summary{
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:28px;
+  padding:18px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+  overflow:hidden;
+}
+.v35-routine-summary h2{
+  font-size:26px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v35-muted{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.45;
+}
+.v35-mini-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.v35-mini{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+}
+.v35-mini b{
+  display:block;
+  color:#db2777;
+  font-size:22px;
+}
+.v35-mini span{
+  color:#64748b;
+  font-weight:850;
+  font-size:12px;
+}
+.v35-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:10px 14px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:8px 6px 0 0!important;
+}
+.v35-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:#fff!important;
+  border:none!important;
+}
+.v35-voice{
+  background:linear-gradient(135deg,#06b6d4,#3b82f6)!important;
+  color:#fff!important;
+  border:none!important;
+}
+.v35-modal{
+  position:fixed;
+  inset:0;
+  z-index:25000;
+  background:rgba(15,23,42,.38);
+  backdrop-filter:blur(6px);
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+}
+.v35-modal.show{
+  display:flex;
+}
+.v35-sheet{
+  width:min(100%,820px);
+  max-height:88vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:30px 30px 0 0;
+  padding:20px 16px calc(26px + env(safe-area-inset-bottom));
+  box-shadow:0 -24px 70px rgba(15,23,42,.22);
+  border:1px solid #e5e7eb;
+}
+.v35-sheet-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  margin-bottom:12px;
+}
+.v35-sheet h2{
+  font-size:25px;
+  margin:0;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v35-close{
+  border:0!important;
+  background:#f1f5f9!important;
+  color:#334155!important;
+  border-radius:999px!important;
+  padding:9px 12px!important;
+  width:auto!important;
+  margin:0!important;
+  font-weight:950!important;
+}
+.v35-card{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:22px;
+  padding:14px;
+  margin:12px 0;
+}
+.v35-form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+.v35-full{grid-column:1/-1}
+.v35-template-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0;
+}
+.v35-template{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:8px 11px!important;
+  font-weight:900!important;
+  font-size:12px!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v35-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:12px;
+}
+.v35-row{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.v35-row b{color:#0f172a}
+.v35-row small{display:block;color:#64748b;font-weight:800;margin-top:3px;line-height:1.4}
+.v35-delete{
+  border:none!important;
+  background:#fee2e2!important;
+  color:#991b1b!important;
+  border-radius:999px!important;
+  padding:7px 10px!important;
+  font-weight:900!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v35-alert{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:18px;
+  padding:12px;
+  font-weight:850;
+  line-height:1.45;
+  margin-top:10px;
+}
+.v35-good{
+  background:#f0fdf4;
+  border-color:#bbf7d0;
+  color:#166534;
+}
+.v35-blue{
+  background:#eff6ff;
+  border-color:#bfdbfe;
+  color:#1e3a8a;
+}
+.v35-voice-box{
+  background:linear-gradient(135deg,#eef2ff,#ecfeff);
+  border:1px solid #bfdbfe;
+  border-radius:22px;
+  padding:14px;
+  margin:12px 0;
+}
+.v35-transcript{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:10px;
+  color:#0f172a;
+  font-weight:850;
+  min-height:44px;
+  margin-top:8px;
+  line-height:1.45;
+}
+@media(max-width:430px){
+  .v35-mini-grid,.v35-form-grid{grid-template-columns:1fr}
+  .v35-routine-summary{border-radius:24px;padding:16px}
+  .v35-routine-summary h2{font-size:23px}
+  .v35-sheet{border-radius:26px 26px 0 0}
+}
+
+
+/* V36 Weekly Routine Overview */
+.v36-week-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:28px;
+  padding:18px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+  overflow:hidden;
+}
+.v36-week-card h2{
+  font-size:26px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v36-muted{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.45;
+}
+.v36-week-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  margin-top:14px;
+}
+.v36-day{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:20px;
+  padding:12px;
+}
+.v36-day-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.v36-day-title{
+  font-weight:950;
+  color:#0f172a;
+  font-size:18px;
+}
+.v36-count{
+  background:#eef2ff;
+  color:#3730a3;
+  border:1px solid #dbeafe;
+  border-radius:999px;
+  padding:4px 9px;
+  font-weight:900;
+  font-size:12px;
+}
+.v36-item{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:10px;
+  margin-top:8px;
+}
+.v36-item b{
+  color:#0f172a;
+  font-weight:950;
+}
+.v36-item small{
+  display:block;
+  color:#64748b;
+  font-weight:800;
+  margin-top:4px;
+  line-height:1.45;
+}
+.v36-free{
+  background:#ecfdf5;
+  border:1px solid #bbf7d0;
+  color:#166534;
+  border-radius:16px;
+  padding:10px;
+  margin-top:8px;
+  font-weight:850;
+  line-height:1.45;
+}
+.v36-warn{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:16px;
+  padding:10px;
+  margin-top:8px;
+  font-weight:850;
+  line-height:1.45;
+}
+.v36-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.v36-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v36-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+.v36-hide-extra .v36-day:nth-child(n+4){
+  display:none;
+}
+@media(max-width:430px){
+  .v36-week-card{border-radius:24px;padding:16px}
+  .v36-week-card h2{font-size:23px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1486,7 +1827,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v34 Profile Cleanup · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v36 Weekly Routine Overview · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1494,7 +1835,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v34 Profile Cleanup 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v36 Weekly Routine Overview 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -4042,6 +4383,490 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(renderConsolidatedProfile,1200);
   setTimeout(renderConsolidatedProfile,2500);
   setInterval(()=>{hideDuplicates();renderConsolidatedProfile();},4000);
+})();
+</script>
+<script>
+(function(){
+  const KEY='cg_v33_weekly_routines';
+
+  const templates={
+    'Soccer':{name:'⚽ Soccer',prep:'水樽、運動鞋、外套',impact:'輕量功課日',energy:'高',reminder:'前一晚 8:00 PM'},
+    'Swimming':{name:'🏊 Swimming',prep:'泳衣、毛巾、goggles、換洗衫',impact:'輕量功課日',energy:'高',reminder:'前一晚 8:00 PM'},
+    'Piano':{name:'🎹 Piano lesson / practice',prep:'琴書、練習曲目、鉛筆',impact:'正常',energy:'中',reminder:'前一晚 8:00 PM'},
+    'Chinese':{name:'📚 Chinese class',prep:'中文書、功課、鉛筆袋、水樽',impact:'輕量功課日',energy:'中',reminder:'前一晚 8:00 PM'},
+    'Tutoring':{name:'🧮 Tutoring',prep:'功課、筆記本、錯題、鉛筆袋',impact:'輕量功課日',energy:'中',reminder:'前一晚 8:00 PM'},
+    'Coding':{name:'💻 Coding / Minecraft',prep:'登入資料、耳機、充電',impact:'正常',energy:'中',reminder:'前一晚 8:00 PM'},
+    'Chess':{name:'♟️ Chess',prep:'水樽、snack、chess book 如需要',impact:'正常',energy:'低',reminder:'前一晚 8:00 PM'},
+    'Art':{name:'🎨 Art',prep:'圍裙、folder、作品袋',impact:'正常',energy:'低',reminder:'前一晚 8:00 PM'},
+    'Gymnastics':{name:'🤸 Gymnastics',prep:'運動衫、水樽、頭髮紮好',impact:'輕量功課日',energy:'高',reminder:'前一晚 8:00 PM'},
+    'Playdate':{name:'🧸 Playdate',prep:'snack、水樽、外套',impact:'不建議額外 worksheet',energy:'高',reminder:'前一晚 8:00 PM'},
+    'QS':{name:'📚 QS school',prep:'功課、鉛筆袋、水樽、snack',impact:'輕量功課日',energy:'中',reminder:'前一晚 8:00 PM'}
+  };
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+  function write(list){localStorage.setItem(KEY,JSON.stringify(list.slice(-120))); renderV35();}
+  function val(id){const el=$(id); return el ? (el.value||'').trim() : ''}
+  function dayName(offset=0){const d=new Date(); d.setDate(d.getDate()+offset); return d.toLocaleDateString('en-AU',{weekday:'long'});}
+  function setVal(id,v){const el=$(id); if(el) el.value=v||''}
+
+  function routineRow(r, allowDelete){
+    const time=[r.start,r.end].filter(Boolean).join(' – ');
+    return `<div class="v35-row">
+      <div>
+        <b>${esc(r.day)} ${time?esc(time)+' · ':''}${esc(r.name)}</b>
+        <small>${r.prep?`準備：${esc(r.prep)}`:'未填準備物品'}${r.reminder?`<br>提醒：${esc(r.reminder)}`:''}${r.impact?`<br>功課安排：${esc(r.impact)}`:''}</small>
+      </div>
+      ${allowDelete?`<button class="v35-delete" onclick="v35DeleteRoutine('${esc(r.id)}')">刪除</button>`:''}
+    </div>`;
+  }
+
+  function useTemplate(key){
+    const t=templates[key]; if(!t) return;
+    setVal('v35Name',t.name);
+    setVal('v35Prep',t.prep);
+    setVal('v35Reminder',t.reminder || '前一晚 8:00 PM');
+    setVal('v35Impact',t.impact || '正常');
+  }
+
+  function addRoutineFromFields(){
+    const item={
+      id:'r_'+Date.now(),
+      name:val('v35Name'),
+      day:val('v35Day')||'',
+      start:val('v35Start'),
+      end:val('v35End'),
+      reminder:val('v35Reminder') || '前一晚 8:00 PM',
+      impact:val('v35Impact') || '正常',
+      prep:val('v35Prep'),
+      createdAt:new Date().toISOString()
+    };
+    const missing=[];
+    if(!item.name) missing.push('活動名稱');
+    if(!item.day) missing.push('星期');
+    if(!item.start) missing.push('開始時間');
+    if(missing.length){
+      showParseMsg('⚠️ 仲差：'+missing.join('、')+'。請補充後再加入。', false);
+      return;
+    }
+    const list=read();
+    list.push(item);
+    write(list);
+    ['v35Name','v35Start','v35End','v35Prep'].forEach(id=>setVal(id,''));
+    setVal('v35Reminder','前一晚 8:00 PM');
+    setVal('v35Impact','正常');
+    showParseMsg('✅ 已加入固定行程：'+item.day+' '+(item.start||'')+' '+item.name, true);
+    if(typeof capture==='function') capture('v35_routine_added',{name:item.name,day:item.day,source:'manual_or_voice'});
+  }
+
+  function parseDay(text){
+    const t=text.toLowerCase();
+    const map=[
+      ['Monday',/(星期一|禮拜一|周一|monday|mon\b)/i],
+      ['Tuesday',/(星期二|禮拜二|周二|tuesday|tue\b)/i],
+      ['Wednesday',/(星期三|禮拜三|周三|wednesday|wed\b)/i],
+      ['Thursday',/(星期四|禮拜四|周四|thursday|thu\b)/i],
+      ['Friday',/(星期五|禮拜五|周五|friday|fri\b)/i],
+      ['Saturday',/(星期六|禮拜六|周六|saturday|sat\b)/i],
+      ['Sunday',/(星期日|星期天|禮拜日|禮拜天|周日|sunday|sun\b)/i]
+    ];
+    if(/明天|聽日|tomorrow/i.test(text)) return dayName(1);
+    if(/今天|今日|today/i.test(text)) return dayName(0);
+    const found=map.find(([d,re])=>re.test(text));
+    return found ? found[0] : '';
+  }
+
+  function normalizeTime(s, suffixHint){
+    if(!s) return '';
+    let raw=String(s).trim().replace(/\s+/g,'').replace('：',':').toLowerCase();
+    raw=raw.replace(/上午|早上/g,'am').replace(/下午|晚上|夜晚/g,'pm');
+    raw=raw.replace(/點半|点半/g,':30').replace(/點|点|時|时/g,':00');
+    let m=raw.match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/i);
+    if(!m) return '';
+    let h=parseInt(m[1],10), min=m[2]||'00', ap=m[3]||suffixHint||'';
+    if(ap) return `${h}:${min}${ap}`;
+    return `${h}:${min}`;
+  }
+
+  function parseTimeRange(text){
+    const re=/(\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|AM|PM|上午|下午|晚上|點|点|時|时)?(?:半)?)\s*(?:-|–|—|到|至|to)\s*(\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|AM|PM|上午|下午|晚上|點|点|時|时)?(?:半)?)/i;
+    const m=text.match(re);
+    if(m){
+      const endSuffix=(m[2].match(/(am|pm|上午|下午|晚上)/i)||[])[1]||'';
+      const suffixHint=endSuffix ? (String(endSuffix).includes('上')?'am':String(endSuffix).includes('下')||String(endSuffix).includes('晚')?'pm':String(endSuffix).toLowerCase()) : '';
+      return {start:normalizeTime(m[1],suffixHint), end:normalizeTime(m[2])};
+    }
+    const single=text.match(/(\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|AM|PM|上午|下午|晚上|點|点|時|时)?(?:半)?)/);
+    return {start: single ? normalizeTime(single[1]) : '', end:''};
+  }
+
+  function detectTemplate(text){
+    const t=text.toLowerCase();
+    if(/swim|游水|游泳|泳/.test(t)) return 'Swimming';
+    if(/soccer|football|足球/.test(t)) return 'Soccer';
+    if(/piano|鋼琴|钢琴|練琴|练琴|琴/.test(t)) return 'Piano';
+    if(/chinese|中文/.test(t)) return 'Chinese';
+    if(/tutor|補習|补习|qs/.test(t)) return /qs/.test(t) ? 'QS' : 'Tutoring';
+    if(/coding|minecraft|編程|编程/.test(t)) return 'Coding';
+    if(/chess|象棋|國際象棋/.test(t)) return 'Chess';
+    if(/art|畫畫|画画|美術|美术/.test(t)) return 'Art';
+    if(/gym|gymnastics|體操|体操/.test(t)) return 'Gymnastics';
+    if(/playdate|play date|約玩|约玩/.test(t)) return 'Playdate';
+    return '';
+  }
+
+  function extractPrep(text, template){
+    const m=text.match(/(?:準備|准备|帶|带|bring|需要)(.+)$/i);
+    if(m) return m[1].replace(/[。,.，]/g,'').trim();
+    return template && templates[template] ? templates[template].prep : '';
+  }
+
+  function extractActivityName(text, template){
+    if(template) return templates[template].name;
+    let clean=text
+      .replace(/星期[一二三四五六日天]|禮拜[一二三四五六日天]|周[一二三四五六日]/g,'')
+      .replace(/monday|tuesday|wednesday|thursday|friday|saturday|sunday/ig,'')
+      .replace(/\d{1,2}[:：]?\d{0,2}\s*(am|pm)?\s*(-|–|—|到|至|to)?\s*\d{0,2}[:：]?\d{0,2}\s*(am|pm)?/ig,'')
+      .replace(/準備|准备|帶|带|bring|需要|提醒.*/ig,'')
+      .trim();
+    return clean || '';
+  }
+
+  function showParseMsg(msg, good){
+    const el=$('v35ParseMsg');
+    if(!el) return;
+    el.className='v35-alert '+(good?'v35-good':'');
+    el.textContent=msg;
+  }
+
+  function parseVoiceText(text){
+    const day=parseDay(text);
+    const times=parseTimeRange(text);
+    const template=detectTemplate(text);
+    const name=extractActivityName(text, template);
+    const prep=extractPrep(text, template);
+    const impact=template && templates[template] ? templates[template].impact : '正常';
+    const reminder=(text.match(/提醒(.+?)(?:。|$)/)||[])[1] || '前一晚 8:00 PM';
+
+    setVal('v35Name',name);
+    if(day) setVal('v35Day',day);
+    setVal('v35Start',times.start);
+    setVal('v35End',times.end);
+    setVal('v35Prep',prep);
+    setVal('v35Reminder',reminder);
+    setVal('v35Impact',impact);
+
+    const missing=[];
+    if(!name) missing.push('活動名稱');
+    if(!day) missing.push('星期 / 日期');
+    if(!times.start) missing.push('開始時間');
+    if(missing.length){
+      showParseMsg('⚠️ 我聽到：「'+text+'」。但仲差 '+missing.join('、')+'，所以未加入。請補充，例如「Sunday 9am to 12pm QS school」。', false);
+      return false;
+    }
+    showParseMsg('✅ 已讀到：'+day+' '+times.start+(times.end?' – '+times.end:'')+' · '+name+'。提醒預設：'+reminder+'。確認無誤後可按「加入固定行程」。', true);
+    return true;
+  }
+
+  function startVoice(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){
+      showParseMsg('⚠️ 呢個 browser 暫時唔支援語音輸入。你可以改用文字輸入。', false);
+      return;
+    }
+    const rec=new SR();
+    rec.lang=(localStorage.getItem('cg_lang')||'zh-HK').includes('en')?'en-AU':'zh-HK';
+    rec.interimResults=false;
+    rec.maxAlternatives=1;
+    showParseMsg('🎤 正在聽你講固定行程...', true);
+    rec.onresult=function(e){
+      const text=e.results[0][0].transcript;
+      const tr=$('v35Transcript');
+      if(tr) tr.textContent=text;
+      parseVoiceText(text);
+    };
+    rec.onerror=function(e){
+      showParseMsg('⚠️ 語音輸入未成功：'+(e.error||'unknown')+'。可以再試一次或用文字輸入。', false);
+    };
+    rec.start();
+  }
+
+  function renderModal(){
+    if($('v35RoutineModal')) return;
+    const modal=document.createElement('div');
+    modal.id='v35RoutineModal';
+    modal.className='v35-modal';
+    modal.innerHTML=`
+      <div class="v35-sheet">
+        <div class="v35-sheet-head">
+          <div>
+            <h2>🗓️ 管理固定行程</h2>
+            <div class="v35-muted">刪除 / 修改固定行程集中喺呢度，Profile 頁面只顯示摘要，避免愈來愈長。</div>
+          </div>
+          <button class="v35-close" onclick="v35CloseRoutineManager()">關閉</button>
+        </div>
+
+        <div class="v35-voice-box">
+          <b>🎤 語音新增行程</b>
+          <div class="v35-muted">例：「Sunday 9am to 12pm QS school，準備功課同水樽」。如果漏咗星期或時間，系統會提示你補充；提醒時間預設為前一晚 8:00 PM。</div>
+          <button class="v35-btn v35-voice" onclick="v35StartVoiceRoutine()">🎤 開始語音輸入</button>
+          <input id="v35FreeText" placeholder="或者打字：Sunday 9am to 12pm QS school">
+          <button class="v35-btn" onclick="v35ParseTypedRoutine()">讀取文字</button>
+          <div id="v35Transcript" class="v35-transcript">語音 / 文字內容會顯示喺呢度。</div>
+          <div id="v35ParseMsg" class="v35-alert v35-blue">提示：星期、開始時間、活動名稱係必須資料。</div>
+        </div>
+
+        <div class="v35-card">
+          <b>快速模板</b>
+          <div class="v35-template-row">
+            ${Object.keys(templates).map(k=>`<button type="button" class="v35-template" onclick="v35UseTemplate('${k}')">${k}</button>`).join('')}
+          </div>
+          <div class="v35-form-grid">
+            <div class="v35-full"><label>活動名稱</label><input id="v35Name" placeholder="例：Swimming / Piano / QS school"></div>
+            <div><label>星期</label><select id="v35Day">${days.map(d=>`<option>${d}</option>`).join('')}</select></div>
+            <div><label>開始時間</label><input id="v35Start" placeholder="例：4:30 PM"></div>
+            <div><label>結束時間</label><input id="v35End" placeholder="例：5:30 PM"></div>
+            <div><label>提醒時間</label><input id="v35Reminder" value="前一晚 8:00 PM"></div>
+            <div><label>功課影響</label><select id="v35Impact"><option>正常</option><option>輕量功課日</option><option>不建議額外 worksheet</option></select></div>
+            <div class="v35-full"><label>準備物品 / 備註</label><textarea id="v35Prep" placeholder="例：泳衣、毛巾、goggles、水樽"></textarea></div>
+          </div>
+          <button class="v35-btn v35-primary" onclick="v35AddRoutine()">➕ 加入固定行程</button>
+        </div>
+
+        <div class="v35-card">
+          <b>已加入固定行程</b>
+          <div id="v35RoutineList" class="v35-list"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  function renderProfileSummary(){
+    const profile=$('profile');
+    if(!profile) return;
+    let card=$('v35RoutineSummary');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v35RoutineSummary';
+      card.className='v35-routine-summary';
+      const cloud=$('cloudStatus')?.closest('.card');
+      if(cloud && cloud.parentNode===profile) profile.insertBefore(card, cloud);
+      else profile.appendChild(card);
+    }
+    const list=read();
+    const today=list.filter(r=>r.day===dayName(0));
+    const tomorrow=list.filter(r=>r.day===dayName(1));
+    card.innerHTML=`
+      <h2>🗓️ 固定行程</h2>
+      <div class="v35-muted">呢度只顯示摘要。要新增、刪除或用語音加入行程，請入「管理固定行程」。</div>
+      <div class="v35-mini-grid">
+        <div class="v35-mini"><b>${list.length}</b><span>固定活動</span></div>
+        <div class="v35-mini"><b>${tomorrow.length}</b><span>明日要準備</span></div>
+      </div>
+      <div class="v35-alert ${today.length?'v35-good':'v35-blue'}">${today.length?`今日有：${today.map(r=>esc(r.name)).join('、')}`:'今日未有固定課外活動。'}</div>
+      <button class="v35-btn v35-primary" onclick="v35OpenRoutineManager()">管理固定行程</button>
+    `;
+  }
+
+  function renderList(){
+    const box=$('v35RoutineList');
+    if(!box) return;
+    const list=read();
+    box.innerHTML=list.length ? list.map(r=>routineRow(r,true)).join('') : '<div class="v35-alert v35-blue">未有固定行程。你可以用語音、文字或快速模板加入。</div>';
+  }
+
+  function renderV35(){
+    renderModal();
+    renderProfileSummary();
+    renderList();
+  }
+
+  window.v35OpenRoutineManager=function(){renderV35(); $('v35RoutineModal')?.classList.add('show');}
+  window.v35CloseRoutineManager=function(){ $('v35RoutineModal')?.classList.remove('show');}
+  window.v35UseTemplate=useTemplate;
+  window.v35AddRoutine=addRoutineFromFields;
+  window.v35DeleteRoutine=function(id){write(read().filter(r=>String(r.id)!==String(id)));}
+  window.v35StartVoiceRoutine=startVoice;
+  window.v35ParseTypedRoutine=function(){
+    const text=val('v35FreeText');
+    const tr=$('v35Transcript');
+    if(tr) tr.textContent=text || '未輸入文字';
+    if(!text){showParseMsg('⚠️ 請先輸入一句行程，例如 Sunday 9am to 12pm QS school。',false);return;}
+    parseVoiceText(text);
+  }
+  window.v35Render=renderV35;
+
+  // Add voice block to onboarding routine if it appears
+  function injectOnboardingVoice(){
+    const ob=$('v33OnboardingRoutine');
+    if(!ob || $('v35OnboardingVoiceHint')) return;
+    const hint=document.createElement('div');
+    hint.id='v35OnboardingVoiceHint';
+    hint.className='v35-alert v35-blue';
+    hint.innerHTML='🎤 想用語音加固定行程？完成 onboarding 後，到「我的」→「管理固定行程」可以語音輸入。';
+    ob.insertBefore(hint, ob.firstChild.nextSibling);
+  }
+
+  setTimeout(()=>{renderV35();injectOnboardingVoice();},700);
+  setTimeout(()=>{renderV35();injectOnboardingVoice();},1600);
+  setInterval(()=>{renderV35();injectOnboardingVoice();},4500);
+})();
+</script>
+<script>
+(function(){
+  const KEY='cg_v33_weekly_routines';
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const dayLabel={
+    Monday:'星期一',Tuesday:'星期二',Wednesday:'星期三',Thursday:'星期四',
+    Friday:'星期五',Saturday:'星期六',Sunday:'星期日'
+  };
+
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+  function write(list){localStorage.setItem(KEY,JSON.stringify(list.slice(-120)));}
+  function minToText(m){
+    let h=Math.floor(m/60), mm=m%60;
+    const ap=h>=12?'PM':'AM';
+    let hh=h%12; if(hh===0) hh=12;
+    return `${hh}:${String(mm).padStart(2,'0')} ${ap}`;
+  }
+  function timeToMin(t){
+    if(!t) return null;
+    let s=String(t).trim().toLowerCase().replace(/\s+/g,'').replace('：',':');
+    s=s.replace(/上午|早上/g,'am').replace(/下午|晚上|夜晚/g,'pm');
+    s=s.replace(/點半|点半/g,':30').replace(/點|点|時|时/g,':00');
+    const m=s.match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/i);
+    if(!m) return null;
+    let h=parseInt(m[1],10), mm=parseInt(m[2]||'0',10), ap=m[3]||'';
+    if(ap==='pm' && h<12) h+=12;
+    if(ap==='am' && h===12) h=0;
+    // reasonable guess: 3:30 without AM/PM likely PM for after-school
+    if(!ap && h>=1 && h<=7) h+=12;
+    return h*60+mm;
+  }
+  function routineSort(a,b){
+    const am=timeToMin(a.start);
+    const bm=timeToMin(b.start);
+    if(am===null && bm===null) return String(a.name).localeCompare(String(b.name));
+    if(am===null) return 1;
+    if(bm===null) return -1;
+    return am-bm;
+  }
+  function keyOf(r){
+    return [r.day||'', String(r.name||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w\u4e00-\u9fff]/g,''), r.start||''].join('|');
+  }
+  function duplicateMap(list){
+    const count={};
+    list.forEach(r=>{const k=keyOf(r); count[k]=(count[k]||0)+1;});
+    return count;
+  }
+  function freeWindows(day, items){
+    const weekday=!['Saturday','Sunday'].includes(day);
+    const start=weekday ? 15*60+30 : 9*60;
+    const end=20*60+30;
+    const blocks=items.map(r=>{
+      let s=timeToMin(r.start), e=timeToMin(r.end);
+      if(s===null) return null;
+      if(e===null || e<=s) e=s+60;
+      return {s,e};
+    }).filter(Boolean).sort((a,b)=>a.s-b.s);
+    let cur=start, free=[];
+    blocks.forEach(b=>{
+      if(b.s>cur+20) free.push([cur,b.s]);
+      cur=Math.max(cur,b.e);
+    });
+    if(end>cur+20) free.push([cur,end]);
+    return free;
+  }
+  function renderDay(day, items, dup){
+    const sorted=items.slice().sort(routineSort);
+    const free=freeWindows(day, sorted);
+    const hasDup=sorted.some(r=>dup[keyOf(r)]>1);
+    return `<div class="v36-day">
+      <div class="v36-day-head">
+        <div class="v36-day-title">${dayLabel[day]} · ${day}</div>
+        <div class="v36-count">${sorted.length} 個活動</div>
+      </div>
+      ${hasDup?'<div class="v36-warn">⚠️ 呢日可能有重複行程，建議入「管理固定行程」檢查。</div>':''}
+      ${sorted.length?sorted.map(r=>{
+        const time=[r.start,r.end].filter(Boolean).join(' – ');
+        const isDup=dup[keyOf(r)]>1;
+        return `<div class="v36-item">
+          <b>${time?esc(time)+' · ':''}${esc(r.name)}</b>
+          <small>${r.prep?`準備：${esc(r.prep)}<br>`:''}${r.reminder?`提醒：${esc(r.reminder)}<br>`:''}${r.impact?`功課安排：${esc(r.impact)}`:''}${isDup?'<br>⚠️ 可能重複':''}</small>
+        </div>`;
+      }).join(''):'<div class="v36-item"><b>未有固定行程</b><small>呢日暫時比較空，可以安排閱讀、練琴或休息。</small></div>'}
+      <div class="v36-free">🟢 空檔參考：${free.length?free.slice(0,3).map(([s,e])=>`${minToText(s)} – ${minToText(e)}`).join('、'):'活動較密，暫時未見明顯空檔'}</div>
+    </div>`;
+  }
+  function renderOverview(){
+    const profile=$('profile'); if(!profile) return;
+    let card=$('v36WeeklyOverview');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v36WeeklyOverview';
+      card.className='v36-week-card';
+      const summary=$('v35RoutineSummary') || $('v34ConsolidatedProfile');
+      if(summary && summary.parentNode===profile && summary.nextSibling) profile.insertBefore(card, summary.nextSibling);
+      else profile.appendChild(card);
+    }
+
+    const list=read();
+    const dup=duplicateMap(list);
+    const grouped={}; days.forEach(d=>grouped[d]=[]);
+    list.forEach(r=>{ if(grouped[r.day]) grouped[r.day].push(r); });
+
+    const duplicateCount=Object.values(dup).filter(x=>x>1).length;
+    const busyDay=days.map(d=>[d,grouped[d].length]).sort((a,b)=>b[1]-a[1])[0];
+
+    card.innerHTML=`
+      <h2>📅 一週固定行程總覽</h2>
+      <div class="v36-muted">用嚟一眼睇晒一至日固定活動，避免重複加入，亦可以睇到邊啲時間比較空。</div>
+      ${duplicateCount?`<div class="v36-warn">⚠️ 偵測到 ${duplicateCount} 組可能重複行程。建議入「管理固定行程」刪除多餘項目。</div>`:''}
+      <div class="v36-free">🟢 最忙日：${dayLabel[busyDay[0]]}（${busyDay[1]} 個活動）。空檔只作參考，未包括臨時任務 / 家庭安排。</div>
+      <div id="v36WeekGrid" class="v36-week-grid v36-hide-extra">
+        ${days.map(d=>renderDay(d,grouped[d],dup)).join('')}
+      </div>
+      <div class="v36-actions">
+        <button class="v36-btn" onclick="v36ToggleWeekOverview()">展開 / 收起一週</button>
+        <button class="v36-btn v36-primary" onclick="v35OpenRoutineManager&&v35OpenRoutineManager()">管理固定行程</button>
+      </div>
+    `;
+  }
+
+  window.v36ToggleWeekOverview=function(){
+    const g=$('v36WeekGrid');
+    if(g) g.classList.toggle('v36-hide-extra');
+  }
+
+  // Soft duplicate guard for v35 add button. If exact duplicate exists, block it.
+  function patchAddGuard(){
+    if(typeof window.v35AddRoutine!=='function' || window.v35AddRoutine.v36Wrapped) return;
+    const old=window.v35AddRoutine;
+    const wrapped=function(){
+      const name=($('v35Name')||{}).value||'';
+      const day=($('v35Day')||{}).value||'';
+      const start=($('v35Start')||{}).value||'';
+      const k=[day, String(name).toLowerCase().replace(/\s+/g,'').replace(/[^\w\u4e00-\u9fff]/g,''), start].join('|');
+      const list=read();
+      if(list.some(r=>keyOf(r)===k)){
+        const ok=confirm('呢個行程似乎已經存在，仍然要再加入嗎？\n\n按「取消」可以避免重複。');
+        if(!ok) return;
+      }
+      old();
+      setTimeout(renderOverview,150);
+    };
+    wrapped.v36Wrapped=true;
+    window.v35AddRoutine=wrapped;
+  }
+
+  setTimeout(()=>{patchAddGuard();renderOverview();},700);
+  setTimeout(()=>{patchAddGuard();renderOverview();},1600);
+  setInterval(()=>{patchAddGuard();renderOverview();},4000);
 })();
 </script>
 </body>
