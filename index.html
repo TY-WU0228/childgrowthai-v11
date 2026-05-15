@@ -1322,6 +1322,124 @@ body.v29-home-active #v28TodayPlanCard{
   .v33-home-card h2,.v33-profile-card h2{font-size:23px}
 }
 
+
+/* V34 Profile Cleanup */
+#v23ProfilePolish,
+#v30ProfileSummary,
+#v22ProfilePolish,
+#v21ProfilePolish,
+.v34-hide-profile-duplicate{
+  display:none!important;
+}
+.v34-profile-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:28px;
+  padding:18px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+  overflow:hidden;
+}
+.v34-profile-card h2{
+  font-size:28px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v34-muted{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.45;
+}
+.v34-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+.v34-mini{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:20px;
+  padding:14px;
+  min-width:0;
+}
+.v34-mini b{
+  display:block;
+  color:#db2777;
+  font-size:24px;
+  line-height:1.1;
+  word-break:break-word;
+}
+.v34-mini span{
+  display:block;
+  color:#64748b;
+  font-weight:900;
+  font-size:12px;
+  margin-top:5px;
+}
+.v34-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:14px;
+}
+.v34-tag{
+  border:1px solid #dbeafe;
+  background:#eef2ff;
+  color:#3730a3;
+  border-radius:999px;
+  padding:8px 11px;
+  font-weight:900;
+  font-size:13px;
+}
+.v34-strength{
+  background:#f0fdf4;
+  color:#166534;
+  border-color:#bbf7d0;
+}
+.v34-watch{
+  background:#fff7ed;
+  color:#9a3412;
+  border-color:#fed7aa;
+}
+.v34-note{
+  margin-top:14px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:18px;
+  padding:12px;
+  font-weight:850;
+  line-height:1.45;
+}
+.v34-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+.v34-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:10px 14px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v34-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+@media(max-width:430px){
+  .v34-profile-card{border-radius:24px;padding:16px}
+  .v34-profile-card h2{font-size:24px}
+  .v34-mini b{font-size:21px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1368,7 +1486,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v33 Beta Ready + Routine Setup · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v34 Profile Cleanup · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1376,7 +1494,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v33 Beta Ready + Routine Setup 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v34 Profile Cleanup 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -3799,6 +3917,131 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(()=>{wrapOnboarding();renderAllV33();},700);
   setTimeout(()=>{wrapOnboarding();renderAllV33();},1500);
   setInterval(()=>{wrapOnboarding();renderAllV33();},4500);
+})();
+</script>
+<script>
+(function(){
+  function $(id){return document.getElementById(id)}
+  function safeJSON(raw,fallback){try{return JSON.parse(raw||JSON.stringify(fallback))}catch(e){return fallback}}
+  function appData(){
+    return safeJSON(localStorage.getItem('childgrowthai-v8') || localStorage.getItem('childgrowth-v8'), {});
+  }
+  function profile(){
+    const p=safeJSON(localStorage.getItem('cg_child_profile_v30'), {});
+    const app=appData();
+    const ap=(app&&app.profile)||{};
+    return {
+      childName:p.childName || ap.name || ap.childName || 'Janice',
+      currentYear:p.currentYear || localStorage.getItem('cg_child_current_year') || ap.year || ap.currentYear || 'Year 2',
+      school:p.school || ap.school || '未填',
+      age:p.age || ap.age || '未填',
+      region:p.region || ap.region || '',
+      mainLanguage:p.mainLanguage || ap.language || '',
+      strengths:p.strengths || ap.strengths || ['記憶力','創意','音樂感'],
+      watchAreas:p.watchAreas || ap.watchAreas || ['閱讀理解','做題速度 / 檢查'],
+      parentGoals:p.parentGoals || ap.parentGoals || []
+    };
+  }
+  function counts(){
+    const app=appData();
+    let homework=(app.homework||[]).length;
+    let moods=(app.moods||[]).length;
+    let teacher=(app.teacher||[]).length;
+    try{
+      const r=safeJSON(localStorage.getItem('childgrowth_records'), []);
+      if(Array.isArray(r)){
+        homework += r.filter(x=>x.type==='homework').length;
+        moods += r.filter(x=>x.type==='emotion').length;
+        teacher += r.filter(x=>x.type==='teacher_comment').length;
+      }
+    }catch(e){}
+    return {homework,moods,teacher};
+  }
+  function esc(s){
+    return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function hideDuplicates(){
+    ['v23ProfilePolish','v30ProfileSummary','v22ProfilePolish','v21ProfilePolish'].forEach(id=>{
+      const el=$(id); if(el) el.classList.add('v34-hide-profile-duplicate');
+    });
+
+    // Hide the old original form card: "Child nickname / Year level / Most busy day"
+    const oldInput=$('childNameInput');
+    if(oldInput){
+      const card=oldInput.closest('.card');
+      if(card) card.classList.add('v34-hide-profile-duplicate');
+    }
+
+    // Hide any old hard-coded beta Child Profile card that has duplicate nickname/year fields.
+    document.querySelectorAll('#profile .card').forEach(card=>{
+      const t=card.innerText || '';
+      if(t.includes('Child nickname') && t.includes('Year level')) card.classList.add('v34-hide-profile-duplicate');
+    });
+  }
+
+  function renderConsolidatedProfile(){
+    const host=$('profile');
+    if(!host) return;
+    hideDuplicates();
+
+    let card=$('v34ConsolidatedProfile');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v34ConsolidatedProfile';
+      card.className='v34-profile-card';
+      host.insertBefore(card, host.firstChild);
+    }
+
+    const p=profile();
+    const c=counts();
+    const strengths=(p.strengths||[]).slice(0,6);
+    const watch=(p.watchAreas||[]).slice(0,6);
+    const goals=(p.parentGoals||[]).slice(0,4);
+
+    card.innerHTML=`
+      <h2>👤 ${esc(p.childName)} Profile</h2>
+      <div class="v34-muted">小朋友資料、學習強項、需要留意位同家長目標集中喺呢一個區塊。下面唔會再重複要求輸入 nickname / year level。</div>
+
+      <div class="v34-grid">
+        <div class="v34-mini"><b>${esc(p.childName)}</b><span>小朋友</span></div>
+        <div class="v34-mini"><b>${esc(p.currentYear)}</b><span>目前年級</span></div>
+        <div class="v34-mini"><b>${esc(p.school)}</b><span>學校</span></div>
+        <div class="v34-mini"><b>${esc(p.age)}</b><span>年齡 / 出生年份</span></div>
+      </div>
+
+      <div class="v34-tags">
+        ${strengths.map(x=>`<span class="v34-tag v34-strength">${esc(x)}</span>`).join('')}
+        ${watch.map(x=>`<span class="v34-tag v34-watch">${esc(x)}</span>`).join('')}
+        ${goals.map(x=>`<span class="v34-tag">${esc(x)}</span>`).join('')}
+      </div>
+
+      <div class="v34-note">💡 Parent note：呢頁只保留一個主要 Profile。要改小朋友資料，撳下面「修改小朋友設定」即可；固定課外活動就喺 Weekly Routine Setup 加。</div>
+
+      <div class="v34-grid">
+        <div class="v34-mini"><b>${c.homework}</b><span>功課分析</span></div>
+        <div class="v34-mini"><b>${c.moods}</b><span>情緒記錄</span></div>
+      </div>
+
+      <div class="v34-actions">
+        <button class="v34-btn v34-primary" onclick="v30ShowOnboarding&&v30ShowOnboarding(true)">修改小朋友設定</button>
+        <button class="v34-btn" onclick="document.getElementById('v33RoutineManager')?.scrollIntoView({behavior:'smooth'})">管理固定行程</button>
+      </div>
+    `;
+  }
+
+  // Prevent older profile summary renderers from visually reappearing.
+  const oldRender=window.renderProfileSummary;
+  if(typeof oldRender==='function'){
+    window.renderProfileSummary=function(){
+      try{oldRender()}catch(e){}
+      setTimeout(()=>{hideDuplicates();renderConsolidatedProfile();},30);
+    };
+  }
+
+  setTimeout(renderConsolidatedProfile,500);
+  setTimeout(renderConsolidatedProfile,1200);
+  setTimeout(renderConsolidatedProfile,2500);
+  setInterval(()=>{hideDuplicates();renderConsolidatedProfile();},4000);
 })();
 </script>
 </body>
