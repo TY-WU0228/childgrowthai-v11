@@ -1,0 +1,36 @@
+V46 Test Checklist
+
+Home:
+[ ] Header shows Janice / Year 2.
+[ ] Today / Tomorrow reminder appears.
+[ ] Page does not jump by itself.
+[ ] Quick add piano creates future time.
+[ ] Today task has Edit and Delete.
+
+Profile:
+[ ] Only one profile summary.
+[ ] Routine manager opens.
+[ ] Fixed routine has Edit and Delete.
+[ ] Mon-Fri School creates Monday-Friday school.
+[ ] Weekly overview shows the same data.
+
+Record:
+[ ] Emotion buttons save record.
+[ ] Teacher Comment saves record.
+[ ] School Notice AI accepts pasted notice text.
+[ ] Confirm Add shows notice on Home.
+
+Homework:
+[ ] Upload input appears.
+[ ] AI function call works if OPENAI_API_KEY is set.
+[ ] If AI fails, app shows useful fallback message.
+
+Analytics:
+[ ] Counts are reasonable.
+[ ] Weekly Review is concise.
+
+Known beta limitations:
+- Cloud save/login is not yet implemented.
+- Push notifications are not yet implemented.
+- Compass direct integration is not implemented.
+- Screenshot OCR depends on OpenAI Vision function.
