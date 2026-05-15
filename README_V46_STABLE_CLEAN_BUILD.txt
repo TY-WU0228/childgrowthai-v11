@@ -63,3 +63,8 @@ Test checklist:
 7. School Notice AI can paste text and Confirm Add.
 8. Homework AI can upload photo.
 9. No duplicate old profile/routine blocks should appear.
+
+
+V47 patch:
+- Compact header.
+- Native time picker for Today Task and Routine time fields.

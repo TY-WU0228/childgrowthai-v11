@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v46 Stable Clean Build</title>
+  <title>ChildGrowth AI v47 Compact Header + Time Picker</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -23,13 +23,12 @@
     button{cursor:pointer}
     .app{max-width:860px;margin:0 auto;}
     .top{
-      position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);
-      border-bottom:1px solid #e5e7eb;padding:calc(14px + env(safe-area-inset-top)) 18px 14px;text-align:center;
+      display:none!important;
     }
     .brand{font-size:34px;font-weight:1000;letter-spacing:-.06em;line-height:1}
     .sub{font-size:16px;color:var(--muted);font-weight:900;margin-top:7px;line-height:1.25}
     .version{font-size:13px;color:var(--muted);font-weight:900;margin-top:4px}
-    .page{display:none;padding:18px 16px 28px}.page.active{display:block}
+    .page{display:none;padding:calc(14px + env(safe-area-inset-top)) 16px 28px}.page.active{display:block}
     .card{
       background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:var(--r);
       padding:18px;margin:14px 0;box-shadow:var(--shadow);overflow:hidden;
@@ -99,6 +98,16 @@
       .grid,.grid3{grid-template-columns:1fr}.navbtn{min-width:56px;font-size:13px}
       .row{align-items:flex-start}.metric b{font-size:25px}
     }
+  
+    input[type="time"]{
+      -webkit-appearance:none;
+      appearance:none;
+      min-height:56px;
+      letter-spacing:.02em;
+      background:#fff;
+    }
+    .top .version{display:none!important}
+
   </style>
 </head>
 <body>
@@ -106,7 +115,7 @@
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v46 Stable Clean Build · Clean data / no auto jumping</div>
+    <div class="version">v47 Compact UI · Time picker inputs</div>
   </header>
 
   <main>
@@ -175,6 +184,23 @@ function timeToMin(t){
   let h=+m[1],mm=+(m[2]||0),ap=m[3]||''; if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;if(!ap&&h>=1&&h<=7)h+=12; return h*60+mm;
 }
 function minText(m){m=((m%1440)+1440)%1440;let h=Math.floor(m/60),mm=m%60,ap=h>=12?'PM':'AM';let hh=h%12;if(!hh)hh=12;return `${hh}:${String(mm).padStart(2,'0')} ${ap}`}
+function timeInputValue(t){
+  const m=timeToMin(t);
+  if(m===null) return '';
+  const h=Math.floor(m/60), mm=m%60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+function timeInputDisplay(v){
+  if(!v) return '';
+  const m=String(v).match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return v;
+  return minText((+m[1])*60+(+m[2]));
+}
+function readTimeField(id, fallback=''){
+  const el=$(id);
+  if(!el) return fallback;
+  return timeInputDisplay(el.value) || fallback;
+}
 function sortByTime(a,b){const am=timeToMin(a.start||a.time),bm=timeToMin(b.start||b.time);if(am===null&&bm===null)return String(a.name||a.title).localeCompare(String(b.name||b.title));if(am===null)return 1;if(bm===null)return -1;return am-bm}
 function nextFutureTime(preferred='6:30 PM'){
   const now=new Date(), cur=now.getHours()*60+now.getMinutes(); let pref=timeToMin(preferred)??1110;
@@ -307,6 +333,7 @@ function renderHome(){
 
   $('home').innerHTML=`
     <div class="card">
+      <div class="chip" style="margin-bottom:10px;background:#fff;color:#1e3a8a;border-color:#dbeafe">🌸 ChildGrowth AI · ${esc(app.profile.childName)}</div>
       <h2>🌸 ${esc(app.profile.childName)} Today</h2>
       <div class="muted">${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})}</div>
       <div class="grid" style="margin-top:12px">
@@ -332,10 +359,10 @@ function renderHome(){
     <div class="card">
       <h2>🎯 今日任務 / Today Plan</h2>
       <div class="muted">一次性任務，例如今晚練琴、reading log、spelling。快速加入會避開已過時間。</div>
-      <div class="insight" id="taskHint">時間會按你手機目前時區判斷；加入後可修改。</div>
+      <div class="insight" id="taskHint">時間會按你手機目前時區判斷；時間欄會使用手機時間選擇器，加入後可修改。</div>
       <div class="grid">
         <div><label>今日任務</label><input id="taskTitle" placeholder="例：Piano practice / Reading log / Spelling"></div>
-        <div><label>時間</label><input id="taskTime" placeholder="${nextFutureTime('6:30 PM')}"></div>
+        <div><label>時間</label><input id="taskTime" type="time" value="${timeInputValue(nextFutureTime('6:30 PM'))}"></div>
       </div>
       <label>備註</label><input id="taskNote" placeholder="例：10–15分鐘，慢練一小段">
       <div class="actions">
@@ -374,7 +401,7 @@ function noticeRow(n){
 window.quickTask=(title,pref,note)=>{addTask({title,time:nextFutureTime(pref),note,date:todayISO()})}
 function addTask(t){t.id=t.id||('task_'+Date.now());app.todayTasks.push(t);save();renderHome()}
 window.saveTaskFromForm=()=>{
-  const title=$('taskTitle').value.trim(), time=$('taskTime').value.trim()||nextFutureTime('6:30 PM'), note=$('taskNote').value.trim();
+  const title=$('taskTitle').value.trim(), time=readTimeField('taskTime',nextFutureTime('6:30 PM')), note=$('taskNote').value.trim();
   if(!title){$('taskHint').textContent='⚠️ 請先輸入任務名稱。';return}
   if(taskEditId){
     const t=app.todayTasks.find(x=>x.id===taskEditId); if(t){Object.assign(t,{title,time,note,updatedAt:new Date().toISOString()})}
@@ -382,7 +409,7 @@ window.saveTaskFromForm=()=>{
   }else addTask({title,time,note,date:todayISO()});
   save();renderHome();
 }
-window.editTask=(id)=>{const t=app.todayTasks.find(x=>x.id===id);if(!t)return;taskEditId=id;renderHome();$('taskTitle').value=t.title;$('taskTime').value=t.time;$('taskNote').value=t.note||'';$('taskTitle').scrollIntoView({behavior:'smooth',block:'center'})}
+window.editTask=(id)=>{const t=app.todayTasks.find(x=>x.id===id);if(!t)return;taskEditId=id;renderHome();$('taskTitle').value=t.title;$('taskTime').value=timeInputValue(t.time);$('taskNote').value=t.note||'';$('taskTitle').scrollIntoView({behavior:'smooth',block:'center'})}
 window.cancelTaskEdit=()=>{taskEditId=null;renderHome()}
 window.deleteTask=(id)=>{if(confirm('確定刪除今日任務？')){app.todayTasks=app.todayTasks.filter(t=>t.id!==id);save();renderHome()}}
 
@@ -596,8 +623,8 @@ function renderRoutineSheet(){
   <div class="grid">
     <div><label>活動名稱</label><input id="rName" value="${esc(r?.name||'')}" placeholder="例：Oakleigh South Primary School / Swimming"></div>
     <div><label>星期</label><select id="rDay"><option value="Monday–Friday">Monday–Friday</option>${DAYS.map(d=>`<option ${r?.day===d?'selected':''}>${d}</option>`).join('')}</select></div>
-    <div><label>開始時間</label><input id="rStart" value="${esc(r?.start||'')}" placeholder="例：8:45 AM"></div>
-    <div><label>結束時間</label><input id="rEnd" value="${esc(r?.end||'')}" placeholder="例：3:30 PM"></div>
+    <div><label>開始時間</label><input id="rStart" type="time" value="${esc(timeInputValue(r?.start||''))}"></div>
+    <div><label>結束時間</label><input id="rEnd" type="time" value="${esc(timeInputValue(r?.end||''))}"></div>
   </div>
   <label>準備物品 / 備註</label><textarea id="rPrep" placeholder="例：書包、水樽、reader bag">${esc(r?.prep||'')}</textarea>
   <div class="grid">
@@ -615,10 +642,10 @@ function renderRoutineSheet(){
   ${app.routines.filter(x=>!x.oneOffDate).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||sortByTime(a,b)).map(routineManageRow).join('')||'<div class="notice bluebox">未有固定行程。</div>'}`;
 }
 function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
-window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=s;$('rEnd').value=e;$('rPrep').value=p;$('rImpact').value=i}
-window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value='8:45 AM';$('rEnd').value='3:30 PM';$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday'}
+window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i}
+window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday'}
 window.saveRoutineFromForm=()=>{
-  const name=$('rName').value.trim(), day=$('rDay').value, start=$('rStart').value.trim(), end=$('rEnd').value.trim(), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'前一晚 8:00 PM', impact=$('rImpact').value;
+  const name=$('rName').value.trim(), day=$('rDay').value, start=readTimeField('rStart'), end=readTimeField('rEnd'), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'前一晚 8:00 PM', impact=$('rImpact').value;
   if(!name||!start){alert('請最少填活動名稱和開始時間。');return}
   if(routineEditId){const r=app.routines.find(x=>x.id===routineEditId); if(r)Object.assign(r,{day:day==='Monday–Friday'?'Monday':day,name,start,end,prep,reminder,impact,updatedAt:new Date().toISOString()}); routineEditId=null;}
   else{
