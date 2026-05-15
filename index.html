@@ -1946,6 +1946,154 @@ body.v29-home-active #v28TodayPlanCard{
   white-space:nowrap!important;
 }
 
+
+/* V42 Single Source + Home Reminders */
+/* Hide old weekly overview blocks that could display stale data */
+#v36WeeklyOverview,
+#v40TodayRoutineSummary,
+#v41StableNote{
+  display:none!important;
+}
+
+.v42-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:28px;
+  padding:18px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+  overflow:hidden;
+}
+.v42-card h2{
+  font-size:26px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v42-muted{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.45;
+}
+.v42-summary{
+  background:linear-gradient(135deg,#eff6ff,#fdf2f8);
+  border:1px solid #bfdbfe;
+  color:#1e3a8a;
+  border-radius:18px;
+  padding:12px;
+  margin-top:12px;
+  font-weight:850;
+  line-height:1.45;
+}
+.v42-warn{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:18px;
+  padding:12px;
+  margin-top:12px;
+  font-weight:850;
+  line-height:1.45;
+}
+.v42-day{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:20px;
+  padding:12px;
+  margin-top:10px;
+}
+.v42-day.today{
+  border-color:#93c5fd;
+  background:#eff6ff;
+}
+.v42-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.v42-title{
+  font-size:18px;
+  font-weight:950;
+  color:#0f172a;
+}
+.v42-count{
+  background:#eef2ff;
+  color:#3730a3;
+  border:1px solid #c7d2fe;
+  border-radius:999px;
+  padding:4px 9px;
+  font-weight:900;
+  font-size:12px;
+  white-space:nowrap;
+}
+.v42-item{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:10px;
+  margin-top:8px;
+}
+.v42-item b{
+  color:#0f172a;
+  font-weight:950;
+}
+.v42-item small{
+  display:block;
+  color:#64748b;
+  font-weight:800;
+  margin-top:4px;
+  line-height:1.4;
+}
+.v42-free{
+  background:#ecfdf5;
+  border:1px solid #bbf7d0;
+  color:#166534;
+  border-radius:16px;
+  padding:10px;
+  margin-top:8px;
+  font-weight:850;
+  line-height:1.45;
+}
+.v42-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.v42-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+.v42-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:#fff!important;
+  border:none!important;
+}
+.v42-collapsed .v42-day:not(.today):not(.has-items){
+  display:none;
+}
+.v42-home-reminder{
+  background:linear-gradient(135deg,#eef2ff,#ecfeff);
+  border:1px solid #bfdbfe;
+  color:#1e3a8a;
+}
+.v42-home-reminder h2{
+  color:#0f172a;
+}
+@media(max-width:430px){
+  .v42-card{border-radius:24px;padding:16px}
+  .v42-card h2{font-size:23px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1992,7 +2140,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v41 Profile No-Jump Fix · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v42 Single Source + Home Reminders · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -2000,7 +2148,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v41 Profile No-Jump Fix 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v42 Single Source + Home Reminders 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -5833,6 +5981,208 @@ setInterval(v25RefreshYearViews,2500);
 
   setTimeout(()=>{renderOnce();patchRoutineMutations();installScrollGuard();},600);
   setTimeout(()=>{renderOnce();patchRoutineMutations();installScrollGuard();},1600);
+})();
+</script>
+<script>
+(function(){
+  const KEY='cg_v33_weekly_routines';
+  const EXPAND='cg_v42_week_expanded';
+  const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const LABEL={Monday:'星期一',Tuesday:'星期二',Wednesday:'星期三',Thursday:'星期四',Friday:'星期五',Saturday:'星期六',Sunday:'星期日'};
+
+  function $(id){return document.getElementById(id)}
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+  function write(list){localStorage.setItem(KEY,JSON.stringify(list.slice(-260)));}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function todayName(offset=0){const d=new Date(); d.setDate(d.getDate()+offset); return d.toLocaleDateString('en-AU',{weekday:'long'});}
+  function norm(n){return String(n||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w\u4e00-\u9fff]/g,'')}
+  function keyOf(r){return [r.day||'',norm(r.name),r.start||''].join('|')}
+  function timeToMin(t){
+    if(!t) return null;
+    let s=String(t).trim().toLowerCase().replace(/\s+/g,'').replace('：',':');
+    s=s.replace(/上午|早上/g,'am').replace(/下午|晚上|夜晚/g,'pm');
+    const m=s.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if(!m) return null;
+    let h=parseInt(m[1],10), mm=parseInt(m[2]||'0',10), ap=m[3]||'';
+    if(ap==='pm' && h<12) h+=12;
+    if(ap==='am' && h===12) h=0;
+    if(!ap && h>=1 && h<=7) h+=12;
+    return h*60+mm;
+  }
+  function minText(m){
+    let h=Math.floor(m/60), mm=m%60, ap=h>=12?'PM':'AM';
+    let hh=h%12; if(hh===0) hh=12;
+    return `${hh}:${String(mm).padStart(2,'0')} ${ap}`;
+  }
+  function sortTime(a,b){
+    const am=timeToMin(a.start), bm=timeToMin(b.start);
+    if(am===null && bm===null) return String(a.name).localeCompare(String(b.name));
+    if(am===null) return 1;
+    if(bm===null) return -1;
+    return am-bm;
+  }
+  function freeWindows(day, items){
+    const weekday=!['Saturday','Sunday'].includes(day);
+    const start=weekday?15*60+30:9*60, end=20*60+30;
+    const blocks=items.map(r=>{
+      let s=timeToMin(r.start), e=timeToMin(r.end);
+      if(s===null) return null;
+      if(e===null || e<=s) e=s+60;
+      return {s,e};
+    }).filter(Boolean).sort((a,b)=>a.s-b.s);
+    let cur=start, free=[];
+    blocks.forEach(b=>{ if(b.s>cur+20) free.push([cur,b.s]); cur=Math.max(cur,b.e); });
+    if(end>cur+20) free.push([cur,end]);
+    return free;
+  }
+  function itemHTML(r){
+    const time=[r.start,r.end].filter(Boolean).join(' – ');
+    return `<div class="v42-item"><b>${time?esc(time)+' · ':''}${esc(r.name)}</b><small>${r.prep?`準備：${esc(r.prep)}<br>`:''}${r.reminder?`提醒：${esc(r.reminder)}<br>`:''}${r.impact?`功課安排：${esc(r.impact)}`:''}</small></div>`;
+  }
+  function grouped(){
+    const list=read();
+    const groups={}; DAYS.forEach(d=>groups[d]=[]);
+    list.forEach(r=>{ if(groups[r.day]) groups[r.day].push(r); });
+    Object.keys(groups).forEach(d=>groups[d].sort(sortTime));
+    return groups;
+  }
+  function dayHTML(day, items, dupMap){
+    const today=day===todayName(0);
+    const free=freeWindows(day, items);
+    const hasDup=items.some(r=>dupMap[keyOf(r)]>1);
+    return `<div class="v42-day ${today?'today':''} ${items.length?'has-items':''}">
+      <div class="v42-head"><div class="v42-title">${LABEL[day]} · ${day}</div><div class="v42-count">${items.length} 個活動</div></div>
+      ${hasDup?'<div class="v42-warn">⚠️ 呢日可能有重複行程，建議入「管理固定行程」檢查。</div>':''}
+      ${items.length?items.map(itemHTML).join(''):'<div class="v42-item"><b>未有固定行程</b><small>呢日暫時較空，可以安排閱讀、練琴或休息。</small></div>'}
+      <div class="v42-free">🟢 空檔參考：${free.length?free.slice(0,3).map(([s,e])=>`${minText(s)} – ${minText(e)}`).join('、'):'活動較密，暫時未見明顯空檔'}</div>
+    </div>`;
+  }
+
+  function renderHomeReminder(){
+    const home=$('home'); if(!home) return;
+    let card=$('v42HomeReminder');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v42HomeReminder';
+      card.className='v42-card v42-home-reminder';
+      const planner=$('v18TodayPlanner');
+      if(planner && planner.parentNode===home) home.insertBefore(card, planner);
+      else home.insertBefore(card, home.firstChild);
+    }
+    const groups=grouped();
+    const today=todayName(0), tomorrow=todayName(1);
+    const todayItems=groups[today]||[], tomorrowItems=groups[tomorrow]||[];
+    card.innerHTML=`
+      <h2>📌 今日 / 明日提醒</h2>
+      <div class="v42-muted">呢個放喺首頁，因為係家長一開 app 最需要睇嘅 action reminder。</div>
+      <div class="v42-summary"><b>今日 ${LABEL[today]||today}</b>${todayItems.length?todayItems.map(itemHTML).join(''):'<div class="v42-item"><b>今日未有固定行程</b><small>可以到「我的」管理固定行程。</small></div>'}</div>
+      <div class="v42-summary"><b>明日 ${LABEL[tomorrow]||tomorrow} 準備</b>${tomorrowItems.length?tomorrowItems.map(itemHTML).join(''):'<div class="v42-item"><b>明日未有固定行程</b><small>如有活動，可到「我的」加入。</small></div>'}</div>
+      <div class="v42-actions"><button class="v42-btn" onclick="go('profile');setTimeout(()=>document.getElementById('v42WeeklyOverview')?.scrollIntoView({behavior:'smooth'}),200)">查看一週總覽</button></div>
+    `;
+  }
+
+  function ensureProfileCard(){
+    const profile=$('profile'); if(!profile) return null;
+    let card=$('v42WeeklyOverview');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v42WeeklyOverview';
+      card.className='v42-card';
+      const anchor=$('v35RoutineSummary') || $('v34ConsolidatedProfile') || profile.firstChild;
+      if(anchor && anchor.parentNode===profile && anchor.nextSibling) profile.insertBefore(card, anchor.nextSibling);
+      else profile.appendChild(card);
+    }
+    return card;
+  }
+
+  function renderProfileOverview(){
+    const card=ensureProfileCard(); if(!card) return;
+    const groups=grouped();
+    const list=read();
+    const dup={}; list.forEach(r=>{const k=keyOf(r); dup[k]=(dup[k]||0)+1;});
+    const today=todayName(0);
+    const expanded=localStorage.getItem(EXPAND)==='true';
+    const busy=DAYS.map(d=>[d,groups[d].length]).sort((a,b)=>b[1]-a[1])[0];
+
+    card.innerHTML=`
+      <h2>📅 一週固定行程總覽</h2>
+      <div class="v42-muted">呢個放喺「我的」，用嚟一次過檢查一至日固定行程、重複項目同空檔。資料來源同首頁提醒完全一樣。</div>
+      <div class="v42-summary">🟢 最忙日：${LABEL[busy[0]]}（${busy[1]} 個活動）。空檔只作參考，未包括臨時任務 / 家庭安排。</div>
+      <div id="v42WeekList" class="${expanded?'':'v42-collapsed'}">
+        ${DAYS.map(d=>dayHTML(d,groups[d],dup)).join('')}
+      </div>
+      <div class="v42-actions">
+        <button class="v42-btn" onclick="v42ToggleWeek()">${expanded?'收起空白日':'展開全部一週'}</button>
+        <button class="v42-btn" onclick="v42RenderAll()">刷新總覽</button>
+        <button class="v42-btn v42-primary" onclick="v35OpenRoutineManager&&v35OpenRoutineManager()">管理固定行程</button>
+        <button class="v42-btn" onclick="v42ImportJaniceCoreSchedule()">同步 Janice 常用行程</button>
+      </div>
+    `;
+  }
+
+  function addIfMissing(items){
+    const list=read();
+    const keys=new Set(list.map(keyOf));
+    let added=0;
+    items.forEach(item=>{
+      if(!keys.has(keyOf(item))){
+        list.push(Object.assign({id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), createdAt:new Date().toISOString(), source:'v42_import'}, item));
+        keys.add(keyOf(item)); added++;
+      }
+    });
+    write(list);
+    return added;
+  }
+
+  window.v42ImportJaniceCoreSchedule=function(){
+    const items=[
+      {day:'Monday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Tuesday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Wednesday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Thursday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Friday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋、外套',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+      {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'6:45 PM',prep:'泳衣、毛巾、goggles、換洗衫',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+      {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'}
+    ];
+    const added=addIfMissing(items);
+    alert(`已同步 Janice 常用行程：新增 ${added} 項，已存在的不會重複加入。`);
+    renderAll();
+  };
+
+  window.v42ToggleWeek=function(){
+    const next=localStorage.getItem(EXPAND)!=='true';
+    localStorage.setItem(EXPAND,next?'true':'false');
+    renderProfileOverview();
+  };
+
+  function renderAll(){
+    renderHomeReminder();
+    renderProfileOverview();
+  }
+  window.v42RenderAll=renderAll;
+
+  // Replace old import button if present
+  window.v40ImportJaniceCoreSchedule=window.v42ImportJaniceCoreSchedule;
+
+  // Patch routine mutations once
+  function patchMutations(){
+    ['v35AddRoutine','v35DeleteRoutine','v39QuickAddWeekdaySchool'].forEach(name=>{
+      const fn=window[name];
+      if(typeof fn==='function' && !fn.v42Wrapped){
+        const wrapped=function(){
+          const res=fn.apply(this,arguments);
+          setTimeout(renderAll,250);
+          return res;
+        };
+        wrapped.v42Wrapped=true;
+        window[name]=wrapped;
+      }
+    });
+  }
+
+  setTimeout(()=>{patchMutations();renderAll();},600);
+  setTimeout(()=>{patchMutations();renderAll();},1600);
 })();
 </script>
 </body>
