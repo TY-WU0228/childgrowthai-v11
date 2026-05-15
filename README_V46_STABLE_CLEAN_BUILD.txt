@@ -87,3 +87,9 @@ V51 patch:
 - Fixed blank Home screen caused by todaySummaryHTML referencing undefined acts.
 - Restored splash screen.
 - Ensured Coach Voice Note UI appears.
+
+
+V53 patch:
+- Teacher Comment voice input restored.
+- Activity mode buttons fixed.
+- Activity parent/coach comment voice input added.

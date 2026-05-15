@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v52 Splash Timeout + Purple Cover</title>
+  <title>ChildGrowth AI v53 Voice + Activity Mode Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -339,6 +339,53 @@
     @keyframes splashFloat{from{transform:translateY(0) scale(1)}to{transform:translateY(-8px) scale(1.03)}}
     @keyframes splashSlow{from{transform:translateY(0) rotate(-12deg)}to{transform:translateY(-12px) rotate(8deg)}}
 
+  
+    /* V53 Voice + Activity Mode Fix */
+    .voiceMiniBox{
+      background:linear-gradient(135deg,#eff6ff,#f5f3ff);
+      border:1px solid #bfdbfe;
+      border-radius:18px;
+      padding:12px;
+      margin:10px 0 12px;
+      color:#1e3a8a;
+    }
+    .voiceMiniBox b{
+      display:block;
+      color:#0f172a;
+      margin-bottom:5px;
+      font-size:16px;
+    }
+    .voiceMiniRow{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:9px;
+    }
+    .voiceMiniRow select{
+      width:auto;
+      min-width:140px;
+      min-height:42px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:#fff;
+    }
+    .voiceMiniStatus{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:9px 10px;
+      margin-top:9px;
+      color:#334155;
+      font-weight:850;
+      line-height:1.45;
+      min-height:38px;
+    }
+    .voiceMiniStatus.live{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+    .voiceMiniStatus.warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+    .modeBtn{touch-action:manipulation}
+    .modeBtn:active{transform:scale(.98)}
+
   </style>
 </head>
 <body>
@@ -358,7 +405,7 @@
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v52 Splash Timeout · Purple cover restored</div>
+    <div class="version">v53 Voice input · Activity buttons fixed</div>
   </header>
 
   <main>
@@ -737,6 +784,23 @@ function activityProgressCardHTML(){
       <div id="coachVoiceStatus" class="voiceStatus">例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。</div>
     </div>
 
+    
+    <div class="voiceMiniBox">
+      <b>🎙️ Parent / Coach Comment Voice</b>
+      <div class="muted">呢個位可以記低家長觀察或教練評語。你可以直接講：「今日游水老師話 kicking 好咗，但 breathing 仲要練。」</div>
+      <div class="voiceMiniRow">
+        <select id="activityVoiceLang">
+          <option value="zh-HK">廣東話 / English mix</option>
+          <option value="en-AU">English</option>
+          <option value="zh-CN">普通話</option>
+        </select>
+        <button class="btn primary" onclick="v53StartDictation('activityNote','activityVoiceStatus','activityVoiceLang','activity comment')">🎙️ 開始語音</button>
+        <button class="btn" onclick="v53StopDictation()">停止</button>
+        <button class="btn" onclick="v53ClearTextarea('activityNote','activityVoiceStatus')">清空</button>
+      </div>
+      <div id="activityVoiceStatus" class="voiceMiniStatus">語音會放入下面「補充內容 / 家長觀察 / 教練 comment」欄位。</div>
+    </div>
+
     <label>補充內容 / 家長觀察 / 教練 comment</label>
     <textarea id="activityNote" placeholder="例：今日游水老師話 kick 有進步，但轉身仲未熟。或者：這是 piano 第 1–2 行，佢一錯就想由頭彈。"></textarea>
     <div class="actions"><button class="btn primary" onclick="analyzeActivityProgress()">🤖 Analyze Activity</button><button class="btn" onclick="clearActivityProgress()">Clear</button></div>
@@ -816,6 +880,163 @@ function startCoachVoiceNote(){
 function stopCoachVoiceNote(show=true){if(coachVoiceTimer)clearTimeout(coachVoiceTimer);coachVoiceTimer=null;try{if(coachRecognition)coachRecognition.stop();}catch(e){}coachRecognition=null;if(show)setVoiceStatus('已停止語音。','warn');}
 function clearCoachVoiceNote(){const area=$('activityNote');if(area)area.value='';setVoiceStatus('已清空。可以重新語音輸入或打字。');}
 
+
+/* V53 generic voice dictation */
+let v53Recognition=null;
+let v53Timer=null;
+let v53TargetTextareaId=null;
+let v53StatusId=null;
+
+function v53SetVoiceStatus(statusId, text, mode=''){
+  const el=$(statusId);
+  if(!el) return;
+  el.className='voiceMiniStatus ' + (mode==='live'?'live':mode==='warn'?'warn':'');
+  el.innerHTML=text;
+}
+function v53AppendToTextarea(textareaId, text){
+  const area=$(textareaId);
+  if(!area || !text) return;
+  const current=area.value.trim();
+  area.value=current ? current + '\n' + text.trim() : text.trim();
+  area.dispatchEvent(new Event('input', {bubbles:true}));
+}
+function v53StartDictation(textareaId, statusId, langSelectId, label='語音輸入'){
+  const SR=window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    v53SetVoiceStatus(statusId,'⚠️ 呢個 browser 暫時唔支援語音，請直接打字。','warn');
+    return;
+  }
+  v53StopDictation(false);
+  v53TargetTextareaId=textareaId;
+  v53StatusId=statusId;
+  const lang=($(langSelectId)?.value)||'zh-HK';
+  v53Recognition=new SR();
+  v53Recognition.lang=lang;
+  v53Recognition.interimResults=true;
+  v53Recognition.continuous=false;
+  v53Recognition.maxAlternatives=1;
+
+  let finalText='';
+  let interimText='';
+  v53SetVoiceStatus(statusId,`🎙️ 正在聽 ${label}，可以中英夾雜，最多約 25 秒。`,'live');
+
+  v53Timer=setTimeout(()=>{
+    const text=(finalText || interimText || '').trim();
+    try{v53Recognition && v53Recognition.stop();}catch(e){}
+    if(text){
+      v53AppendToTextarea(textareaId,text);
+      v53SetVoiceStatus(statusId,'✅ 已加入語音文字。請檢查後再儲存 / Analyze。','live');
+    }else{
+      v53SetVoiceStatus(statusId,'⚠️ 未聽到清楚內容。可以再試一次或直接打字。','warn');
+    }
+    v53Recognition=null;
+  },25000);
+
+  v53Recognition.onresult=(e)=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const part=e.results[i][0].transcript || '';
+      if(e.results[i].isFinal) finalText += part;
+      else interim += part;
+    }
+    interimText=interim;
+    const display=(finalText || interim || '').trim();
+    if(display) v53SetVoiceStatus(statusId,'🎙️ 聽到：'+esc(display),'live');
+  };
+
+  v53Recognition.onerror=(e)=>{
+    clearTimeout(v53Timer);
+    v53Recognition=null;
+    v53SetVoiceStatus(statusId,'⚠️ 語音輸入未成功：'+esc(e.error||'unknown')+'。可以再試或直接打字。','warn');
+  };
+
+  v53Recognition.onend=()=>{
+    clearTimeout(v53Timer);
+    const text=(finalText || interimText || '').trim();
+    if(text){
+      v53AppendToTextarea(textareaId,text);
+      v53SetVoiceStatus(statusId,'✅ 已加入語音文字。請檢查後再儲存 / Analyze。','live');
+    }else{
+      v53SetVoiceStatus(statusId,'語音已停止。如未加入文字，可以再試一次。','warn');
+    }
+    v53Recognition=null;
+  };
+
+  try{v53Recognition.start();}catch(e){
+    v53Recognition=null;
+    v53SetVoiceStatus(statusId,'⚠️ 語音功能啟動失敗，請直接打字。','warn');
+  }
+}
+function v53StopDictation(show=true){
+  if(v53Timer) clearTimeout(v53Timer);
+  v53Timer=null;
+  try{ if(v53Recognition) v53Recognition.stop(); }catch(e){}
+  v53Recognition=null;
+  if(show && v53StatusId) v53SetVoiceStatus(v53StatusId,'已停止語音。','warn');
+}
+function v53ClearTextarea(textareaId, statusId){
+  const area=$(textareaId);
+  if(area) area.value='';
+  v53SetVoiceStatus(statusId,'已清空。可以重新語音輸入或打字。');
+}
+window.v53StartDictation=v53StartDictation;
+window.v53StopDictation=v53StopDictation;
+window.v53ClearTextarea=v53ClearTextarea;
+
+/* Keep old Coach Voice buttons working by mapping to V53 generic dictation. */
+function startCoachVoiceNote(){ v53StartDictation('activityNote','coachVoiceStatus','coachVoiceLang','coach comment'); }
+function stopCoachVoiceNote(show=true){ v53StopDictation(show); }
+function clearCoachVoiceNote(){ v53ClearTextarea('activityNote','coachVoiceStatus'); }
+
+
+/* V53 robust Activity mode switching */
+function v53SetActivityMode(mode){
+  window.activityMode = mode;
+  try{ activityMode = mode; }catch(e){}
+  const map={photo:'Photo',video:'Video',voice:'Voice',coach:'Coach'};
+  Object.keys(map).forEach(k=>{
+    const el=$('mode'+map[k]);
+    if(el) el.classList.toggle('active', mode===k);
+  });
+  const file=$('activityFile');
+  if(file){
+    file.accept = mode==='photo' ? 'image/*' : mode==='video' ? 'video/*' : mode==='voice' ? 'audio/*' : 'image/*';
+  }
+  const wrap=$('activityFileWrap');
+  if(wrap){
+    wrap.style.display = (mode==='coach') ? 'none' : 'block';
+  }
+  const note=$('activityNote');
+  if(note){
+    note.placeholder = mode==='photo' ? '例：這是 piano 第 1–2 行，佢一錯就想由頭彈。' :
+                       mode==='video' ? '例：這段 swimming / tennis short video，想睇動作流暢度和下次練習重點。' :
+                       mode==='voice' ? '例：家長口述今日活動觀察。' :
+                       '例：教練話 kicking / rhythm / footwork 有進步，但某一點要練。';
+  }
+  const status=$('activityStatus');
+  if(status){
+    status.innerHTML='<div class="notice bluebox">已選擇 '+esc(mode)+' 模式。</div>';
+  }
+}
+function setActivityMode(mode){ v53SetActivityMode(mode); }
+window.setActivityMode=v53SetActivityMode;
+
+function v53BindActivityModeButtons(){
+  const configs=[
+    ['modePhoto','photo'],
+    ['modeVideo','video'],
+    ['modeVoice','voice'],
+    ['modeCoach','coach']
+  ];
+  configs.forEach(([id,mode])=>{
+    const el=$(id);
+    if(el){
+      el.type='button';
+      el.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} v53SetActivityMode(mode); return false; };
+    }
+  });
+}
+
 function renderRecord(){
   $('record').innerHTML=`
     <div class="card">
@@ -831,6 +1052,23 @@ function renderRecord(){
     </div>
     <div class="card">
       <h2>👩‍🏫 Teacher Comment</h2>
+      
+      <div class="voiceMiniBox">
+        <b>🎙️ Teacher Comment Voice</b>
+        <div class="muted">可以用語音講返老師 comment，再檢查文字後保存。適合放學後快速記低老師講過嘅重點。</div>
+        <div class="voiceMiniRow">
+          <select id="teacherVoiceLang">
+            <option value="zh-HK">廣東話 / English mix</option>
+            <option value="en-AU">English</option>
+            <option value="zh-CN">普通話</option>
+          </select>
+          <button class="btn primary" onclick="v53StartDictation('teacherText','teacherVoiceStatus','teacherVoiceLang','teacher comment')">🎙️ 開始語音</button>
+          <button class="btn" onclick="v53StopDictation()">停止</button>
+          <button class="btn" onclick="v53ClearTextarea('teacherText','teacherVoiceStatus')">清空</button>
+        </div>
+        <div id="teacherVoiceStatus" class="voiceMiniStatus">例：老師話今日 reading 比較主動，但做數時有少少快。</div>
+      </div>
+
       <label>老師原句 / 課堂觀察</label>
       <textarea id="teacherText" placeholder="例：Janice was a bit distracted during reading group today..."></textarea>
       <div class="actions"><button class="btn primary" onclick="saveTeacherComment()">保存 comment</button></div>
@@ -842,7 +1080,8 @@ function renderRecord(){
   `;
   bindNoticeUpload();
   bindActivityUpload();
-  setActivityMode(activityMode);
+  v53BindActivityModeButtons();
+  v53BindActivityModeButtons(); try{v53SetActivityMode(window.activityMode||activityMode||'photo');}catch(e){v53SetActivityMode('photo');}
 }
 function moodIcon(m){return {Normal:'🙂',Tired:'😴',Frustrated:'😫',Happy:'😊'}[m]||'🙂'}
 window.addEmotion=(m)=>{app.emotions.push({id:'em_'+Date.now(),date:new Date().toISOString(),mood:m});save();renderRecord();renderHome()}
