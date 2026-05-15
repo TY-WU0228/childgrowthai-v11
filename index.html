@@ -1808,6 +1808,12 @@ body.v29-home-active #v28TodayPlanCard{
   pointer-events:none!important;
 }
 
+
+/* V38 Voice + Close Polish */
+.v35-close,#v37ResetVoiceBtn,.v38-close-btn{white-space:nowrap!important;word-break:keep-all!important;writing-mode:horizontal-tb!important;min-width:72px!important;height:48px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;line-height:1!important;padding:10px 14px!important}
+.v35-sheet-head{align-items:center!important}
+.v38-stop{border:1px solid #fed7aa!important;background:#fff7ed!important;color:#9a3412!important;border-radius:999px!important;padding:10px 14px!important;font-weight:950!important;width:auto!important;margin:8px 6px 0 0!important;white-space:nowrap!important}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1854,7 +1860,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v37 Voice Stability Fix · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v38 Voice + Close Polish · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1862,7 +1868,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v37 Voice Stability Fix 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v38 Voice + Close Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -5105,5 +5111,24 @@ setInterval(v25RefreshYearViews,2500);
   setInterval(()=>{patchVoiceButtons();addResetButton();renderHomeWarnings();},3500);
 })();
 </script>
+
+<script>
+(function(){
+  let currentRecognition=null,currentTimer=null;
+  function $(id){return document.getElementById(id)}
+  function msg(text,good){const el=$('v35ParseMsg');if(el){el.className='v35-alert '+(good?'v35-good':'');el.textContent=text}}
+  function clearVoice(){try{if(currentTimer)clearTimeout(currentTimer)}catch(e){} currentTimer=null; try{if(currentRecognition)currentRecognition.abort()}catch(e){} currentRecognition=null; document.querySelectorAll('.v37-disabled').forEach(x=>x.classList.remove('v37-disabled')); document.body.classList.remove('v37-voice-active')}
+  function closeManager(){clearVoice(); const modal=$('v35RoutineModal'); if(modal){modal.classList.remove('show');modal.style.display='none';modal.style.pointerEvents='';modal.style.opacity=''}}
+  window.v38CloseRoutineManager=closeManager; window.v35CloseRoutineManager=closeManager;
+  function openManager(){ if(typeof window.v37OpenRoutineManager==='function'){try{window.v37OpenRoutineManager()}catch(e){}} else if(typeof window.v35Render==='function'){try{window.v35Render()}catch(e){} const modal=$('v35RoutineModal'); if(modal){modal.classList.add('show');modal.style.display='flex'}} setTimeout(patchUI,80)}
+  window.v38OpenRoutineManager=openManager; window.v35OpenRoutineManager=openManager;
+  function patchUI(){const modal=$('v35RoutineModal'); if(!modal)return; [...modal.querySelectorAll('button')].forEach(btn=>{const text=(btn.innerText||'').replace(/\s+/g,'').trim(); if(text==='關閉'||text==='关闭'||text.toLowerCase()==='close'){btn.classList.add('v38-close-btn');btn.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()} closeManager(); return false}} if(text.includes('重置語音')||text.includes('重置语音')){btn.classList.add('v38-close-btn');btn.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()} clearVoice(); msg('✅ 已重置語音狀態。可以再試，或者用文字輸入。',true); return false}} if(text.includes('開始語音輸入')){btn.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()} startLongVoice(); return false}}}); const voiceBox=document.querySelector('.v35-voice-box'); if(voiceBox && !$('v38StopVoiceBtn')){const stop=document.createElement('button');stop.id='v38StopVoiceBtn';stop.className='v38-stop';stop.textContent='停止語音';stop.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()} clearVoice(); msg('已停止語音。你可以檢查已讀取文字，或改用文字輸入。',true); return false}; const startBtn=[...voiceBox.querySelectorAll('button')].find(b=>(b.innerText||'').includes('開始語音輸入')); if(startBtn&&startBtn.parentNode)startBtn.parentNode.insertBefore(stop,startBtn.nextSibling); else voiceBox.appendChild(stop)} const safety=$('v37VoiceSafetyNote'); if(safety){safety.innerHTML='🎤 語音輸入是 beta。V38 已把等待時間加長到約 20 秒；如果 iPhone 自動截斷，請用下面文字輸入，例如：<br><b>Sunday 9am to 12pm QS school 準備功課同水樽</b>'}}
+  function startLongVoice(){clearVoice(); const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){msg('⚠️ 呢個 browser 暫時唔支援語音輸入。請用文字輸入再按「讀取文字」。',false);return} let rec,finished=false; const startBtn=[...document.querySelectorAll('button')].find(b=>(b.innerText||'').includes('開始語音輸入')); try{rec=new SR();currentRecognition=rec;rec.lang='zh-HK';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;let finalText='',interimText=''; if(startBtn)startBtn.classList.add('v37-disabled'); msg('🎤 已開始聆聽。你可以慢慢講，最多等約 20 秒；完成後系統會自動讀取。',true); currentTimer=setTimeout(()=>{if(finished)return;finished=true;const text=(finalText||interimText||'').trim();try{rec.stop()}catch(e){} if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;currentTimer=null; if(text){const input=$('v35FreeText');if(input)input.value=text;const tr=$('v35Transcript');if(tr)tr.textContent=text;if(typeof window.v35ParseTypedRoutine==='function')window.v35ParseTypedRoutine();else msg('✅ 已讀取語音：'+text,true)}else{msg('⚠️ 20 秒內未聽到清楚內容。請再試一次，或者用文字輸入會較穩定。',false)}},20000); rec.onresult=function(e){interimText='';for(let i=e.resultIndex;i<e.results.length;i++){const part=e.results[i][0].transcript||'';if(e.results[i].isFinal)finalText+=part;else interimText+=part}const display=(finalText||interimText||'').trim();const tr=$('v35Transcript');if(tr&&display)tr.textContent=display}; rec.onerror=function(e){if(finished)return;finished=true;if(currentTimer)clearTimeout(currentTimer);if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;currentTimer=null;msg('⚠️ 語音輸入未成功：'+((e&&e.error)||'unknown')+'。請用文字輸入會較穩定。',false)}; rec.onend=function(){if(finished)return;finished=true;if(currentTimer)clearTimeout(currentTimer);if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;currentTimer=null;const text=(finalText||interimText||'').trim();if(text){const input=$('v35FreeText');if(input)input.value=text;const tr=$('v35Transcript');if(tr)tr.textContent=text;if(typeof window.v35ParseTypedRoutine==='function')window.v35ParseTypedRoutine()}else msg('⚠️ 語音已停止，但未收到完整內容。iPhone 有時會自動截斷，建議用文字輸入。',false)}; rec.start()}catch(e){if(startBtn)startBtn.classList.remove('v37-disabled');currentRecognition=null;if(currentTimer)clearTimeout(currentTimer);currentTimer=null;msg('⚠️ 語音功能啟動失敗。請用文字輸入。原因：'+(e.message||e),false)}}
+  window.v38StartVoiceRoutine=startLongVoice; window.v37StartVoiceRoutine=startLongVoice; window.v35StartVoiceRoutine=startLongVoice;
+  document.addEventListener('click',function(e){const btn=e.target.closest('button');if(!btn)return;const text=(btn.innerText||'').replace(/\s+/g,'').trim();if(text==='關閉'||text==='关闭'||text.toLowerCase()==='close'){e.preventDefault();e.stopPropagation();closeManager();return false} if((btn.innerText||'').includes('開始語音輸入')){e.preventDefault();e.stopPropagation();startLongVoice();return false} if(text.includes('管理固定行程')){e.preventDefault();e.stopPropagation();openManager();return false}},true);
+  setTimeout(patchUI,500);setTimeout(patchUI,1200);setInterval(patchUI,3000);
+})();
+</script>
+
 </body>
 </html>
