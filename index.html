@@ -1845,6 +1845,80 @@ body.v29-home-active #v28TodayPlanCard{
   margin:4px 4px 0 0;
 }
 
+
+/* V40 Stable Weekly Overview */
+.v36-hide-extra .v36-day.v40-today,
+.v36-hide-extra .v36-day.v40-has-items{
+  display:block!important;
+}
+.v40-summary-card{
+  background:linear-gradient(135deg,#f8fbff,#fdf2f8);
+  border:1px solid #dbeafe;
+  border-radius:22px;
+  padding:14px;
+  margin:12px 0;
+}
+.v40-summary-card h3{
+  margin:0 0 8px;
+  color:#0f172a;
+  font-size:20px;
+  letter-spacing:-.03em;
+}
+.v40-row{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:10px;
+  margin-top:8px;
+}
+.v40-row b{color:#0f172a}
+.v40-row small{display:block;color:#64748b;font-weight:800;margin-top:3px;line-height:1.4}
+.v40-note{
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1e3a8a;
+  border-radius:16px;
+  padding:10px;
+  font-weight:850;
+  line-height:1.45;
+  margin-top:10px;
+}
+.v40-import{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:16px;
+  padding:10px;
+  font-weight:850;
+  line-height:1.45;
+  margin-top:10px;
+}
+.v40-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:9px 13px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:8px 6px 0 0!important;
+  white-space:nowrap!important;
+}
+.v40-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+.v40-sticky-actions{
+  position:sticky;
+  bottom:calc(74px + env(safe-area-inset-bottom));
+  z-index:20;
+  background:linear-gradient(180deg,rgba(255,255,255,.65),rgba(255,255,255,.96));
+  backdrop-filter:blur(8px);
+  padding-top:8px;
+  margin-top:10px;
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1891,7 +1965,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v39 Routine Range + School Template · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v40 Stable Weekly Overview · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1899,7 +1973,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v39 Routine Range + School Template 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v40 Stable Weekly Overview 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -5482,6 +5556,156 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(()=>{patchModal();patchAddButton();addOverviewNote();},700);
   setTimeout(()=>{patchModal();patchAddButton();addOverviewNote();},1600);
   setInterval(()=>{patchModal();patchAddButton();addOverviewNote();},3500);
+})();
+</script>
+<script>
+(function(){
+  const ROUTINE_KEY='cg_v33_weekly_routines';
+  const EXPAND_KEY='cg_v40_week_overview_expanded';
+  const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const LABEL={Monday:'星期一',Tuesday:'星期二',Wednesday:'星期三',Thursday:'星期四',Friday:'星期五',Saturday:'星期六',Sunday:'星期日'};
+
+  function $(id){return document.getElementById(id)}
+  function read(){try{return JSON.parse(localStorage.getItem(ROUTINE_KEY)||'[]')}catch(e){return[]}}
+  function write(list){localStorage.setItem(ROUTINE_KEY,JSON.stringify(list.slice(-220)));}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function todayName(offset=0){const d=new Date(); d.setDate(d.getDate()+offset); return d.toLocaleDateString('en-AU',{weekday:'long'});}
+  function timeSort(a,b){return String(a.start||'').localeCompare(String(b.start||''));}
+  function row(r){
+    const time=[r.start,r.end].filter(Boolean).join(' – ');
+    return `<div class="v40-row"><b>${time?esc(time)+' · ':''}${esc(r.name)}</b><small>${r.prep?`準備：${esc(r.prep)}<br>`:''}${r.reminder?`提醒：${esc(r.reminder)}<br>`:''}${r.impact?`功課安排：${esc(r.impact)}`:''}</small></div>`;
+  }
+
+  function markDays(){
+    const grid=$('v36WeekGrid');
+    if(!grid) return;
+    const today=todayName(0);
+    grid.querySelectorAll('.v36-day').forEach(day=>{
+      const text=day.innerText||'';
+      day.classList.remove('v40-today','v40-has-items');
+      if(text.includes(today) || text.includes(LABEL[today]||'')) day.classList.add('v40-today');
+      if(!text.includes('0 個活動') && !text.includes('未有固定行程')) day.classList.add('v40-has-items');
+    });
+  }
+
+  function applyExpandState(){
+    const grid=$('v36WeekGrid');
+    if(!grid) return;
+    const expanded=localStorage.getItem(EXPAND_KEY)==='true';
+    if(expanded) grid.classList.remove('v36-hide-extra');
+    else grid.classList.add('v36-hide-extra');
+    markDays();
+  }
+
+  window.v40ToggleWeekOverview=function(){
+    const grid=$('v36WeekGrid');
+    const next = grid ? grid.classList.contains('v36-hide-extra') : true;
+    localStorage.setItem(EXPAND_KEY, next ? 'true' : 'false');
+    applyExpandState();
+  };
+  window.v36ToggleWeekOverview=window.v40ToggleWeekOverview;
+
+  function injectTodaySummary(){
+    const card=$('v36WeeklyOverview');
+    if(!card) return;
+    let summary=$('v40TodayRoutineSummary');
+    if(!summary){
+      summary=document.createElement('div');
+      summary.id='v40TodayRoutineSummary';
+      summary.className='v40-summary-card';
+      const grid=$('v36WeekGrid');
+      if(grid && grid.parentNode) grid.parentNode.insertBefore(summary, grid);
+      else card.appendChild(summary);
+    }
+
+    const list=read();
+    const today=todayName(0), tomorrow=todayName(1);
+    const todayItems=list.filter(r=>r.day===today).sort(timeSort);
+    const tomorrowItems=list.filter(r=>r.day===tomorrow).sort(timeSort);
+
+    summary.innerHTML=`
+      <h3>📌 今日 / 明日行程摘要</h3>
+      <div class="v36-muted">總覽會固定顯示今日有活動的日子，不會再每隔幾秒自動收起。</div>
+      <div class="v40-note"><b>今日 ${LABEL[today]||today}</b><br>${todayItems.length?todayItems.map(row).join(''):'暫時未有固定行程。'}</div>
+      <div class="v40-note"><b>明日 ${LABEL[tomorrow]||tomorrow} 準備</b><br>${tomorrowItems.length?tomorrowItems.map(row).join(''):'暫時未有固定行程。'}</div>
+    `;
+  }
+
+  function improveButtons(){
+    const card=$('v36WeeklyOverview');
+    if(!card) return;
+    const actions=card.querySelector('.v36-actions');
+    if(actions){
+      actions.classList.add('v40-sticky-actions');
+      const toggle=[...actions.querySelectorAll('button')].find(b=>(b.innerText||'').includes('展開'));
+      if(toggle){
+        toggle.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} window.v40ToggleWeekOverview(); return false; };
+        toggle.textContent=(localStorage.getItem(EXPAND_KEY)==='true')?'收起一週':'展開一週';
+      }
+    }
+  }
+
+  function normalizedName(n){return String(n||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w\u4e00-\u9fff]/g,'')}
+  function keyOf(r){return [r.day||'', normalizedName(r.name), r.start||''].join('|')}
+  function addIfMissing(items){
+    const list=read();
+    const keys=new Set(list.map(keyOf));
+    let added=0;
+    items.forEach(item=>{
+      if(!keys.has(keyOf(item))){
+        list.push(Object.assign({id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), createdAt:new Date().toISOString(), source:'v40_import'}, item));
+        keys.add(keyOf(item));
+        added++;
+      }
+    });
+    write(list);
+    return added;
+  }
+
+  window.v40ImportJaniceCoreSchedule=function(){
+    const items=[
+      {day:'Monday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Tuesday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Wednesday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Thursday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Friday',name:'🏫 All Prime School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+      {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋、外套',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+      {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'6:45 PM',prep:'泳衣、毛巾、goggles、換洗衫',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+      {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'}
+    ];
+    const added=addIfMissing(items);
+    alert(`已同步 Janice 常用行程：新增 ${added} 項，已存在的不會重複加入。`);
+    try{ if(typeof window.v35Render==='function') window.v35Render(); }catch(e){}
+    try{ if(typeof window.v36RenderAll==='function') window.v36RenderAll(); }catch(e){}
+    setTimeout(run,200);
+  };
+
+  function injectImportOption(){
+    const card=$('v36WeeklyOverview');
+    if(!card || $('v40ImportBox')) return;
+    const box=document.createElement('div');
+    box.id='v40ImportBox';
+    box.className='v40-import';
+    box.innerHTML=`如果你想總覽顯示 Janice 常用行程（Mon–Fri School、Thursday Soccer/Swimming、Friday Chess），可以一次同步，已存在的行程不會重複。<br>
+      <button class="v40-btn v40-primary" onclick="v40ImportJaniceCoreSchedule()">同步 Janice 常用行程</button>`;
+    const summary=$('v40TodayRoutineSummary');
+    if(summary && summary.parentNode) summary.parentNode.insertBefore(box, summary.nextSibling);
+    else card.insertBefore(box, card.children[3] || null);
+  }
+
+  // Stop V36 interval visual jumping by re-applying user's chosen state and not allowing innerHTML reset to collapse the view.
+  function run(){
+    injectTodaySummary();
+    injectImportOption();
+    improveButtons();
+    applyExpandState();
+  }
+
+  // Patch old interval render side effects by running after them.
+  setTimeout(run,500);
+  setTimeout(run,1200);
+  setTimeout(run,2200);
+  setInterval(run,900);
 })();
 </script>
 </body>
