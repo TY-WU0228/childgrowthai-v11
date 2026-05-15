@@ -1781,6 +1781,33 @@ body.v29-home-active #v28TodayPlanCard{
   .v36-week-card h2{font-size:23px}
 }
 
+
+/* V37 Voice Stability Fix */
+.v37-safe-note{
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1e3a8a;
+  border-radius:16px;
+  padding:11px;
+  font-weight:850;
+  line-height:1.45;
+  margin:10px 0;
+}
+.v37-danger-note{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:16px;
+  padding:11px;
+  font-weight:850;
+  line-height:1.45;
+  margin:10px 0;
+}
+.v37-disabled{
+  opacity:.55!important;
+  pointer-events:none!important;
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1827,7 +1854,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v36 Weekly Routine Overview · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v37 Voice Stability Fix · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1835,7 +1862,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v36 Weekly Routine Overview 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v37 Voice Stability Fix 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -4867,6 +4894,215 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(()=>{patchAddGuard();renderOverview();},700);
   setTimeout(()=>{patchAddGuard();renderOverview();},1600);
   setInterval(()=>{patchAddGuard();renderOverview();},4000);
+})();
+</script>
+<script>
+(function(){
+  const ROUTINE_KEY='cg_v33_weekly_routines';
+
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function read(){try{return JSON.parse(localStorage.getItem(ROUTINE_KEY)||'[]')}catch(e){return[]}}
+  function dayName(offset=0){const d=new Date(); d.setDate(d.getDate()+offset); return d.toLocaleDateString('en-AU',{weekday:'long'});}
+  function showMsg(msg, good=false){
+    const el=$('v35ParseMsg');
+    if(el){
+      el.className='v35-alert '+(good?'v35-good':'');
+      el.textContent=msg;
+    }
+  }
+
+  // Remove any stuck overlay state after mic permission / Safari freeze.
+  function clearStuckVoiceState(){
+    try{
+      const modal=$('v35RoutineModal');
+      if(modal){
+        modal.classList.remove('v37-disabled');
+        modal.style.pointerEvents='';
+        modal.style.opacity='';
+      }
+      document.body.classList.remove('v37-voice-active');
+    }catch(e){}
+  }
+
+  // Reliable open manager even if older v35OpenRoutineManager failed.
+  function ensureManagerExists(){
+    if(!$('v35RoutineModal')){
+      if(typeof window.v35Render==='function'){
+        try{ window.v35Render(); }catch(e){}
+      }
+    }
+    return $('v35RoutineModal');
+  }
+
+  window.v37OpenRoutineManager=function(){
+    clearStuckVoiceState();
+    const modal=ensureManagerExists();
+    if(modal){
+      modal.classList.add('show');
+      modal.style.display='flex';
+      setTimeout(()=>injectVoiceSafetyUI(),80);
+    }else{
+      alert('管理固定行程未能載入。請重新整理頁面再試。');
+    }
+  };
+
+  // Override old opener to the safer opener.
+  window.v35OpenRoutineManager=window.v37OpenRoutineManager;
+
+  // Event delegation: any button text "管理固定行程" will work.
+  document.addEventListener('click', function(e){
+    const btn=e.target.closest('button');
+    if(!btn) return;
+    const text=(btn.innerText||'').trim();
+    if(text.includes('管理固定行程')){
+      e.preventDefault();
+      e.stopPropagation();
+      window.v37OpenRoutineManager();
+    }
+  }, true);
+
+  function injectVoiceSafetyUI(){
+    const box=document.querySelector('.v35-voice-box');
+    if(!box || $('v37VoiceSafetyNote')) return;
+    const note=document.createElement('div');
+    note.id='v37VoiceSafetyNote';
+    note.className='v37-safe-note';
+    note.innerHTML='🎤 語音輸入是 beta。iPhone 第一次允許 microphone 後如果冇反應，請直接用下面文字輸入，例如：<br><b>Sunday 9am to 12pm QS school 準備功課同水樽</b>';
+    box.insertBefore(note, box.firstChild.nextSibling);
+  }
+
+  // Safer voice routine: timeout, abort, no permanent freeze.
+  function safeVoiceStart(){
+    clearStuckVoiceState();
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){
+      showMsg('⚠️ 呢個 browser 暫時唔支援語音輸入。請用文字輸入再按「讀取文字」。', false);
+      return;
+    }
+
+    let rec;
+    let finished=false;
+    let timer;
+    const startBtn=[...document.querySelectorAll('button')].find(b=>(b.innerText||'').includes('開始語音輸入'));
+    try{
+      rec=new SR();
+      rec.lang='zh-HK';
+      rec.interimResults=false;
+      rec.continuous=false;
+      rec.maxAlternatives=1;
+
+      if(startBtn) startBtn.classList.add('v37-disabled');
+      showMsg('🎤 正在聽你講固定行程。如果 8 秒內未有反應，系統會自動停止，你可以改用文字輸入。', true);
+
+      const cleanup=function(message, good){
+        if(finished) return;
+        finished=true;
+        clearTimeout(timer);
+        if(startBtn) startBtn.classList.remove('v37-disabled');
+        try{ rec.abort(); }catch(e){}
+        if(message) showMsg(message, good);
+      };
+
+      timer=setTimeout(()=>{
+        cleanup('⚠️ 語音等候逾時。你可以再試一次，或者用文字輸入。', false);
+      }, 8500);
+
+      rec.onstart=function(){
+        showMsg('🎤 已開始聆聽，請講：星期、時間、活動、準備物品。', true);
+      };
+
+      rec.onresult=function(e){
+        const text=(e.results && e.results[0] && e.results[0][0] && e.results[0][0].transcript) ? e.results[0][0].transcript : '';
+        const tr=$('v35Transcript');
+        if(tr) tr.textContent=text || '未聽到內容';
+        clearTimeout(timer);
+        if(startBtn) startBtn.classList.remove('v37-disabled');
+        finished=true;
+        if(text && typeof window.v35ParseTypedRoutine==='function'){
+          const input=$('v35FreeText');
+          if(input) input.value=text;
+          window.v35ParseTypedRoutine();
+        }else{
+          showMsg('⚠️ 未聽到清楚內容。請再試一次或用文字輸入。', false);
+        }
+      };
+
+      rec.onerror=function(e){
+        const err=e && e.error ? e.error : 'unknown';
+        cleanup('⚠️ 語音輸入未成功：'+err+'。請用文字輸入會較穩定。', false);
+      };
+
+      rec.onend=function(){
+        if(!finished){
+          cleanup('⚠️ 語音已停止，但未收到內容。請再試一次或用文字輸入。', false);
+        }
+      };
+
+      rec.start();
+    }catch(e){
+      if(startBtn) startBtn.classList.remove('v37-disabled');
+      showMsg('⚠️ 語音功能啟動失敗。請用文字輸入。原因：'+(e.message||e), false);
+      try{ if(rec) rec.abort(); }catch(_){}
+    }
+  }
+
+  window.v37StartVoiceRoutine=safeVoiceStart;
+  window.v35StartVoiceRoutine=safeVoiceStart;
+
+  // Patch button onclicks after render so they call safe version.
+  function patchVoiceButtons(){
+    document.querySelectorAll('button').forEach(btn=>{
+      const text=(btn.innerText||'').trim();
+      if(text.includes('開始語音輸入')){
+        btn.onclick=function(e){
+          if(e){e.preventDefault();e.stopPropagation();}
+          safeVoiceStart();
+          return false;
+        };
+      }
+    });
+    injectVoiceSafetyUI();
+  }
+
+  // Add a simple emergency reset button to the routine manager.
+  function addResetButton(){
+    const head=document.querySelector('.v35-sheet-head');
+    if(!head || $('v37ResetVoiceBtn')) return;
+    const btn=document.createElement('button');
+    btn.id='v37ResetVoiceBtn';
+    btn.className='v35-close';
+    btn.textContent='重置語音';
+    btn.onclick=function(){
+      clearStuckVoiceState();
+      showMsg('✅ 已重置語音狀態。可以再試，或者用文字輸入。', true);
+    };
+    head.appendChild(btn);
+  }
+
+  function renderHomeWarnings(){
+    // If exact duplicates exist, show a small warning in overview if V36 card exists.
+    const list=read();
+    const seen={};
+    const dups=[];
+    list.forEach(r=>{
+      const k=[r.day||'', String(r.name||'').toLowerCase().replace(/\s+/g,''), r.start||''].join('|');
+      if(seen[k]) dups.push(r);
+      seen[k]=true;
+    });
+    const card=$('v36WeeklyOverview');
+    if(card && dups.length && !card.querySelector('#v37DupWarn')){
+      const div=document.createElement('div');
+      div.id='v37DupWarn';
+      div.className='v37-danger-note';
+      div.textContent='⚠️ 有固定行程可能重複。請入「管理固定行程」檢查。';
+      card.insertBefore(div, card.children[2] || null);
+    }
+  }
+
+  setTimeout(()=>{clearStuckVoiceState();patchVoiceButtons();addResetButton();renderHomeWarnings();},700);
+  setTimeout(()=>{clearStuckVoiceState();patchVoiceButtons();addResetButton();renderHomeWarnings();},1700);
+  setInterval(()=>{patchVoiceButtons();addResetButton();renderHomeWarnings();},3500);
 })();
 </script>
 </body>
