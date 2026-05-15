@@ -1,0 +1,13 @@
+Privacy / Beta Note
+
+ChildGrowth AI handles child-related information such as:
+- Name / year level / school
+- Homework photos
+- Teacher comments
+- Emotion records
+- Weekly routines
+
+For beta testing:
+- Do not upload highly sensitive documents unless you are comfortable testing.
+- AI observations are not medical, psychological, or educational diagnoses.
+- For public launch, add login, per-family permissions, delete data, and a privacy policy.

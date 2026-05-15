@@ -1161,6 +1161,167 @@ body.v29-home-active #v28TodayPlanCard{
   .v31-slogan{font-size:16px}
 }
 
+
+/* V33 Beta Ready + Routine Setup */
+#v24ActivityCard,
+#v24TodayCustomActivities{
+  display:none!important;
+}
+.v33-details{
+  margin-top:18px;
+  border:1px solid #dbeafe;
+  background:linear-gradient(135deg,#f8fbff,#fdf2f8);
+  border-radius:22px;
+  padding:12px 14px;
+}
+.v33-details summary{
+  cursor:pointer;
+  font-weight:950;
+  color:#0f172a;
+  font-size:18px;
+  list-style:none;
+}
+.v33-details summary::-webkit-details-marker{display:none}
+.v33-form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.v33-full{grid-column:1/-1}
+.v33-template-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+.v33-template{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:8px 11px!important;
+  font-weight:900!important;
+  font-size:12px!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v33-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:10px 14px!important;
+  font-weight:950!important;
+  width:auto!important;
+  margin:8px 6px 0 0!important;
+}
+.v33-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+.v33-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:12px;
+}
+.v33-row{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.v33-row b{color:#0f172a}
+.v33-row small{display:block;color:#64748b;font-weight:800;margin-top:3px;line-height:1.4}
+.v33-delete{
+  border:none!important;
+  background:#fee2e2!important;
+  color:#991b1b!important;
+  border-radius:999px!important;
+  padding:7px 10px!important;
+  font-weight:900!important;
+  width:auto!important;
+  margin:0!important;
+}
+.v33-home-card,
+.v33-profile-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:28px;
+  padding:18px;
+  margin:14px 0;
+  box-shadow:0 16px 45px rgba(15,23,42,.07);
+  overflow:hidden;
+}
+.v33-home-card h2,
+.v33-profile-card h2{
+  font-size:26px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+  color:#0f172a;
+}
+.v33-muted{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.45;
+}
+.v33-alert{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:18px;
+  padding:12px;
+  font-weight:850;
+  line-height:1.45;
+  margin-top:12px;
+}
+.v33-blue{
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1e3a8a;
+}
+.v33-green{
+  background:#f0fdf4;
+  border:1px solid #bbf7d0;
+  color:#166534;
+}
+.v33-mini-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.v33-mini{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+}
+.v33-mini b{display:block;color:#0f172a;font-size:17px}
+.v33-mini span{display:block;color:#64748b;font-weight:850;font-size:12px;margin-top:3px}
+.v33-privacy{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+  color:#475569;
+  font-weight:800;
+  line-height:1.5;
+  margin-top:12px;
+}
+.v33-privacy b{color:#0f172a}
+@media(max-width:430px){
+  .v33-form-grid,.v33-mini-grid{grid-template-columns:1fr}
+  .v33-home-card,.v33-profile-card{border-radius:24px;padding:16px}
+  .v33-home-card h2,.v33-profile-card h2{font-size:23px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1207,7 +1368,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v32 Existing User Onboarding Fix · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v33 Beta Ready + Routine Setup · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1215,7 +1376,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v32 Existing User Onboarding Fix 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v33 Beta Ready + Routine Setup 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -3343,6 +3504,301 @@ setInterval(v25RefreshYearViews,2500);
     localStorage.removeItem(DONE_KEY);
     if(typeof v30ShowOnboarding==='function') v30ShowOnboarding(true);
   };
+})();
+</script>
+<script>
+(function(){
+  const ROUTINE_KEY='cg_v33_weekly_routines';
+  const MIGRATE_KEY='cg_v33_migrated_v24_activities';
+
+  const templates={
+    'Soccer':{name:'⚽ Soccer',prep:'水樽、運動鞋、外套',impact:'輕量功課日',energy:'高',reminder:'前一晚 8:00 PM'},
+    'Swimming':{name:'🏊 Swimming',prep:'泳衣、毛巾、goggles、換洗衫',impact:'輕量功課日',energy:'高',reminder:'當日 3:00 PM'},
+    'Piano':{name:'🎹 Piano lesson / practice',prep:'琴書、練習曲目、鉛筆',impact:'正常',energy:'中',reminder:'當日放學後'},
+    'Chinese':{name:'📚 Chinese class',prep:'中文書、功課、鉛筆袋、水樽',impact:'輕量功課日',energy:'中',reminder:'前一晚'},
+    'Tutoring':{name:'🧮 Tutoring',prep:'功課、筆記本、錯題、鉛筆袋',impact:'輕量功課日',energy:'中',reminder:'前一晚'},
+    'Coding':{name:'💻 Coding / Minecraft',prep:'登入資料、耳機、充電',impact:'正常',energy:'中',reminder:'當日放學前'},
+    'Chess':{name:'♟️ Chess',prep:'水樽、snack、chess book 如需要',impact:'正常',energy:'低',reminder:'當日放學前'},
+    'Art':{name:'🎨 Art',prep:'圍裙、folder、作品袋',impact:'正常',energy:'低',reminder:'前一晚'},
+    'Gymnastics':{name:'🤸 Gymnastics',prep:'運動衫、水樽、頭髮紮好',impact:'輕量功課日',energy:'高',reminder:'前一晚'},
+    'Playdate':{name:'🧸 Playdate',prep:'snack、水樽、外套',impact:'不建議額外 worksheet',energy:'高',reminder:'當日早上'}
+  };
+
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function readJSON(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch(e){return f}}
+  function writeJSON(k,v){localStorage.setItem(k,JSON.stringify(v))}
+  function routines(){return readJSON(ROUTINE_KEY,[])}
+  function saveRoutines(list){writeJSON(ROUTINE_KEY,list.slice(-80)); renderAllV33();}
+  function todayName(offset=0){const d=new Date(); d.setDate(d.getDate()+offset); return d.toLocaleDateString('en-AU',{weekday:'long'});}
+  function nowKey(){return new Date().toISOString().slice(0,10)}
+  function val(id){const el=$(id); return el ? (el.value||'').trim() : ''}
+
+  function migrateOldActivities(){
+    if(localStorage.getItem(MIGRATE_KEY)==='true') return;
+    const old=readJSON('cg_v24_custom_activities',[]);
+    if(Array.isArray(old) && old.length){
+      const list=routines();
+      old.forEach(x=>{
+        if(!list.some(r=>r.migratedFromV24===x.id)){
+          list.push({
+            id:'v24_'+(x.id||Date.now()+Math.random()),
+            name:x.name||'Activity',
+            day:x.day||'Monday',
+            start:x.time||'',
+            end:'',
+            prep:x.note||'',
+            reminder:'',
+            impact:'正常',
+            energy:'中',
+            source:'existing activity',
+            migratedFromV24:x.id
+          });
+        }
+      });
+      writeJSON(ROUTINE_KEY,list);
+    }
+    localStorage.setItem(MIGRATE_KEY,'true');
+  }
+
+  function templateButtons(prefix){
+    return Object.keys(templates).map(k=>`<button type="button" class="v33-template" onclick="v33UseTemplate('${prefix}','${k}')">${k}</button>`).join('');
+  }
+
+  function formHTML(prefix, compact=false){
+    return `
+      <div class="v33-template-row">${templateButtons(prefix)}</div>
+      <div class="v33-form-grid">
+        <div class="v33-full"><label>活動名稱</label><input id="${prefix}Name" placeholder="例：Swimming / Piano / Maths tutoring"></div>
+        <div><label>星期</label><select id="${prefix}Day">${days.map(d=>`<option>${d}</option>`).join('')}</select></div>
+        <div><label>開始時間</label><input id="${prefix}Start" placeholder="例：4:30 PM"></div>
+        <div><label>結束時間</label><input id="${prefix}End" placeholder="例：5:30 PM"></div>
+        <div><label>提醒時間</label><input id="${prefix}Reminder" placeholder="例：前一晚 8:00 PM"></div>
+        <div><label>功課影響</label><select id="${prefix}Impact"><option>正常</option><option>輕量功課日</option><option>不建議額外 worksheet</option></select></div>
+        <div class="v33-full"><label>準備物品 / 備註</label><textarea id="${prefix}Prep" placeholder="例：泳衣、毛巾、goggles、水樽"></textarea></div>
+      </div>
+      <button type="button" class="v33-btn v33-primary" onclick="v33AddRoutine('${prefix}')">➕ 加入固定行程</button>
+      <div id="${prefix}List" class="v33-list"></div>
+    `;
+  }
+
+  window.v33UseTemplate=function(prefix,key){
+    const t=templates[key]; if(!t) return;
+    const set=(id,v)=>{const el=$(prefix+id); if(el) el.value=v||''};
+    set('Name',t.name);
+    set('Prep',t.prep);
+    set('Impact',t.impact);
+    set('Reminder',t.reminder);
+  };
+
+  window.v33AddRoutine=function(prefix){
+    const item={
+      id:'r_'+Date.now(),
+      name:val(prefix+'Name'),
+      day:val(prefix+'Day')||'Monday',
+      start:val(prefix+'Start'),
+      end:val(prefix+'End'),
+      reminder:val(prefix+'Reminder'),
+      impact:val(prefix+'Impact')||'正常',
+      prep:val(prefix+'Prep'),
+      energy:'',
+      createdAt:new Date().toISOString()
+    };
+    if(!item.name){alert('請先輸入活動名稱，或者用快速模板。'); return;}
+    const list=routines();
+    list.push(item);
+    saveRoutines(list);
+    ['Name','Start','End','Reminder','Prep'].forEach(s=>{const el=$(prefix+s); if(el) el.value='';});
+    if(typeof capture==='function') capture('v33_routine_added',{name:item.name,day:item.day,impact:item.impact});
+  };
+
+  window.v33DeleteRoutine=function(id){
+    saveRoutines(routines().filter(r=>String(r.id)!==String(id)));
+  };
+
+  function routineRow(r, allowDelete=true){
+    const time=[r.start,r.end].filter(Boolean).join(' – ');
+    return `<div class="v33-row">
+      <div>
+        <b>${esc(r.day)} ${time?esc(time)+' · ':''}${esc(r.name)}</b>
+        <small>${r.prep?`準備：${esc(r.prep)}`:'未填準備物品'}${r.reminder?`<br>提醒：${esc(r.reminder)}`:''}${r.impact?`<br>功課安排：${esc(r.impact)}`:''}</small>
+      </div>
+      ${allowDelete?`<button class="v33-delete" onclick="v33DeleteRoutine('${esc(r.id)}')">刪除</button>`:''}
+    </div>`;
+  }
+
+  function renderRoutineList(prefix){
+    const box=$(prefix+'List'); if(!box) return;
+    const list=routines();
+    box.innerHTML=list.length ? list.map(r=>routineRow(r,true)).join('') : '<div class="v33-alert v33-blue">未有固定行程。你可以先加一個最常見活動，例如 swimming / piano / tutoring。</div>';
+  }
+
+  function homeworkInsightFor(list){
+    if(!list.length) return '今日暫時未有固定課外活動，可按需要加入練琴、閱讀或功課。';
+    if(list.some(x=>x.impact==='不建議額外 worksheet')) return '今日活動較滿，建議避免額外 worksheet，保留閱讀或簡短溫習即可。';
+    if(list.some(x=>x.impact==='輕量功課日')) return '今日有較耗能活動，建議功課量輕一點，先完成最重要的一項。';
+    return '今日活動安排正常，可以安排 reading log 或輕量 homework。';
+  }
+
+  function renderHomeRoutineCard(){
+    const home=$('home'); if(!home) return;
+    let card=$('v33RoutineHomeCard');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v33RoutineHomeCard';
+      card.className='v33-home-card';
+      const todayPlan=$('v28TodayPlanCard');
+      const planner=$('v18TodayPlanner');
+      if(todayPlan && todayPlan.parentNode===home) home.insertBefore(card, todayPlan);
+      else if(planner && planner.parentNode===home && planner.nextSibling) home.insertBefore(card, planner.nextSibling);
+      else home.insertBefore(card, home.firstChild);
+    }
+    const list=routines();
+    const today=list.filter(r=>r.day===todayName(0));
+    const tomorrow=list.filter(r=>r.day===todayName(1));
+    card.innerHTML=`
+      <h2>🗓️ 行程提醒</h2>
+      <div class="v33-muted">根據固定行程，幫你睇今日安排同明日要準備的物品。</div>
+
+      <div class="v33-alert ${today.length?'v33-green':'v33-blue'}">
+        <b>今日功課建議：</b>${homeworkInsightFor(today)}
+      </div>
+
+      <h3 style="margin:14px 0 6px;color:#0f172a">今日</h3>
+      <div class="v33-list">${today.length?today.map(r=>routineRow(r,false)).join(''):'<div class="v33-row"><div><b>今日未有固定課外活動</b><small>可以在「我的」加入每週固定行程。</small></div></div>'}</div>
+
+      <h3 style="margin:14px 0 6px;color:#0f172a">明日準備</h3>
+      <div class="v33-list">${tomorrow.length?tomorrow.map(r=>routineRow(r,false)).join(''):'<div class="v33-row"><div><b>明日暫時未有固定活動</b><small>如有游水 / 足球 / 補習，可先加到固定行程。</small></div></div>'}</div>
+
+      <button class="v33-btn" onclick="go('profile');setTimeout(()=>document.getElementById('v33RoutineManager')?.scrollIntoView({behavior:'smooth'}),200)">管理固定行程</button>
+    `;
+  }
+
+  function renderRoutineManager(){
+    const profile=$('profile'); if(!profile) return;
+    let card=$('v33RoutineManager');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v33RoutineManager';
+      card.className='v33-profile-card';
+      card.innerHTML=`
+        <h2>🗓️ Weekly Routine Setup</h2>
+        <div class="v33-muted">加入固定活動後，首頁會提醒今日 / 明日要準備什麼，AI 亦會按活動量建議功課安排。</div>
+        ${formHTML('v33Profile')}
+      `;
+      const cloud=$('cloudStatus')?.closest('.card');
+      if(cloud && cloud.parentNode===profile) profile.insertBefore(card, cloud);
+      else profile.appendChild(card);
+    }
+    renderRoutineList('v33Profile');
+  }
+
+  function renderPrivacyCard(){
+    const profile=$('profile'); if(!profile || $('v33PrivacyCard')) return;
+    const card=document.createElement('div');
+    card.id='v33PrivacyCard';
+    card.className='v33-profile-card';
+    card.innerHTML=`
+      <h2>🛡️ Beta / Privacy Note</h2>
+      <div class="v33-privacy">
+        <b>測試版提醒：</b>功課相、老師 comment、情緒同學校資料都屬於小朋友敏感資料。正式分享俾其他家長前，建議先完成 cloud save / login / delete data 設定。
+        <br><br>
+        <b>非診斷聲明：</b>AI 只提供學習觀察和家長建議，不作醫療、心理或教育診斷。
+      </div>
+    `;
+    profile.appendChild(card);
+  }
+
+  function injectOnboardingRoutine(){
+    const overlay=$('v30Overlay');
+    if(!overlay || $('v33OnboardingRoutine')) return;
+    const note=overlay.querySelector('.v30-note');
+    const block=document.createElement('details');
+    block.id='v33OnboardingRoutine';
+    block.className='v33-details';
+    block.open=false;
+    block.innerHTML=`
+      <summary>6. 可選：加入固定行程（可略過）</summary>
+      <div class="v30-helper" style="margin-top:10px">加一個活動已經夠。之後 AI 可以提醒你明日要準備什麼，並按活動量安排功課。</div>
+      ${formHTML('v33Ob')}
+      <div class="v33-privacy"><b>提示：</b>唔需要一次填完整星期表。先加最常見一個活動，例如游水、足球、補習或 piano。</div>
+    `;
+    if(note && note.parentNode) note.parentNode.insertBefore(block,note);
+    else overlay.querySelector('.v30-onboard')?.appendChild(block);
+    renderRoutineList('v33Ob');
+  }
+
+  function updateWeeklyReportWithRoutine(){
+    if(typeof window.generateWeeklyReview!=='function' || window.generateWeeklyReview.v33Wrapped) return;
+    const old=window.generateWeeklyReview;
+    const wrapped=function(){
+      old();
+      const box=$('weeklyReview');
+      if(!box) return;
+      const list=routines();
+      const tomorrow=list.filter(r=>r.day===todayName(1));
+      const parentGoals=(function(){
+        try{return JSON.parse(localStorage.getItem('cg_child_profile_v30')||'{}').parentGoals||[]}catch(e){return[]}
+      })();
+      const add=`<div class="v27-section"><b>🗓️ 行程 / 準備提醒</b><br>
+        ${tomorrow.length?`明日有：${tomorrow.map(r=>esc(r.name)+(r.prep?`（準備：${esc(r.prep)}）`:'')).join('、')}`:'明日未有固定行程資料。加入 regular routine 後，weekly report 會更貼近日常。'}
+      </div>
+      <div class="v27-section"><b>🎯 家長目標連結</b><br>
+        ${parentGoals.length?`目前家長目標：${parentGoals.map(esc).join('、')}。AI 建議先集中一至兩個目標，避免一次追太多。`:'暫時未設定家長目標；可到「我的」修改小朋友設定。'}
+      </div>`;
+      const report=box.querySelector('.v27-report');
+      if(report && !report.querySelector('.v33-weekly-extra')){
+        const wrap=document.createElement('div');
+        wrap.className='v33-weekly-extra';
+        wrap.innerHTML=add;
+        report.appendChild(wrap);
+        const analysisBox=$('analysisBox');
+        if(analysisBox) analysisBox.innerHTML=box.innerHTML;
+      }
+    };
+    wrapped.v33Wrapped=true;
+    window.generateWeeklyReview=wrapped;
+  }
+
+  function wrapOnboarding(){
+    if(typeof window.v30ShowOnboarding==='function' && !window.v30ShowOnboarding.v33Wrapped){
+      const oldShow=window.v30ShowOnboarding;
+      window.v30ShowOnboarding=function(force=false){
+        oldShow(force);
+        setTimeout(injectOnboardingRoutine,80);
+      };
+      window.v30ShowOnboarding.v33Wrapped=true;
+    }
+    if(typeof window.v30CompleteSetup==='function' && !window.v30CompleteSetup.v33Wrapped){
+      const oldComplete=window.v30CompleteSetup;
+      window.v30CompleteSetup=function(){
+        // routines are already saved when user taps "加入固定行程"; this just ensures lists are rendered.
+        renderRoutineList('v33Ob');
+        oldComplete();
+        setTimeout(renderAllV33,300);
+      };
+      window.v30CompleteSetup.v33Wrapped=true;
+    }
+  }
+
+  function renderAllV33(){
+    migrateOldActivities();
+    renderHomeRoutineCard();
+    renderRoutineManager();
+    renderPrivacyCard();
+    renderRoutineList('v33Ob');
+    renderRoutineList('v33Profile');
+    updateWeeklyReportWithRoutine();
+  }
+
+  window.v33RoutineTemplates=templates;
+  window.v33RenderAll=renderAllV33;
+
+  setTimeout(()=>{wrapOnboarding();renderAllV33();},700);
+  setTimeout(()=>{wrapOnboarding();renderAllV33();},1500);
+  setInterval(()=>{wrapOnboarding();renderAllV33();},4500);
 })();
 </script>
 </body>

@@ -72,3 +72,8 @@ function extractResponsesText(data) {
 function json(statusCode, obj) {
   return { statusCode, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' }, body: JSON.stringify(obj) };
 }
+
+
+// V33 routine-aware weekly report note:
+// Weekly report should avoid raw logs, mention data confidence, connect parent goals,
+// and suggest routine/prep reminders when schedule data exists.

@@ -1,0 +1,19 @@
+ChildGrowth AI V33 Beta Testing Checklist
+
+Ask testers:
+1. Did the first-time setup feel too long?
+2. Did you understand that routine setup is optional?
+3. Could you add one activity using a template?
+4. Did Home remind you what to prepare for tomorrow?
+5. Was the homework AI report useful and not too long?
+6. Did the weekly report give practical next steps?
+7. Did you understand privacy / beta limitations?
+8. What part felt confusing?
+9. What would make you use this again next week?
+
+Suggested test tasks:
+- Set child profile.
+- Add one routine: Swimming / Piano / Tutoring.
+- Upload one homework photo.
+- Add one emotion.
+- Generate weekly report.
