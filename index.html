@@ -863,6 +863,304 @@ body.v29-home-active #v28TodayPlanCard{
   margin-right:auto;
 }
 
+
+/* V30 Parent Onboarding */
+.v30-overlay{
+  position:fixed;
+  inset:0;
+  z-index:20000;
+  background:linear-gradient(180deg,#f8fbff,#eef2ff);
+  overflow:auto;
+  padding:calc(18px + env(safe-area-inset-top)) 14px calc(110px + env(safe-area-inset-bottom));
+}
+.v30-onboard{
+  max-width:760px;
+  margin:0 auto;
+  background:rgba(255,255,255,.96);
+  border:1px solid #dbeafe;
+  border-radius:30px;
+  box-shadow:0 20px 60px rgba(15,23,42,.14);
+  padding:22px;
+}
+.v30-onboard h1{
+  font-size:30px;
+  line-height:1.05;
+  margin:0 0 8px;
+  letter-spacing:-.05em;
+  color:#0f172a;
+}
+.v30-onboard h2{
+  font-size:22px;
+  margin:18px 0 8px;
+  letter-spacing:-.03em;
+  color:#0f172a;
+}
+.v30-helper{
+  color:#64748b;
+  font-weight:800;
+  line-height:1.5;
+  margin-bottom:14px;
+}
+.v30-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.v30-full{grid-column:1/-1}
+.v30-chipbox{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:8px 0 12px;
+}
+.v30-chip{
+  border:1px solid #dbeafe;
+  background:#fff;
+  color:#1d4ed8;
+  border-radius:999px;
+  padding:9px 12px;
+  font-weight:900;
+  font-size:13px;
+  cursor:pointer;
+  user-select:none;
+}
+.v30-chip.active{
+  background:#eef2ff;
+  color:#3730a3;
+  border-color:#818cf8;
+  box-shadow:0 0 0 3px rgba(99,102,241,.12);
+}
+.v30-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+.v30-btn{
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  color:#1d4ed8!important;
+  border-radius:999px!important;
+  padding:12px 16px!important;
+  font-weight:950!important;
+  width:auto!important;
+}
+.v30-primary{
+  background:linear-gradient(135deg,#2563eb,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+.v30-note{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:18px;
+  padding:12px;
+  font-weight:850;
+  line-height:1.45;
+  margin-top:12px;
+}
+.v30-profile-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:22px;
+  padding:16px;
+  margin:14px 0;
+  box-shadow:0 10px 30px rgba(15,23,42,.06);
+}
+.v30-profile-card h2{
+  font-size:24px;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+}
+.v30-profile-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+.v30-mini{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:12px;
+}
+.v30-mini b{display:block;color:#0f172a;font-size:18px}
+.v30-mini span{color:#64748b;font-weight:850;font-size:12px}
+@media(max-width:430px){
+  .v30-onboard{padding:18px;border-radius:24px}
+  .v30-onboard h1{font-size:26px}
+  .v30-grid,.v30-profile-grid{grid-template-columns:1fr}
+}
+
+
+/* V31 Splash + Professional Loading UX */
+.v31-splash{
+  position:fixed;
+  inset:0;
+  z-index:30000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(196,181,253,.45), transparent 34%),
+    radial-gradient(circle at 82% 15%, rgba(147,197,253,.42), transparent 32%),
+    linear-gradient(180deg,#f8fbff 0%,#eef2ff 52%,#fdf2f8 100%);
+  overflow:hidden;
+  transition:opacity .45s ease, visibility .45s ease;
+}
+.v31-splash.hide{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+.v31-splash-bg-orb{
+  position:absolute;
+  border-radius:999px;
+  filter:blur(10px);
+  opacity:.45;
+  animation:v31Float 4.5s ease-in-out infinite;
+}
+.v31-splash-bg-orb.orb1{
+  width:180px;height:180px;
+  background:#c4b5fd;
+  left:-48px;top:12%;
+}
+.v31-splash-bg-orb.orb2{
+  width:220px;height:220px;
+  background:#93c5fd;
+  right:-64px;bottom:8%;
+  animation-delay:.7s;
+}
+.v31-splash-card{
+  position:relative;
+  width:min(86vw,420px);
+  min-height:430px;
+  border-radius:36px;
+  background:rgba(255,255,255,.58);
+  border:1px solid rgba(255,255,255,.72);
+  box-shadow:0 30px 90px rgba(59,130,246,.18);
+  backdrop-filter:blur(18px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:34px 24px;
+}
+.v31-logo-mark{
+  position:relative;
+  width:154px;
+  height:154px;
+  margin-bottom:22px;
+  animation:v31LogoIn .9s cubic-bezier(.2,.8,.2,1) both, v31Pulse 2.8s ease-in-out infinite .9s;
+}
+.v31-logo-mark .petal{
+  position:absolute;
+  width:54px;
+  height:78px;
+  border-radius:60% 60% 52% 52%;
+  left:50%;
+  top:50%;
+  transform-origin:50% 92%;
+  opacity:.9;
+  box-shadow:inset 0 10px 18px rgba(255,255,255,.22);
+}
+.v31-logo-mark .p1{background:linear-gradient(180deg,#c084fc,#8b5cf6);transform:translate(-50%,-92%) rotate(0deg)}
+.v31-logo-mark .p2{background:linear-gradient(180deg,#93c5fd,#60a5fa);transform:translate(-112%,-60%) rotate(-62deg)}
+.v31-logo-mark .p3{background:linear-gradient(180deg,#bfdbfe,#3b82f6);transform:translate(12%,-60%) rotate(62deg)}
+.v31-logo-mark .p4{background:linear-gradient(180deg,#e9d5ff,#a78bfa);transform:translate(-112%,-8%) rotate(-116deg)}
+.v31-logo-mark .p5{background:linear-gradient(180deg,#dbeafe,#60a5fa);transform:translate(12%,-8%) rotate(116deg)}
+.v31-logo-mark .spark{
+  position:absolute;
+  left:50%;top:47%;
+  transform:translate(-50%,-50%);
+  color:#fbbf24;
+  font-size:42px;
+  filter:drop-shadow(0 6px 10px rgba(251,191,36,.25));
+  animation:v31Spark 1.8s ease-in-out infinite;
+}
+.v31-logo-mark .child-dot{
+  position:absolute;
+  left:50%;bottom:18px;
+  transform:translateX(-50%);
+  width:30px;height:30px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#8b5cf6,#3b82f6);
+  box-shadow:0 12px 24px rgba(79,70,229,.28);
+}
+.v31-brand{
+  font-size:36px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:-.06em;
+  background:linear-gradient(135deg,#312e81,#7c3aed,#3b82f6);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  margin-bottom:12px;
+  text-align:center;
+}
+.v31-slogan{
+  font-size:18px;
+  color:#64748b;
+  font-weight:850;
+  text-align:center;
+  min-height:28px;
+}
+.v31-dots{
+  display:flex;
+  gap:9px;
+  margin-top:36px;
+}
+.v31-dots span{
+  width:11px;height:11px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#a78bfa,#60a5fa);
+  animation:v31Dot 1.15s ease-in-out infinite;
+}
+.v31-dots span:nth-child(2){animation-delay:.16s}
+.v31-dots span:nth-child(3){animation-delay:.32s}
+
+@keyframes v31Float{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-18px) scale(1.06)}
+}
+@keyframes v31LogoIn{
+  from{opacity:0;transform:translateY(18px) scale(.88)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes v31Pulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.035)}
+}
+@keyframes v31Spark{
+  0%,100%{opacity:.9;transform:translate(-50%,-50%) scale(1)}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.16)}
+}
+@keyframes v31Dot{
+  0%,100%{transform:translateY(0);opacity:.45}
+  50%{transform:translateY(-8px);opacity:1}
+}
+
+@media(max-width:430px){
+  .v31-splash-card{
+    width:88vw;
+    min-height:390px;
+    border-radius:30px;
+  }
+  .v31-logo-mark{
+    width:132px;
+    height:132px;
+  }
+  .v31-logo-mark .petal{
+    width:46px;height:66px;
+  }
+  .v31-logo-mark .spark{font-size:36px}
+  .v31-logo-mark .child-dot{width:26px;height:26px}
+  .v31-brand{font-size:31px}
+  .v31-slogan{font-size:16px}
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -883,13 +1181,33 @@ body.v29-home-active #v28TodayPlanCard{
 
 </head>
 <body>
+
+<div id="v31Splash" class="v31-splash" aria-label="Loading ChildGrowth AI">
+  <div class="v31-splash-bg-orb orb1"></div>
+  <div class="v31-splash-bg-orb orb2"></div>
+  <div class="v31-splash-card">
+    <div class="v31-logo-mark" aria-hidden="true">
+      <span class="petal p1"></span>
+      <span class="petal p2"></span>
+      <span class="petal p3"></span>
+      <span class="petal p4"></span>
+      <span class="petal p5"></span>
+      <span class="spark">✦</span>
+      <span class="child-dot"></span>
+    </div>
+    <div class="v31-brand">ChildGrowth AI</div>
+    <div id="v31Slogan" class="v31-slogan">Let’s grow together</div>
+    <div class="v31-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
 <div class="v15-note" style="margin:14px auto;max-width:720px">
   ✨ V15 已優化手機版面，並加入真正語音轉文字：支援廣東話 / 普通話 / English。
 </div>
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v29 Home-only Today Plan · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v31 Splash + Loading UX · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -897,7 +1215,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v29 Home-only Today Plan 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v31 Splash + Loading UX 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -2622,6 +2940,276 @@ setInterval(v25RefreshYearViews,2500);
   setTimeout(run,1200);
   setTimeout(run,2200);
   setInterval(run,3000);
+})();
+</script>
+<script>
+(function(){
+  const KEY='cg_v30_onboarding_done';
+  const PROFILE='cg_child_profile_v30';
+
+  function $(id){return document.getElementById(id)}
+  function readJSON(key, fallback){
+    try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch(e){return fallback}
+  }
+  function writeJSON(key, val){localStorage.setItem(key, JSON.stringify(val))}
+  function loadApp(){
+    try{return JSON.parse(localStorage.getItem('childgrowthai-v8')||'{}')}catch(e){return{}}
+  }
+  function saveApp(app){
+    try{localStorage.setItem('childgrowthai-v8', JSON.stringify(app))}catch(e){}
+  }
+  function existingUserDetected(){
+    const app=loadApp();
+    const hasOldProfile=!!(app.profile && (app.profile.name || app.profile.year || app.profile.school));
+    const hasRecords=(app.homework&&app.homework.length)||(app.teacher&&app.teacher.length)||(app.moods&&app.moods.length)||(app.school&&app.school.length);
+    const hasV30=!!localStorage.getItem(PROFILE);
+    return !!(hasOldProfile || hasRecords || hasV30);
+  }
+  function defaultProfile(){
+    const app=loadApp();
+    return {
+      childName:(app.profile&&app.profile.name)||'Janice',
+      age:(app.profile&&app.profile.age)||'',
+      currentYear:localStorage.getItem('cg_child_current_year') || (app.profile&&app.profile.year) || 'Year 2',
+      school:(app.profile&&app.profile.school)||'',
+      region:(app.profile&&app.profile.region)||'Australia / Victoria',
+      mainLanguage:(app.profile&&app.profile.language)||'繁體中文 / Cantonese',
+      strengths:(app.profile&&app.profile.strengths)||['記憶力','創意','音樂感'],
+      watchAreas:(app.profile&&app.profile.watchAreas)||['閱讀理解','做題速度 / 檢查','情緒挫敗'],
+      supportNeeds:(app.profile&&app.profile.supportNeeds)||[],
+      parentGoals:(app.profile&&app.profile.parentGoals)||['功課錯因','情緒 / 挫敗感','每週 summary'],
+      setupAt:new Date().toISOString()
+    };
+  }
+  function getProfile(){
+    return readJSON(PROFILE, defaultProfile());
+  }
+  function saveProfile(p){
+    writeJSON(PROFILE,p);
+    localStorage.setItem('cg_child_current_year', p.currentYear || 'Year 2');
+
+    // Mirror into original app profile so old functions keep working.
+    const app=loadApp();
+    app.profile=Object.assign({}, app.profile||{}, {
+      name:p.childName,
+      age:p.age,
+      year:p.currentYear,
+      school:p.school,
+      region:p.region,
+      language:p.mainLanguage,
+      strengths:p.strengths,
+      watchAreas:p.watchAreas,
+      supportNeeds:p.supportNeeds,
+      parentGoals:p.parentGoals
+    });
+    saveApp(app);
+    if(window.app) window.app.profile=app.profile;
+
+    localStorage.setItem(KEY,'true');
+    updateHeaderProfile();
+    renderProfileSummary();
+  }
+
+  function selectedChips(group){
+    return [...document.querySelectorAll(`[data-v30-group="${group}"].active`)].map(x=>x.dataset.value);
+  }
+  function toggleChip(el){el.classList.toggle('active')}
+
+  function chipHTML(group, values, selected){
+    return values.map(v=>`<button type="button" class="v30-chip ${(selected||[]).includes(v)?'active':''}" data-v30-group="${group}" data-value="${v}" onclick="this.classList.toggle('active')">${v}</button>`).join('');
+  }
+
+  window.v30ShowOnboarding=function(force=false){
+    if($('v30Overlay')) $('v30Overlay').remove();
+    const p=getProfile();
+    const overlay=document.createElement('div');
+    overlay.id='v30Overlay';
+    overlay.className='v30-overlay';
+    overlay.innerHTML=`
+      <div class="v30-onboard">
+        <h1>🌸 設定小朋友資料</h1>
+        <div class="v30-helper">只需要設定一次。AI 之後會根據小朋友年級、學習背景、行程同家長目標，生成更貼近的功課分析和 weekly report。</div>
+
+        <h2>1. 基本資料</h2>
+        <div class="v30-grid">
+          <div><label>小朋友名字</label><input id="v30Name" value="${escapeHtml(p.childName||'')}"></div>
+          <div><label>年齡 / 出生年份</label><input id="v30Age" value="${escapeHtml(p.age||'')}" placeholder="例：8 / 2018"></div>
+          <div><label>目前年級</label>
+            <select id="v30Year">
+              ${['Foundation / Prep','Year 1','Year 2','Year 3','Year 4','Year 5','Year 6','Other'].map(y=>`<option ${p.currentYear===y?'selected':''}>${y}</option>`).join('')}
+            </select>
+          </div>
+          <div><label>地區 / 學制</label><input id="v30Region" value="${escapeHtml(p.region||'')}" placeholder="例：Australia / Hong Kong"></div>
+          <div class="v30-full"><label>學校</label><input id="v30School" value="${escapeHtml(p.school||'')}" placeholder="例：Oakleigh South PS"></div>
+          <div class="v30-full"><label>主要語言</label>
+            <select id="v30Lang">
+              ${['繁體中文 / Cantonese','简体中文 / Mandarin','English','Bilingual'].map(x=>`<option ${p.mainLanguage===x?'selected':''}>${x}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <h2>2. 學習強項</h2>
+        <div class="v30-chipbox">${chipHTML('strengths',['數學','閱讀','記憶力','創意','音樂感','畫畫','運動','語言','解難能力'],p.strengths)}</div>
+
+        <h2>3. 想 AI 特別留意</h2>
+        <div class="v30-chipbox">${chipHTML('watchAreas',['粗心','閱讀理解','寫字','專注','做題太快','情緒挫敗','自信心','時間管理','抗拒功課'],p.watchAreas)}</div>
+
+        <h2>4. 支援需要（可跳過）</h2>
+        <div class="v30-helper">只用作生成更貼近的建議，不作醫療、心理或教育診斷。</div>
+        <div class="v30-chipbox">${chipHTML('supportNeeds',['閱讀較慢','寫字較抗拒','容易分心','容易挫敗','情緒起伏較大','懷疑 / 已知讀寫困難','懷疑 / 已知 ADHD / 專注困難','沒有 / 暫時不填'],p.supportNeeds)}</div>
+
+        <h2>5. 家長目標</h2>
+        <div class="v30-chipbox">${chipHTML('parentGoals',['功課錯因','閱讀進步','情緒 / 挫敗感','時間表安排','老師 comment 解讀','每週 summary','自信心','高能力 / extension'],p.parentGoals)}</div>
+
+        <div class="v30-note">固定行程可以完成設定後，到「我的」> 自訂課外活動慢慢加入。今日臨時任務，例如今晚練琴，則放在首頁 Today Plan。</div>
+
+        <div class="v30-actions">
+          <button class="v30-btn v30-primary" onclick="v30CompleteSetup()">完成設定，進入首頁</button>
+          <button class="v30-btn" onclick="v30SkipSetup()">先略過</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  window.v30CompleteSetup=function(){
+    const p={
+      childName:($('v30Name')||{}).value||'Your child',
+      age:($('v30Age')||{}).value||'',
+      currentYear:($('v30Year')||{}).value||'Year 2',
+      school:($('v30School')||{}).value||'',
+      region:($('v30Region')||{}).value||'',
+      mainLanguage:($('v30Lang')||{}).value||'繁體中文 / Cantonese',
+      strengths:selectedChips('strengths'),
+      watchAreas:selectedChips('watchAreas'),
+      supportNeeds:selectedChips('supportNeeds'),
+      parentGoals:selectedChips('parentGoals'),
+      setupAt:new Date().toISOString()
+    };
+    saveProfile(p);
+    const overlay=$('v30Overlay'); if(overlay) overlay.remove();
+    if(typeof go==='function') go('home');
+    alert('✅ 已完成設定。你可以之後到「我的」修改。');
+  }
+
+  window.v30SkipSetup=function(){
+    const p=getProfile();
+    p.skipped=true;
+    saveProfile(p);
+    const overlay=$('v30Overlay'); if(overlay) overlay.remove();
+    if(typeof go==='function') go('home');
+  }
+
+  function escapeHtml(str){
+    return String(str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function updateHeaderProfile(){
+    const p=getProfile();
+    const line=document.querySelector('header .profileline');
+    if(line) line.textContent=`${p.childName || 'Your child'} · ${p.currentYear || ''}`.trim();
+  }
+
+  function renderProfileSummary(){
+    const profile=document.getElementById('profile');
+    if(!profile) return;
+    let card=$('v30ProfileSummary');
+    if(!card){
+      card=document.createElement('div');
+      card.id='v30ProfileSummary';
+      card.className='v30-profile-card';
+      profile.insertBefore(card, profile.firstChild);
+    }
+    const p=getProfile();
+    card.innerHTML=`
+      <h2>👤 ${escapeHtml(p.childName||'Child')} Profile</h2>
+      <div class="v30-profile-grid">
+        <div class="v30-mini"><b>${escapeHtml(p.currentYear||'')}</b><span>目前年級</span></div>
+        <div class="v30-mini"><b>${escapeHtml(p.age||'未填')}</b><span>年齡 / 出生年份</span></div>
+        <div class="v30-mini"><b>${escapeHtml(p.school||'未填')}</b><span>學校</span></div>
+        <div class="v30-mini"><b>${escapeHtml(p.region||'未填')}</b><span>地區 / 學制</span></div>
+      </div>
+      <div class="v30-chipbox">
+        ${(p.strengths||[]).map(x=>`<span class="v30-chip active">${escapeHtml(x)}</span>`).join('')}
+        ${(p.watchAreas||[]).map(x=>`<span class="v30-chip">${escapeHtml(x)}</span>`).join('')}
+      </div>
+      <div class="v30-actions">
+        <button class="v30-btn" onclick="v30ShowOnboarding(true)">修改小朋友設定</button>
+      </div>
+    `;
+  }
+
+  // Initial behavior:
+  // Existing users keep data and do not get blocked. New users see onboarding.
+  setTimeout(()=>{
+    updateHeaderProfile();
+    renderProfileSummary();
+
+    const done=localStorage.getItem(KEY)==='true';
+    const existing=existingUserDetected();
+
+    if(existing && !done){
+      // Do not interrupt existing users; mark done and mirror old profile.
+      saveProfile(getProfile());
+    }
+
+    if(!existing && !done){
+      v30ShowOnboarding();
+    }
+  },1000);
+
+  setInterval(()=>{updateHeaderProfile();renderProfileSummary();},5000);
+})();
+</script>
+<script>
+(function(){
+  function getProfile(){
+    try{return JSON.parse(localStorage.getItem('cg_child_profile_v30')||'{}')}catch(e){return{}}
+  }
+  function getLang(){
+    const p=getProfile();
+    const raw=(p.mainLanguage || localStorage.getItem('cg_lang') || navigator.language || '').toLowerCase();
+    if(raw.includes('english') || raw.startsWith('en')) return 'en';
+    if(raw.includes('简') || raw.includes('mandarin') || raw.includes('zh-cn')) return 'cn';
+    return 'hk';
+  }
+  function slogan(){
+    const lang=getLang();
+    if(lang==='en') return "Let’s grow together";
+    if(lang==='cn') return "陪孩子成长，看见每一步";
+    return "陪孩子成長，看見每一步";
+  }
+  function setSlogan(){
+    const el=document.getElementById('v31Slogan');
+    if(el) el.textContent=slogan();
+  }
+  function hideSplash(){
+    const sp=document.getElementById('v31Splash');
+    if(!sp) return;
+    setSlogan();
+    sp.classList.add('hide');
+    setTimeout(()=>{ if(sp && sp.parentNode) sp.parentNode.removeChild(sp); },520);
+  }
+  window.v31HideSplash=hideSplash;
+  setSlogan();
+
+  // Keep it visible briefly so it feels intentional, but never blocks the app too long.
+  const minDelay=1200;
+  const maxDelay=3200;
+  const start=Date.now();
+
+  function readyToHide(){
+    const elapsed=Date.now()-start;
+    if(elapsed<minDelay) return setTimeout(readyToHide, minDelay-elapsed);
+    hideSplash();
+  }
+
+  if(document.readyState==='complete'){
+    setTimeout(readyToHide, 200);
+  }else{
+    window.addEventListener('load',()=>setTimeout(readyToHide,200));
+  }
+  setTimeout(hideSplash,maxDelay);
 })();
 </script>
 </body>
