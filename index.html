@@ -1814,6 +1814,37 @@ body.v29-home-active #v28TodayPlanCard{
 .v35-sheet-head{align-items:center!important}
 .v38-stop{border:1px solid #fed7aa!important;background:#fff7ed!important;color:#9a3412!important;border-radius:999px!important;padding:10px 14px!important;font-weight:950!important;width:auto!important;margin:8px 6px 0 0!important;white-space:nowrap!important}
 
+
+/* V39 Routine Range + School Template */
+.v39-tip{
+  background:#ecfeff;
+  border:1px solid #a5f3fc;
+  color:#155e75;
+  border-radius:16px;
+  padding:11px;
+  font-weight:850;
+  line-height:1.45;
+  margin:10px 0;
+}
+.v39-school-btn{
+  background:linear-gradient(135deg,#0ea5e9,#7c3aed)!important;
+  color:white!important;
+  border:none!important;
+}
+.v39-range-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#eef2ff;
+  border:1px solid #c7d2fe;
+  color:#3730a3;
+  border-radius:999px;
+  padding:7px 10px;
+  font-weight:900;
+  font-size:12px;
+  margin:4px 4px 0 0;
+}
+
 </style>
 
   <!-- ChildGrowth AI v9 PWA / iOS icon support -->
@@ -1860,7 +1891,7 @@ body.v29-home-active #v28TodayPlanCard{
 
 <header>
   <h1>🌸 ChildGrowth AI</h1>
-  <div class="subtitle">v38 Voice + Close Polish · AI Vision / Analytics / Cloud-ready</div>
+  <div class="subtitle">v39 Routine Range + School Template · AI Vision / Analytics / Cloud-ready</div>
   <div id="profileLine" class="profileline">Your child</div>
 </header>
 
@@ -1868,7 +1899,7 @@ body.v29-home-active #v28TodayPlanCard{
 <div id="v17HomeOverview"></div>
 <main>
   <section id="home" class="section active">
-    <div class="notice">⚠️ v38 Voice + Close Polish 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
+    <div class="notice">⚠️ v39 Routine Range + School Template 已接入 Real AI Vision 後端。OpenAI / PostHog / Supabase 需在 Netlify Environment Variables 設定好。</div>
     <div class="card">
       <div class="title">🏠 今日 Dashboard</div>
       <div class="ai" id="todayTip">今日提示：記錄一條老師原句或一個小觀察，長期先會見到 pattern。</div>
@@ -5130,5 +5161,328 @@ setInterval(v25RefreshYearViews,2500);
 })();
 </script>
 
+<script>
+(function(){
+  const KEY='cg_v33_weekly_routines';
+  const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const WEEKDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+  function $(id){return document.getElementById(id)}
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+  function write(list){localStorage.setItem(KEY,JSON.stringify(list.slice(-200))); refresh();}
+  function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function val(id){const el=$(id); return el ? (el.value||'').trim() : ''}
+  function setVal(id,v){const el=$(id); if(el) el.value=v||''}
+  function msg(text, good){
+    const el=$('v35ParseMsg');
+    if(el){
+      el.className='v35-alert '+(good?'v35-good':'');
+      el.innerHTML=text;
+    }
+  }
+  function normalizedName(n){
+    return String(n||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w\u4e00-\u9fff]/g,'');
+  }
+  function keyOf(r){return [r.day||'', normalizedName(r.name), r.start||''].join('|')}
+
+  function timeToMin(t){
+    if(!t) return null;
+    let s=String(t).trim().toLowerCase().replace(/\s+/g,'').replace('：',':');
+    s=s.replace(/上午|早上/g,'am').replace(/下午|晚上|夜晚/g,'pm');
+    s=s.replace(/點半|点半/g,':30').replace(/點|点|時|时/g,':00');
+    const m=s.match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/i);
+    if(!m) return null;
+    let h=parseInt(m[1],10), mm=parseInt(m[2]||'0',10), ap=m[3]||'';
+    if(ap==='pm' && h<12) h+=12;
+    if(ap==='am' && h===12) h=0;
+    if(!ap && h>=1 && h<=7) h+=12;
+    return h*60+mm;
+  }
+
+  function normalizeTime(s, suffixHint){
+    if(!s) return '';
+    let raw=String(s).trim().replace(/\s+/g,'').replace('：',':').toLowerCase();
+    raw=raw.replace(/上午|早上/g,'am').replace(/下午|晚上|夜晚/g,'pm');
+    raw=raw.replace(/點半|点半/g,':30').replace(/點|点|時|时/g,':00');
+    let m=raw.match(/(\d{1,2})(?::(\d{2}))?(am|pm)?/i);
+    if(!m) return '';
+    let h=parseInt(m[1],10), min=m[2]||'00', ap=m[3]||suffixHint||'';
+    if(ap) return `${h}:${min}${ap}`;
+    return `${h}:${min}`;
+  }
+
+  function parseTimeRange(text){
+    const re=/(\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|AM|PM|上午|下午|晚上|點|点|時|时)?(?:半)?)\s*(?:-|–|—|到|至|去到|到到|to)\s*(\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|AM|PM|上午|下午|晚上|點|点|時|时)?(?:半)?)/i;
+    const m=text.match(re);
+    if(m){
+      const endSuffix=(m[2].match(/(am|pm|上午|下午|晚上)/i)||[])[1]||'';
+      const suffixHint=endSuffix ? (String(endSuffix).includes('上')?'am':String(endSuffix).includes('下')||String(endSuffix).includes('晚')?'pm':String(endSuffix).toLowerCase()) : '';
+      return {start:normalizeTime(m[1],suffixHint), end:normalizeTime(m[2])};
+    }
+    const single=text.match(/(\d{1,2}(?:[:：]\d{2})?\s*(?:am|pm|AM|PM|上午|下午|晚上|點|点|時|时)?(?:半)?)/);
+    return {start: single ? normalizeTime(single[1]) : '', end:''};
+  }
+
+  function parseDayRange(text){
+    const t=String(text||'').toLowerCase();
+
+    // Weekday shortcut
+    if(/星期一至五|星期一到五|星期一至星期五|星期一到星期五|週一至週五|周一至周五|禮拜一至禮拜五|monday\s*(to|-|–)\s*friday|mon\s*(to|-|–)\s*fri|weekday|weekdays|一至五|一到五/i.test(text)){
+      return WEEKDAYS.slice();
+    }
+
+    const cnMap=[
+      ['Monday',/(星期一|禮拜一|周一|週一)/],
+      ['Tuesday',/(星期二|禮拜二|周二|週二)/],
+      ['Wednesday',/(星期三|禮拜三|周三|週三)/],
+      ['Thursday',/(星期四|禮拜四|周四|週四)/],
+      ['Friday',/(星期五|禮拜五|周五|週五)/],
+      ['Saturday',/(星期六|禮拜六|周六|週六)/],
+      ['Sunday',/(星期日|星期天|禮拜日|禮拜天|周日|週日)/]
+    ];
+    const enMap=[
+      ['Monday',/(monday|mon\b)/i],
+      ['Tuesday',/(tuesday|tue\b)/i],
+      ['Wednesday',/(wednesday|wed\b)/i],
+      ['Thursday',/(thursday|thu\b)/i],
+      ['Friday',/(friday|fri\b)/i],
+      ['Saturday',/(saturday|sat\b)/i],
+      ['Sunday',/(sunday|sun\b)/i]
+    ];
+    const found=[];
+    cnMap.concat(enMap).forEach(([d,re])=>{ if(re.test(text) && !found.includes(d)) found.push(d); });
+    if(/明天|聽日|tomorrow/i.test(text)) {
+      const d=new Date(); d.setDate(d.getDate()+1);
+      return [d.toLocaleDateString('en-AU',{weekday:'long'})];
+    }
+    if(/今天|今日|today/i.test(text)) {
+      return [new Date().toLocaleDateString('en-AU',{weekday:'long'})];
+    }
+    return found;
+  }
+
+  function detectTemplate(text){
+    const t=String(text||'').toLowerCase();
+    if(/all\s*prime|school|返學|上學|上课|上課|學校|学校/.test(t)) return 'school';
+    if(/swim|游水|游泳|泳/.test(t)) return 'swimming';
+    if(/soccer|football|足球/.test(t)) return 'soccer';
+    if(/piano|鋼琴|钢琴|練琴|练琴|琴/.test(t)) return 'piano';
+    if(/chinese|中文/.test(t)) return 'chinese';
+    if(/qs/.test(t)) return 'qs';
+    return '';
+  }
+
+  function templateData(kind){
+    const data={
+      school:{name:'🏫 All Prime School', prep:'書包、lunch box、水樽、帽、reader bag', impact:'正常', reminder:'前一晚 8:00 PM', start:'8:45 AM', end:'3:30 PM'},
+      qs:{name:'📚 QS school', prep:'功課、鉛筆袋、水樽、snack', impact:'輕量功課日', reminder:'前一晚 8:00 PM', start:'9:00 AM', end:'12:00 PM'},
+      swimming:{name:'🏊 Swimming', prep:'泳衣、毛巾、goggles、換洗衫', impact:'輕量功課日', reminder:'前一晚 8:00 PM', start:'', end:''},
+      soccer:{name:'⚽ Soccer', prep:'水樽、運動鞋、外套', impact:'輕量功課日', reminder:'前一晚 8:00 PM', start:'', end:''},
+      piano:{name:'🎹 Piano lesson / practice', prep:'琴書、練習曲目、鉛筆', impact:'正常', reminder:'前一晚 8:00 PM', start:'', end:''},
+      chinese:{name:'📚 Chinese class', prep:'中文書、功課、鉛筆袋、水樽', impact:'輕量功課日', reminder:'前一晚 8:00 PM', start:'', end:''}
+    };
+    return data[kind] || {};
+  }
+
+  function parsePrep(text, tmpl){
+    const m=String(text||'').match(/(?:準備|准备|帶|带|bring|需要)(.+)$/i);
+    if(m) return m[1].replace(/[。,.，]/g,'').trim();
+    return tmpl.prep || '';
+  }
+
+  function parseRoutineText(text){
+    const days=parseDayRange(text);
+    const kind=detectTemplate(text);
+    const tmpl=templateData(kind);
+    const tr=parseTimeRange(text);
+    let name=tmpl.name || String(text||'').replace(/星期[一二三四五六日天]|禮拜[一二三四五六日天]|周[一二三四五六日]|週[一二三四五六日]|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun/ig,'').replace(/\d.+$/,'').trim();
+    if(!name && /中文堂/.test(text)) name='📚 Chinese class';
+
+    return {
+      days,
+      name,
+      start: tr.start || tmpl.start || '',
+      end: tr.end || tmpl.end || '',
+      prep: parsePrep(text, tmpl),
+      reminder: '前一晚 8:00 PM',
+      impact: tmpl.impact || '正常',
+      kind
+    };
+  }
+
+  function addRoutines(items){
+    const list=read();
+    const existing=new Set(list.map(keyOf));
+    let added=0, skipped=0;
+    items.forEach(item=>{
+      const k=keyOf(item);
+      if(existing.has(k)){skipped++; return;}
+      list.push(item); existing.add(k); added++;
+    });
+    write(list);
+    return {added, skipped};
+  }
+
+  function addFromParsed(parsed){
+    const missing=[];
+    if(!parsed.days || !parsed.days.length) missing.push('星期 / 日期');
+    if(!parsed.name) missing.push('活動名稱');
+    if(!parsed.start) missing.push('開始時間');
+    if(missing.length){
+      msg('⚠️ 仲差：'+missing.join('、')+'。例如可以講：<br><b>星期一至星期五 8:45 到 3:30 All Prime School</b>', false);
+      return;
+    }
+    const items=parsed.days.map(day=>({
+      id:'r_'+Date.now()+'_'+day+'_'+Math.random().toString(36).slice(2,6),
+      day,
+      name:parsed.name,
+      start:parsed.start,
+      end:parsed.end,
+      prep:parsed.prep,
+      reminder:parsed.reminder || '前一晚 8:00 PM',
+      impact:parsed.impact || '正常',
+      createdAt:new Date().toISOString(),
+      source: parsed.days.length>1 ? 'v39_multi_day' : 'v39_single'
+    }));
+    const result=addRoutines(items);
+    msg(`✅ 已加入 ${result.added} 個固定行程${result.skipped?`，略過 ${result.skipped} 個重複行程`:''}。`, true);
+    try{ if(typeof window.v36RenderAll==='function') window.v36RenderAll(); }catch(e){}
+  }
+
+  function patchModal(){
+    const modal=$('v35RoutineModal');
+    if(!modal) return;
+
+    const voiceBox=document.querySelector('.v35-voice-box');
+    if(voiceBox && !$('v39RangeTip')){
+      const tip=document.createElement('div');
+      tip.id='v39RangeTip';
+      tip.className='v39-tip';
+      tip.innerHTML='✅ V39 支援一次加入多日行程，例如：<br><b>星期一至星期五 8:45 到 3:30 All Prime School</b><br>系統會自動建立 Monday–Friday 5 條固定返學行程。';
+      voiceBox.insertBefore(tip, voiceBox.firstChild.nextSibling);
+    }
+
+    const tmplRow=document.querySelector('.v35-template-row');
+    if(tmplRow && !$('v39WeekdaySchoolBtn')){
+      const btn=document.createElement('button');
+      btn.id='v39WeekdaySchoolBtn';
+      btn.type='button';
+      btn.className='v35-template v39-school-btn';
+      btn.textContent='Mon–Fri School';
+      btn.onclick=function(e){e.preventDefault(); v39QuickAddWeekdaySchool(); return false;};
+      tmplRow.insertBefore(btn, tmplRow.firstChild);
+    }
+
+    const daySelect=$('v35Day');
+    if(daySelect && ![...daySelect.options].some(o=>o.value==='Monday–Friday')){
+      const opt=document.createElement('option');
+      opt.value='Monday–Friday';
+      opt.textContent='Monday–Friday';
+      daySelect.insertBefore(opt, daySelect.firstChild);
+    }
+
+    // Override typed parser to support ranges
+    const typedBtn=[...modal.querySelectorAll('button')].find(b=>(b.innerText||'').includes('讀取文字'));
+    if(typedBtn){
+      typedBtn.onclick=function(e){
+        if(e){e.preventDefault();e.stopPropagation();}
+        const text=val('v35FreeText');
+        if(!text){msg('⚠️ 請先輸入一句行程，例如：星期一至星期五 8:45 到 3:30 All Prime School', false); return false;}
+        const tr=$('v35Transcript'); if(tr) tr.textContent=text;
+        const p=parseRoutineText(text);
+        window.v39PendingParsed=p;
+        setVal('v35Name',p.name);
+        setVal('v35Start',p.start);
+        setVal('v35End',p.end);
+        setVal('v35Prep',p.prep);
+        setVal('v35Reminder',p.reminder);
+        setVal('v35Impact',p.impact);
+        if(p.days.length===5 && p.days.join('|')===WEEKDAYS.join('|')) setVal('v35Day','Monday–Friday');
+        else if(p.days.length===1) setVal('v35Day',p.days[0]);
+        const dayText=p.days.length?p.days.join('、'):'未讀到星期';
+        msg(`✅ 已讀到：<span class="v39-range-pill">${esc(dayText)}</span><br>${esc(p.start||'未讀到時間')} ${p.end?'– '+esc(p.end):''} · ${esc(p.name||'未讀到活動')}<br>確認無誤後可按「加入固定行程」。`, !!(p.days.length && p.name && p.start));
+        return false;
+      };
+    }
+  }
+
+  window.v39QuickAddWeekdaySchool=function(){
+    const items=WEEKDAYS.map(day=>({
+      id:'r_'+Date.now()+'_'+day,
+      day,
+      name:'🏫 All Prime School',
+      start:'8:45 AM',
+      end:'3:30 PM',
+      prep:'書包、lunch box、水樽、帽、reader bag',
+      reminder:'前一晚 8:00 PM',
+      impact:'正常',
+      createdAt:new Date().toISOString(),
+      source:'v39_quick_weekday_school'
+    }));
+    const r=addRoutines(items);
+    msg(`✅ 已快速加入 Mon–Fri School：新增 ${r.added} 個${r.skipped?`，略過 ${r.skipped} 個重複`:''}。`, true);
+  };
+
+  // Replace add button behavior: if Monday–Friday is selected, expand into 5 days
+  function patchAddButton(){
+    const old=window.v35AddRoutine;
+    if(window.v35AddRoutine && window.v35AddRoutine.v39Wrapped) return;
+
+    const wrapped=function(){
+      const day=val('v35Day');
+      let days = day==='Monday–Friday' ? WEEKDAYS.slice() : [day || 'Monday'];
+
+      // If typed/voice parser created pending days, use them when fields match.
+      if(window.v39PendingParsed && window.v39PendingParsed.days && window.v39PendingParsed.days.length){
+        days=window.v39PendingParsed.days.slice();
+      }
+
+      const parsed={
+        days,
+        name:val('v35Name'),
+        start:val('v35Start'),
+        end:val('v35End'),
+        prep:val('v35Prep'),
+        reminder:val('v35Reminder') || '前一晚 8:00 PM',
+        impact:val('v35Impact') || '正常'
+      };
+      addFromParsed(parsed);
+      window.v39PendingParsed=null;
+    };
+    wrapped.v39Wrapped=true;
+    window.v35AddRoutine=wrapped;
+    window.v35AddRoutineOriginalV39=old;
+  }
+
+  // Patch speech result post-processing too. V38 writes transcript/freeText then calls old parser; our typed button override handles it if user presses 讀取文字. 
+  // Also override parse function directly if present.
+  window.v39ParseRoutineText=function(text){
+    const p=parseRoutineText(text);
+    addFromParsed(p);
+  };
+
+  function refresh(){
+    try{ if(typeof window.v35Render==='function') window.v35Render(); }catch(e){}
+    try{ if(typeof window.v36RenderAll==='function') window.v36RenderAll(); }catch(e){}
+    setTimeout(()=>{patchModal();patchAddButton();},120);
+  }
+
+  // Explain missing Wednesday schedule if not in routine list: no auto hard-coded weekly routine.
+  function addOverviewNote(){
+    const card=$('v36WeeklyOverview');
+    if(card && !$('v39OverviewNote')){
+      const note=document.createElement('div');
+      note.id='v39OverviewNote';
+      note.className='v39-tip';
+      note.innerHTML='提示：呢個總覽只會顯示你已加入嘅「固定行程」。如果想星期三顯示游水，需要先在管理固定行程加入 Wednesday Swimming；如果想一至五顯示返學，可用 Mon–Fri School。';
+      card.insertBefore(note, card.children[2] || null);
+    }
+  }
+
+  setTimeout(()=>{patchModal();patchAddButton();addOverviewNote();},700);
+  setTimeout(()=>{patchModal();patchAddButton();addOverviewNote();},1600);
+  setInterval(()=>{patchModal();patchAddButton();addOverviewNote();},3500);
+})();
+</script>
 </body>
 </html>
