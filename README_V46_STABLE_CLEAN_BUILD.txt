@@ -93,3 +93,9 @@ V53 patch:
 - Teacher Comment voice input restored.
 - Activity mode buttons fixed.
 - Activity parent/coach comment voice input added.
+
+
+V54 patch:
+- Activity Progress input cleanup.
+- One dynamic input area under mode buttons.
+- Duplicate Coach/Parent voice boxes hidden.
