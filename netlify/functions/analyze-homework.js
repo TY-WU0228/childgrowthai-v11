@@ -154,7 +154,13 @@ V26 accuracy rule（避免前後矛盾）：
 
 
 
-V67 handwriting / accuracy rule（非常重要）：
+V68 balanced handwriting rule（非常重要）：
+- 不要過度保守。清楚看見「題目、孩子答案、正確答案」時，錯題必須放入「需要覆核的位置」，不要放入「已做得好的地方」。
+- 例如：18+13 正確是31，如果孩子清楚寫21，這是【明確錯】；應放入需要覆核。
+- 例如：6×6=36、18+9+10=37、9,18,27,36,45,54,63 如答案正確，應放入已做得好的地方，不可放覆核。
+- 「正確應該係31 / 應該係31 / Janice寫21」這類句子表示錯題，不是做得好。
+- 只有看不清手寫時，才用【需家長確認】。
+
 - 你不是正式批改老師；鉛筆字可能被你讀錯。不要用「明顯計錯」這種絕對語氣，除非印刷題目和手寫答案都 95% 清楚。
 - 「需要覆核的位置」只可放：
   1) 你非常清楚看見的錯誤，並標示【明確錯】；
@@ -184,7 +190,7 @@ V66 final report rule（必須跟）：
 📌 1. 我大約睇到嘅功課內容
 - 
 
-⚠️ 2. 需要覆核的位置（請分【明確錯】或【需家長確認】）
+⚠️ 2. 需要覆核的位置（清楚錯題請寫【明確錯】；看不清才寫【需家長確認】）
 - 只列：95% 清楚的明確錯 / 未完成 / 圖片看不清。
 - 如果例子其實係正確，必須移到「已做得好的地方」，不要放在這裡。
 - 如有不確定，請寫明「【需家長確認】AI 可能讀錯手寫，建議家長再對一對原題」。
@@ -296,11 +302,20 @@ function firstUsefulLine(section) {
 }
 
 function isPositiveReviewLine(line) {
-  return /答對|正確|已做對|全部正確|成功推算|值得肯定|做得好|right|correct/i.test(String(line || ''));
+  const s = String(line || '');
+  if (/錯|明確錯|需家長確認|需要覆核|應該係|應為|應是|正確應該|Janice 寫|AI 疑似讀到|疑似/.test(s)) return false;
+  return /答對|答啱|正確完成|已做對|全部正確|成功推算|值得肯定|做得好|right|correct/i.test(s);
+}
+function isClearErrorLine(line) {
+  const s = String(line || '');
+  return /正確應該係|應該係|應為|應是|Janice\s*寫|寫\s*\d+|明確錯/.test(s) && /[0-9]/.test(s);
 }
 function softenReviewLine(line) {
   let s = String(line || '').trim();
   if (!s) return '';
+  if (isClearErrorLine(s)) {
+    return s.replace(/請家長確認：/g, '').replace(/【需家長確認】/g, '【明確錯】');
+  }
   s = s.replace(/明顯計錯/g, 'AI 視覺疑似需要家長確認');
   s = s.replace(/明確計錯/g, 'AI 視覺疑似需要家長確認');
   s = s.replace(/計錯/g, '疑似需覆核');

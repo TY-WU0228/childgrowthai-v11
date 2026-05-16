@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v67 Conservative Homework Vision</title>
+  <title>ChildGrowth AI v68 Report Balance + UI Cleanup</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -754,6 +754,48 @@
 
   
     /* V67 Conservative Homework Vision */
+    .visionCaution{
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      color:#9a3412;
+      border-radius:16px;
+      padding:10px;
+      margin:10px 0;
+      font-weight:850;
+      line-height:1.45;
+    }
+
+  
+    /* V68 Report Balance + UI Cleanup */
+    .rawToggleBox{
+      margin-top:10px;
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      overflow:hidden;
+      background:#f8fafc;
+    }
+    .rawToggleBox summary{
+      cursor:pointer;
+      padding:12px 14px;
+      font-weight:950;
+      color:#334155;
+      list-style:none;
+    }
+    .rawToggleBox summary::-webkit-details-marker{display:none}
+    .recentToolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+      margin:8px 0 12px;
+    }
+    .recentSmallNote{
+      color:#64748b;
+      font-weight:850;
+      font-size:13px;
+      line-height:1.4;
+    }
     .visionCaution{
       background:#fff7ed;
       border:1px solid #fed7aa;
@@ -2004,11 +2046,11 @@ function renderRecord(){
       <div>${app.emotions.slice(-6).reverse().map(e=>rowHTML(`${new Date(e.date).toLocaleString()} · ${moodIcon(e.mood)} ${esc(e.mood)}`,esc(e.context||''))).join('') || '<div class="notice bluebox">未有情緒記錄。</div>'}</div>
     </div>
     <div class="card">
-      <h2>👩‍🏫 Teacher Comment</h2>
+      <h2>👩‍🏫 School Teacher Comment</h2>
       
       <div class="voiceMiniBox">
         <b>🎙️ Teacher Comment Voice</b>
-        <div class="muted">可以用語音講返老師 comment，再檢查文字後保存。適合放學後快速記低老師講過嘅重點。</div>
+        <div class="muted">只記錄公立學校 / 學校課堂老師 comment。課外活動教練或 piano / swimming / chess comment 請放到下面 Activity Progress AI。</div>
         <div class="voiceMiniRow">
           <select id="teacherVoiceLang">
             <option value="zh-HK">廣東話 / English mix</option>
@@ -2022,7 +2064,7 @@ function renderRecord(){
         <div id="teacherVoiceStatus" class="voiceMiniStatus">例：老師話今日 reading 比較主動，但做數時有少少快。</div>
       </div>
 
-      <label>老師原句 / 課堂觀察</label>
+      <label>學校老師原句 / 課堂觀察</label>
       <textarea id="teacherText" placeholder="例：Janice was a bit distracted during reading group today..."></textarea>
       <div class="actions"><button class="btn primary" onclick="saveTeacherComment()">保存 comment</button></div>
       <div>${app.teacherComments.slice(-5).reverse().map(c=>rowHTML(`${new Date(c.date).toLocaleString()} · ${esc(c.category||'School')}`,esc(c.text))).join('') || ''}</div>
@@ -2131,7 +2173,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V67：AI 讀手寫答案會用保守模式。只有非常清楚的錯誤才會列為「明確錯」；看不清會標示為「需家長確認」，避免把正確答案當錯。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="visionCaution"><b>AI Vision caution：</b>鉛筆字、陰影或角度可能令 AI 誤讀答案。V67 會避免用「明顯計錯」語氣，除非圖片非常清楚。</div>
+    <div class="hwActionNote">V68：Homework report 改成「平衡模式」：清楚錯題會放入需要覆核；看不清才標示需家長確認；AI 原文預設收起。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="visionCaution"><b>AI Vision caution：</b>鉛筆字、陰影或角度可能令 AI 誤讀答案。V67 會避免用「明顯計錯」語氣，除非圖片非常清楚。</div>
     <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2143,7 +2185,10 @@ function renderHomework(){
     </div>
     <div id="hwStatus"></div><div id="hwResult"></div>
   </div>
-  <div class="card"><h2>最近功課分析</h2>${app.homeworkReports.slice(-8).reverse().map(hwRow).join('')||'<div class="notice bluebox">未有功課分析。</div>'}</div>`;
+  <div class="card"><h2>最近功課分析</h2>
+    <div class="recentToolbar"><div class="recentSmallNote">預設只顯示最近 3 份，避免頁面太長。</div><button class="btn" onclick="toggleHomeworkHistory()">${app.showAllHomeworkHistory?'收起':'顯示全部'}</button></div>
+    ${homeworkHistoryListHTML()}
+  </div>`;
   bindHomeworkFiles();
 }
 async function bindHomeworkFiles(){
@@ -2224,6 +2269,18 @@ function clearHomeworkUpload(){
   if($('hwStatus')) $('hwStatus').innerHTML='';
   if($('hwResult')) $('hwResult').innerHTML='';
 }
+function homeworkHistoryListHTML(){
+  const list=[...app.homeworkReports].reverse();
+  const shown=app.showAllHomeworkHistory?list:list.slice(0,3);
+  if(!shown.length) return '<div class="notice bluebox">未有功課分析。</div>';
+  const hidden=list.length-shown.length;
+  return shown.map(hwRow).join('') + (hidden>0?`<div class="notice bluebox">尚有 ${hidden} 份較舊分析已收起。</div>`:'');
+}
+function toggleHomeworkHistory(){
+  app.showAllHomeworkHistory=!app.showAllHomeworkHistory;
+  save();
+  renderHomework();
+}
 function hwRow(h){
   const count=h.imageCount?` · ${h.imageCount}張相`:'';
   const source=h.offline?' · 暫存':'';
@@ -2276,11 +2333,20 @@ function firstUsefulLine(section){
 }
 
 function v67IsActuallyPositiveLine(line){
-  return /答對|正確|已做對|全部正確|成功推算|值得肯定|做得好|right|correct/i.test(String(line||''));
+  const s=String(line||'');
+  if(/錯|明確錯|需家長確認|需要覆核|應該係|應為|應是|正確應該|Janice 寫|AI 疑似讀到|疑似/.test(s)) return false;
+  return /答對|答啱|正確完成|已做對|全部正確|成功推算|值得肯定|做得好|right|correct/i.test(s);
+}
+function v68IsClearErrorLine(line){
+  const s=String(line||'');
+  return /正確應該係|應該係|應為|應是|Janice\s*寫|寫\s*\d+|明確錯/.test(s) && /[0-9]/.test(s);
 }
 function v67SoftenReviewLine(line){
   let s=String(line||'').trim();
   if(!s) return '';
+  if(v68IsClearErrorLine(s)){
+    return s.replace(/請家長確認：/g,'').replace(/【需家長確認】/g,'【明確錯】');
+  }
   s=s.replace(/明顯計錯/g,'AI 視覺疑似需要家長確認');
   s=s.replace(/明確計錯/g,'AI 視覺疑似需要家長確認');
   s=s.replace(/計錯/g,'疑似需覆核');
@@ -2413,7 +2479,7 @@ function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"
   <div class="reportBlock"><b>4. 可能出錯原因</b>${compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
   ${r.parentInterpretation?`<div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(r.parentInterpretation)}</div></div>`:''}
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
-  ${r.rawAnalysis?`<div class="reportBlock"><b>完整 AI 原文</b><div class="rawAnalysisBox full">${esc(r.rawAnalysis)}</div></div>`:''}
+  ${r.rawAnalysis?`<details class="rawToggleBox"><summary>展開完整 AI 原文（平時可不用看）</summary><div class="rawAnalysisBox full">${esc(r.rawAnalysis)}</div></details>`:''}
 </div>`}
 
 function renderAnalytics(){
