@@ -1,0 +1,12 @@
+{
+  "version": true,
+  "prompt rule": true,
+  "frontend positive detection": true,
+  "backend classifier": true,
+  "raw hidden retained": true,
+  "recent limited retained": true,
+  "homework retained": true,
+  "other features retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}

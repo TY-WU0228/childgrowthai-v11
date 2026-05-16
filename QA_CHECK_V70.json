@@ -1,0 +1,14 @@
+{
+  "version": true,
+  "frontend sanitizer": true,
+  "backend sanitizer": true,
+  "prompt rule": true,
+  "good keywords": true,
+  "review keywords": true,
+  "raw hidden retained": true,
+  "recent limited retained": true,
+  "homework retained": true,
+  "other features retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}

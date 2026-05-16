@@ -154,6 +154,23 @@ V26 accuracy rule（避免前後矛盾）：
 
 
 
+V70 final classification rule（最高優先）：
+- 請你先在心入面把每一條 bullet 分成三類：GOOD / REVIEW / UNCLEAR。
+- GOOD：答案正確、做得好、暫未見錯誤、成功推算、態度好。
+- REVIEW：明確錯題、未完成、漏做、看不清要家長確認。
+- 「需要覆核的位置」只可以出現 REVIEW / UNCLEAR，絕不可出現 GOOD。
+- 「已做得好的地方」只可以出現 GOOD，絕不可出現明確錯題。
+- 如果一句同時有「正確」和「正確應該係31 / 應該係31」，後者代表錯題，必須歸 REVIEW。
+- 請不要為了填滿欄位而把正確題放入覆核；沒有明確錯就寫「暫未見明確錯題」。
+V69 review separation rule（非常重要）：
+- 「需要覆核的位置」絕對不可放正確答案或「Janice寫得正確」的句子。
+- 如果一句包含「正確 / 寫得正確 / 暫時未見錯誤 / 成功推算 / 答對」，必須放入「已做得好的地方」或略過，不可放入覆核。
+- 「需要覆核的位置」只可放三類：
+  1) 【明確錯】例如 18+13=21，正確是31；
+  2) 【需家長確認】例如手寫不清楚；
+  3) 未完成 / 漏做。
+- 如果一條 number pattern 是正確，例如 70,63,56,49,42,35,28，必須放在「已做得好的地方」。
+- 不要把「其他答案暫未見錯誤」放入覆核，這應該放在「已做得好的地方」或「家長解讀」。
 V68 balanced handwriting rule（非常重要）：
 - 不要過度保守。清楚看見「題目、孩子答案、正確答案」時，錯題必須放入「需要覆核的位置」，不要放入「已做得好的地方」。
 - 例如：18+13 正確是31，如果孩子清楚寫21，這是【明確錯】；應放入需要覆核。
@@ -190,7 +207,7 @@ V66 final report rule（必須跟）：
 📌 1. 我大約睇到嘅功課內容
 - 
 
-⚠️ 2. 需要覆核的位置（清楚錯題請寫【明確錯】；看不清才寫【需家長確認】）
+⚠️ 2. 需要覆核的位置（只放【明確錯】、【需家長確認】或未完成；正確 / 暫未見錯誤不可放這裡）
 - 只列：95% 清楚的明確錯 / 未完成 / 圖片看不清。
 - 如果例子其實係正確，必須移到「已做得好的地方」，不要放在這裡。
 - 如有不確定，請寫明「【需家長確認】AI 可能讀錯手寫，建議家長再對一對原題」。
@@ -303,8 +320,8 @@ function firstUsefulLine(section) {
 
 function isPositiveReviewLine(line) {
   const s = String(line || '');
-  if (/錯|明確錯|需家長確認|需要覆核|應該係|應為|應是|正確應該|Janice 寫|AI 疑似讀到|疑似/.test(s)) return false;
-  return /答對|答啱|正確完成|已做對|全部正確|成功推算|值得肯定|做得好|right|correct/i.test(s);
+  if (/明確錯|需家長確認|需要覆核|應該係|應為|應是|正確應該|Janice 寫\s*\d+|AI 疑似讀到|疑似錯|計錯|錯誤/.test(s)) return false;
+  return /答對|答啱|正確|寫得正確|答案正確|已做對|全部正確|成功推算|順利找到|未見錯誤|暫時未見到錯誤|未見到錯誤|值得肯定|做得好|right|correct/i.test(s);
 }
 function isClearErrorLine(line) {
   const s = String(line || '');
@@ -325,16 +342,77 @@ function softenReviewLine(line) {
   }
   return s;
 }
+function classifyReviewLineV69(line) {
+  const s = String(line || '').trim();
+  if (!s) return 'empty';
+  if (isPositiveReviewLine(s)) return 'positive';
+  if (/未見錯誤|暫時未見到錯誤|其餘答案|都能清楚看到|大部分.*正確/.test(s)) return 'positive';
+  if (/明確錯|正確應該係|應該係|應為|應是|Janice\s*寫|寫\s*\d+/.test(s) && /[0-9]/.test(s)) return 'review';
+  if (/需家長確認|看不清|不清楚|未完成|漏|空白/.test(s)) return 'review';
+  return 'review';
+}
 function cleanReviewPoints(points) {
   const movedToGood = [];
   const review = [];
   (Array.isArray(points) ? points : []).forEach(p => {
     const s = String(p || '').trim();
     if (!s) return;
-    if (isPositiveReviewLine(s)) movedToGood.push(s.replace(/^[-•\s]+/, ''));
-    else review.push(softenReviewLine(s));
+    const cls = classifyReviewLineV69(s);
+    if (cls === 'positive') movedToGood.push(s.replace(/^[-•\s]+/, ''));
+    else if (cls === 'review') review.push(softenReviewLine(s));
   });
   return { review, movedToGood };
+}
+
+
+function normalizeReportLine(line) {
+  return String(line || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+}
+function classifyReportLineV70(line, source = '') {
+  const s = normalizeReportLine(line);
+  if (!s) return 'empty';
+  if (/明確錯|正確應該係|正確應是|正確是|應該係|應為|應是|答案應該|答案應為/.test(s) && /[0-9]/.test(s)) return 'review';
+  if (/Janice\s*(寫|答).{0,12}\d+/.test(s) && /(正確應該|應該係|應為|應是|明確錯)/.test(s)) return 'review';
+  if (/需家長確認|需要家長確認|看不清|睇唔清|不清楚|未完成|漏做|空白|未填|漏填/.test(s)) return 'review';
+  if (/答對|答啱|寫得正確|答案正確|正確完成|已做對|全部正確|成功推算|順利找到|未見錯誤|暫未見錯誤|暫時未見到錯誤|未見到錯誤|都正確|做得好|值得肯定|right|correct/i.test(s)) return 'good';
+  if (/其餘答案|其他答案|大部分答案/.test(s) && /正確|未見錯|清楚/.test(s)) return 'good';
+  return source === 'review' ? 'review' : 'good';
+}
+function reviewLineV70(line) {
+  const s = normalizeReportLine(line);
+  if (!s) return '';
+  if (/明確錯|需家長確認/.test(s)) return s;
+  if (/正確應該係|正確應是|正確是|應該係|應為|應是|答案應該|答案應為/.test(s) && /[0-9]/.test(s)) return '【明確錯】 ' + s;
+  if (/看不清|睇唔清|不清楚|未完成|漏做|空白|未填|漏填/.test(s)) return '【需家長確認】 ' + s;
+  return '【需家長確認】 ' + s;
+}
+function uniqueLinesV70(arr) {
+  const seen = new Set();
+  return (arr || []).map(normalizeReportLine).filter(Boolean).filter(x => {
+    const key = x.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function sanitizeStructuredReportV70(report) {
+  const goods = [];
+  const reviews = [];
+  const sourceGood = Array.isArray(report.strengths) ? report.strengths : bulletsFrom(report.strengths || '', 4);
+  const sourceReview = Array.isArray(report.checkPoints) ? report.checkPoints : bulletsFrom(report.checkPoints || '', 6);
+  sourceGood.forEach(line => {
+    const cls = classifyReportLineV70(line, 'good');
+    if (cls === 'review') reviews.push(reviewLineV70(line));
+    else if (cls === 'good') goods.push(normalizeReportLine(line));
+  });
+  sourceReview.forEach(line => {
+    const cls = classifyReportLineV70(line, 'review');
+    if (cls === 'good') goods.push(normalizeReportLine(line));
+    else if (cls === 'review') reviews.push(reviewLineV70(line));
+  });
+  report.strengths = uniqueLinesV70(goods).slice(0, 6);
+  report.checkPoints = uniqueLinesV70(reviews).slice(0, 6);
+  return report;
 }
 
 function buildStructuredHomeworkReport(raw) {
@@ -349,7 +427,7 @@ function buildStructuredHomeworkReport(raw) {
   const tips = sectionBetween(text, ['✅ 6. 下次做題小貼士', '6. 下次做題小貼士', '下次做題小貼士'], []);
   const rawStrengths = bulletsFrom(good, 4);
   const cleanedReview = cleanReviewPoints(bulletsFrom(check, 6));
-  return {
+  const report = {
     title: 'AI 功課分析',
     shortSummary: firstUsefulLine(parent) || firstUsefulLine(level) || text.slice(0, 180),
     summary: content || text.slice(0, 420),
@@ -363,6 +441,7 @@ function buildStructuredHomeworkReport(raw) {
     confidence: 'medium',
     rawAnalysis: text
   };
+  return sanitizeStructuredReportV70(report);
 }
 
 function friendlyError(msg) {
