@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v71 Calendar 8PM Reminder Fix</title>
+  <title>ChildGrowth AI v72 Calendar Prep Event Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -834,8 +834,8 @@
     }
 
   
-    /* V71 Calendar 8PM reminder fix */
-    .calendarReminderNote{
+    /* V72 Calendar Prep Event Fix */
+    .calendarPrepNote{
       background:#ecfeff;
       border:1px solid #67e8f9;
       color:#155e75;
@@ -1389,39 +1389,46 @@ function downloadICS(filename, content){
 function safeICSFilename(name){
   return (icsTitle(name,'calendar_event')).replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics';
 }
-function durationBeforeEventFromPrevious8pm(startTime){
-  // iOS "1 day before" means exactly 24 hours before event start, not "previous night 8pm".
-  // For a recurring event, use a relative trigger from event start back to the previous day's 8:00 PM.
-  const startM = timeToMin(startTime || '09:00');
-  const mins = (startM===null ? 9*60 : startM) + (24*60 - 20*60); // previous 8pm -> event start
-  const days = Math.floor(mins / (24*60));
-  const rem = mins % (24*60);
-  const h = Math.floor(rem / 60);
-  const m = rem % 60;
-  let out = '-P';
-  if(days) out += days + 'D';
-  if(h || m || !days){
-    out += 'T';
-    if(h) out += h + 'H';
-    if(m) out += m + 'M';
-    if(!h && !m) out += '0M';
-  }
-  return out;
+function addDays(date, days){
+  const d=new Date(date);
+  d.setDate(d.getDate()+days);
+  return d;
 }
-function eventAlarms(title, prep='', startTime='09:00'){
-  const previous8pmTrigger = durationBeforeEventFromPrevious8pm(startTime);
+function formalEventAlarms(title){
+  // Formal event keeps the useful 1-hour reminder.
   return [
-    'BEGIN:VALARM',
-    `TRIGGER:${previous8pmTrigger}`,
-    'ACTION:DISPLAY',
-    `DESCRIPTION:${icsEscape('前一晚8:00準備：'+title+(prep?'｜'+prep:''))}`,
-    'END:VALARM',
     'BEGIN:VALARM',
     'TRIGGER:-PT60M',
     'ACTION:DISPLAY',
     `DESCRIPTION:${icsEscape('1小時後：'+title)}`,
     'END:VALARM'
   ];
+}
+function prepEventLines(baseId, title, eventDate, prep='', repeatWeekly=false){
+  // V72: Instead of relying on iOS "1 day before", create a real separate prep event at previous 8:00 PM.
+  const prepDate=addDays(eventDate,-1);
+  const prepTitle='準備：'+title;
+  const prepText=prep || '檢查書包、水樽、功課、制服/活動用品。';
+  return [
+    'BEGIN:VEVENT',
+    `UID:${icsUID(baseId+'-prep','prep.childgrowthai')}`,
+    `DTSTAMP:${icsStamp()}`,
+    `SUMMARY:${icsEscape(prepTitle)}`,
+    `DTSTART:${icsDateTime(prepDate,'8:00 PM')}`,
+    `DTEND:${icsDateTime(prepDate,'8:05 PM')}`,
+    repeatWeekly?'RRULE:FREQ=WEEKLY':'',
+    `DESCRIPTION:${icsEscape('前一晚8:00準備提醒\\n活動：'+title+'\\n準備：'+prepText+'\\n由 ChildGrowth AI 匯出')}`,
+    'BEGIN:VALARM',
+    'TRIGGER:PT0M',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${icsEscape(prepTitle+'｜'+prepText)}`,
+    'END:VALARM',
+    'END:VEVENT'
+  ];
+}
+function eventAlarms(title, prep='', startTime='09:00'){
+  // Kept for compatibility. Formal event only uses 1-hour reminder.
+  return formalEventAlarms(title);
 }
 function calendarForRoutine(id){
   const r=app.routines.find(x=>String(x.id)===String(id));
@@ -1430,7 +1437,9 @@ function calendarForRoutine(id){
   const dt = r.oneOffDate ? new Date(r.oneOffDate+'T12:00:00') : dateForDay(r.day);
   const start=icsDateTime(dt,r.start||'09:00');
   const end=icsDateTime(dt,r.end||r.start||'10:00');
-  const desc=`準備：${r.prep||''}\n提醒：${r.reminder||''}\n由 ChildGrowth AI 匯出`;
+  const repeatWeekly=!r.oneOffDate;
+  const prep=r.prep||'';
+  const desc=`正式活動：${title}\n準備：${prep||'請檢查需要帶的物品'}\n前一晚8:00會另有「準備：${title}」提醒\n由 ChildGrowth AI 匯出`;
   const lines=[
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -1443,13 +1452,14 @@ function calendarForRoutine(id){
     `SUMMARY:${icsEscape(title)}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,
-    r.oneOffDate?'':'RRULE:FREQ=WEEKLY',
+    repeatWeekly?'RRULE:FREQ=WEEKLY':'',
     `DESCRIPTION:${icsEscape(desc)}`,
-    ...eventAlarms(title,r.prep||'',r.start||'09:00'),
+    ...formalEventAlarms(title),
     'END:VEVENT',
+    ...prepEventLines(r.id,title,dt,prep,repeatWeekly),
     'END:VCALENDAR'
   ];
-  downloadICS(safeICSFilename(title),icsBuild(lines));
+  downloadICS(safeICSFilename(title+'_with_prep'),icsBuild(lines));
 }
 function calendarForNotice(id){
   const n=app.schoolNotices.find(x=>String(x.id)===String(id));
@@ -1460,7 +1470,7 @@ function calendarForNotice(id){
   const start=icsDateTime(dt,n.time||'09:00');
   const end=icsDateTime(dt,n.time||'10:00');
   const prep=(n.bringItems||[]).join('、');
-  const desc=`準備：${prep}\n分類：${n.category||''}\n由 ChildGrowth AI 匯出`;
+  const desc=`正式學校活動 / notice：${title}\n準備：${prep||'請檢查學校通知'}\n分類：${n.category||''}\n前一晚8:00會另有「準備：${title}」提醒\n由 ChildGrowth AI 匯出`;
   const lines=[
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -1474,11 +1484,12 @@ function calendarForNotice(id){
     `DTSTART:${start}`,
     `DTEND:${end}`,
     `DESCRIPTION:${icsEscape(desc)}`,
-    ...eventAlarms(title,prep,n.time||'09:00'),
+    ...formalEventAlarms(title),
     'END:VEVENT',
+    ...prepEventLines(n.id,title,dt,prep,false),
     'END:VCALENDAR'
   ];
-  downloadICS(safeICSFilename(title),icsBuild(lines));
+  downloadICS(safeICSFilename(title+'_with_prep'),icsBuild(lines));
 }
 function calendarForTask(id){
   const t=app.todayTasks.find(x=>String(x.id)===String(id));
