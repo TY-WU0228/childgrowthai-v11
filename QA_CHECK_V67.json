@@ -1,0 +1,11 @@
+{
+  "version": true,
+  "conservative prompt": true,
+  "backend postprocess": true,
+  "frontend postprocess": true,
+  "review wording": true,
+  "homework retained": true,
+  "other features retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}

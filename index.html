@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v66 QA Stable Report</title>
+  <title>ChildGrowth AI v67 Conservative Homework Vision</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -750,6 +750,19 @@
       font-size:14px;
       line-height:1.7;
       word-break:break-word;
+    }
+
+  
+    /* V67 Conservative Homework Vision */
+    .visionCaution{
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      color:#9a3412;
+      border-radius:16px;
+      padding:10px;
+      margin:10px 0;
+      font-weight:850;
+      line-height:1.45;
     }
 
   </style>
@@ -2118,7 +2131,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V66：已做 QA cross-check。Homework report 會由後端先整理成 structured report，再顯示完整分析；最近功課分析可按「查看完整分析」。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div>
+    <div class="hwActionNote">V67：AI 讀手寫答案會用保守模式。只有非常清楚的錯誤才會列為「明確錯」；看不清會標示為「需家長確認」，避免把正確答案當錯。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="visionCaution"><b>AI Vision caution：</b>鉛筆字、陰影或角度可能令 AI 誤讀答案。V67 會避免用「明顯計錯」語氣，除非圖片非常清楚。</div>
     <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2261,6 +2274,37 @@ function bulletsFrom(section, max=4){
 function firstUsefulLine(section){
   return String(section||'').split(/\n+/).map(x=>x.replace(/^[\s\-•*]+/,'').trim()).find(Boolean)||'';
 }
+
+function v67IsActuallyPositiveLine(line){
+  return /答對|正確|已做對|全部正確|成功推算|值得肯定|做得好|right|correct/i.test(String(line||''));
+}
+function v67SoftenReviewLine(line){
+  let s=String(line||'').trim();
+  if(!s) return '';
+  s=s.replace(/明顯計錯/g,'AI 視覺疑似需要家長確認');
+  s=s.replace(/明確計錯/g,'AI 視覺疑似需要家長確認');
+  s=s.replace(/計錯/g,'疑似需覆核');
+  s=s.replace(/Janice 寫/g,'AI 疑似讀到 Janice 寫');
+  if(!/家長|覆核|確認|看不清|不清|疑似/.test(s)){
+    s='請家長確認：'+s;
+  }
+  return s;
+}
+function v67CleanReviewPoints(points){
+  const movedToGood=[];
+  const review=[];
+  (Array.isArray(points)?points:[]).forEach(p=>{
+    const s=String(p||'').trim();
+    if(!s) return;
+    if(v67IsActuallyPositiveLine(s)){
+      movedToGood.push(s.replace(/^[-•\s]+/,''));
+    }else{
+      review.push(v67SoftenReviewLine(s));
+    }
+  });
+  return {review,movedToGood};
+}
+
 function normalizeHomeworkReport(data, text, imageCount){
   if(data?.report){
     const r=data.report;
@@ -2283,7 +2327,7 @@ function normalizeHomeworkReport(data, text, imageCount){
       summary:content || raw.slice(0,360),
       levelAwareness:level || '已按圖片內容和目前年級作初步觀察；詳情見完整分析。',
       strengths:bulletsFrom(good,4),
-      checkPoints:bulletsFrom(check,5),
+      checkPoints:v67CleanReviewPoints(bulletsFrom(check,5)).review,
       reasons:bulletsFrom(reason,5),
       parentInterpretation:parent,
       nextStep:firstUsefulLine(tips)||'今晚只揀一題最有代表性的題目慢慢講解。',
@@ -2365,7 +2409,7 @@ function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"
   <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
   <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>3. 需要覆核的位置</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>3. 需要覆核的位置（AI 視覺可能需家長確認）</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
   <div class="reportBlock"><b>4. 可能出錯原因</b>${compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
   ${r.parentInterpretation?`<div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(r.parentInterpretation)}</div></div>`:''}
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
