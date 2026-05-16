@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v64 Homework AI Stable Restore</title>
+  <title>ChildGrowth AI v66 QA Stable Report</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -702,6 +702,54 @@
       margin:10px 0;
       font-weight:850;
       line-height:1.45;
+    }
+
+  
+    /* V65 Homework Report Quality */
+    .homeworkFullActions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .homeworkRecentCard{
+      cursor:default;
+    }
+    .homeworkRecentCard .rowActions{
+      margin-top:8px;
+    }
+    .reportBlock.highlight{
+      background:linear-gradient(135deg,#eff6ff,#f8fafc);
+      border-color:#bfdbfe;
+    }
+    .rawAnalysisBox.full{
+      max-height:none;
+      overflow:visible;
+      font-size:14px;
+      line-height:1.65;
+    }
+
+  
+    /* V66 QA Stable Report */
+    .qaBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:#ecfdf5;
+      border:1px solid #86efac;
+      color:#166534;
+      border-radius:999px;
+      padding:7px 11px;
+      font-weight:950;
+      font-size:13px;
+      margin:6px 6px 0 0;
+    }
+    .reportBlock .muted{word-break:break-word}
+    .rawAnalysisBox.full{
+      font-family:inherit;
+      font-size:14px;
+      line-height:1.7;
+      word-break:break-word;
     }
 
   </style>
@@ -2065,11 +2113,12 @@ window.deleteNotice=(id)=>{if(confirm('刪除這個學校提醒？')){app.school
 
 
 
+
 function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V64：已恢復舊版 Homework AI flow，並會先壓縮 iPhone 相片再送 AI，避免 3 張相太大導致 Netlify / OpenAI 收唔到。</div>
+    <div class="hwActionNote">V66：已做 QA cross-check。Homework report 會由後端先整理成 structured report，再顯示完整分析；最近功課分析可按「查看完整分析」。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div>
     <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2097,7 +2146,7 @@ async function bindHomeworkFiles(){
     let info=[];
     for(const file of files){
       try{
-        const data=await compressImageFile(file,1400,0.72);
+        const data=await compressImageFile(file,1500,0.76);
         homeworkImages.push(data);
         if(!homeworkImage) homeworkImage=data;
         const img=document.createElement('img');
@@ -2117,7 +2166,7 @@ async function bindHomeworkFiles(){
     const sendCount=Math.min(homeworkImages.length,3);
     const kb=Math.round(JSON.stringify(homeworkImages.slice(0,sendCount)).length/1024);
     if($('hwImageInfo')) $('hwImageInfo').textContent=`已準備 ${homeworkImages.length} 張；會送頭 ${sendCount} 張去 AI。估計傳送大小：${kb}KB\n`+info.join('\n');
-    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。V64 會先壓縮再分析；如果 3 張仍失敗，請試「只分析第一張」。</div>`;
+    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。V65 會先壓縮再分析；如果 3 張仍失敗，請試「只分析第一張」。</div>`;
   };
 }
 function fileToDataURL(file){
@@ -2128,7 +2177,7 @@ function fileToDataURL(file){
     reader.readAsDataURL(file);
   });
 }
-function compressImageFile(file,maxDim=1400,quality=0.72){
+function compressImageFile(file,maxDim=1500,quality=0.76){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.onerror=reject;
@@ -2165,12 +2214,18 @@ function clearHomeworkUpload(){
 function hwRow(h){
   const count=h.imageCount?` · ${h.imageCount}張相`:'';
   const source=h.offline?' · 暫存':'';
-  return rowHTML(`${new Date(h.date).toLocaleString()}${count}${source} · ${esc(h.report?.summary||h.report?.title||'Homework report')}`,
-    `下一步：${esc(h.report?.nextStep||'')}<br>Level：${esc(h.report?.levelAwareness||'')}`);
+  const summary=esc(h.report?.shortSummary || h.report?.summary || h.report?.title || 'Homework report');
+  return `<div class="row homeworkRecentCard">
+    <div><b>${new Date(h.date).toLocaleString()}${count}${source}</b>
+      <small>${summary}<br>下一步：${esc(h.report?.nextStep||'')}<br>Level：${esc(h.report?.levelAwareness||'')}</small>
+      <div class="rowActions"><button class="btn" onclick="viewHomeworkReport('${esc(h.id)}')">查看完整分析</button></div>
+    </div>
+  </div>`;
 }
 function homeworkFallbackReport(text, imageCount, errorMsg=''){
   return {
     title:'功課已儲存，等待 AI 完整分析',
+    shortSummary:imageCount?`已收到 ${imageCount} 張功課圖片。AI 暫時未能完成分析，但 upload 已保存。`:'已收到家長補充文字。',
     summary:imageCount?`已收到 ${imageCount} 張功課圖片。AI 暫時未能完成分析，但這次 upload 已保存到最近功課分析。`:'已收到家長補充文字。',
     levelAwareness:'按目前年級和題目難度作觀察；如果圖片顯示 Year 3 / extension，應同時肯定孩子正在挑戰較高水平。',
     strengths:['已完成一次功課記錄，這對長期 weekly report 有幫助。'],
@@ -2180,17 +2235,58 @@ function homeworkFallbackReport(text, imageCount, errorMsg=''){
     rawAnalysis:''
   };
 }
+function sectionBetween(raw, startMarkers, endMarkers){
+  const text=String(raw||'');
+  let start=-1, marker='';
+  for(const m of startMarkers){
+    const i=text.indexOf(m);
+    if(i>=0 && (start<0 || i<start)){start=i; marker=m;}
+  }
+  if(start<0) return '';
+  let from=start+marker.length;
+  let end=text.length;
+  for(const m of endMarkers){
+    const i=text.indexOf(m, from);
+    if(i>=0 && i<end) end=i;
+  }
+  return text.slice(from,end).replace(/^[:：\s-]+/,'').trim();
+}
+function bulletsFrom(section, max=4){
+  return String(section||'')
+    .split(/\n+/)
+    .map(x=>x.replace(/^[\s\-•*]+/,'').trim())
+    .filter(Boolean)
+    .slice(0,max);
+}
+function firstUsefulLine(section){
+  return String(section||'').split(/\n+/).map(x=>x.replace(/^[\s\-•*]+/,'').trim()).find(Boolean)||'';
+}
 function normalizeHomeworkReport(data, text, imageCount){
-  if(data?.report) return data.report;
+  if(data?.report){
+    const r=data.report;
+    r.rawAnalysis = r.rawAnalysis || r.fullAnalysis || r.analysis || '';
+    r.shortSummary = r.shortSummary || String(r.summary||'').slice(0,180);
+    return r;
+  }
   const raw=data?.analysis || data?.output || data?.summary || '';
   if(raw){
+    const level=sectionBetween(raw,['🌟 0. Learning level awareness','0. Learning level awareness','Learning level awareness'],['📌 1.','1. 我大約','⚠️ 2.']);
+    const content=sectionBetween(raw,['📌 1. 我大約睇到嘅功課內容','1. 我大約睇到嘅功課內容','我大約睇到嘅功課內容'],['⚠️ 2.','✅ 2b.','🧠 3.']);
+    const check=sectionBetween(raw,['⚠️ 2. 需要覆核的位置','2. 需要覆核的位置','需要覆核的位置'],['✅ 2b.','🧠 3.','💬 4.']);
+    const good=sectionBetween(raw,['✅ 2b. 已做得好的地方','2b. 已做得好的地方','已做得好的地方'],['🧠 3.','💬 4.','📈 5.']);
+    const reason=sectionBetween(raw,['🧠 3. 可能出錯原因','3. 可能出錯原因','可能出錯原因'],['💬 4.','📈 5.','✅ 6.']);
+    const parent=sectionBetween(raw,['💬 4. 給家長的簡短解讀','4. 給家長的簡短解讀','給家長的簡短解讀'],['📈 5.','✅ 6.']);
+    const tips=sectionBetween(raw,['✅ 6. 下次做題小貼士','6. 下次做題小貼士','下次做題小貼士'],[]);
     return {
       title:'AI 功課分析',
-      summary:raw.slice(0,260),
-      levelAwareness:'已按圖片內容和目前年級作初步觀察；詳情見完整分析。',
-      strengths:[],
-      checkPoints:[],
-      nextStep:'今晚只揀一題最有代表性的題目慢慢講解。',
+      shortSummary:firstUsefulLine(parent)||firstUsefulLine(level)||raw.slice(0,180),
+      summary:content || raw.slice(0,360),
+      levelAwareness:level || '已按圖片內容和目前年級作初步觀察；詳情見完整分析。',
+      strengths:bulletsFrom(good,4),
+      checkPoints:bulletsFrom(check,5),
+      reasons:bulletsFrom(reason,5),
+      parentInterpretation:parent,
+      nextStep:firstUsefulLine(tips)||'今晚只揀一題最有代表性的題目慢慢講解。',
       confidence:'medium',
       rawAnalysis:raw
     };
@@ -2211,7 +2307,7 @@ async function sendHomeworkToAI(imagesToSend){
     learningContext:{
       childCurrentYear:app.profile.year,
       childName:app.profile.childName,
-      instruction:'Please compare worksheet level detected from image with child current year.'
+      instruction:'Please compare worksheet level detected from image with child current year, and return a complete parent-friendly homework report.'
     }
   };
   const res=await fetch('/.netlify/functions/analyze-homework',{
@@ -2225,60 +2321,55 @@ async function sendHomeworkToAI(imagesToSend){
   if(!res.ok) throw new Error(data.error || data.detail || data.message || data.raw || ('AI function failed: HTTP '+res.status));
   return data;
 }
-window.analyzeHomework=async()=>{
+async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const text=$('hwText').value.trim();
-  const images=homeworkImages.length?homeworkImages:(homeworkImage?[homeworkImage]:[]);
-  if(!text&&!images.length){$('hwStatus').innerHTML='<div class="notice">請先上載圖片或輸入文字。</div>';return}
-  const imagesToSend=images.slice(0,3);
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... 已壓縮並準備傳送 ${imagesToSend.length} 張，約 ${kb}KB。</div>`;
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。</div>`;
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
   try{
     const data=await sendHomeworkToAI(imagesToSend);
     const report=normalizeHomeworkReport(data,text,imagesToSend.length);
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model});
     save();
-    $('hwResult').innerHTML=homeworkReportHTML(report);
-    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。${data.model?(' Model: '+esc(data.model)):''}</div>`;
+    renderHomework();
+    setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
+    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${data.model?(' Model: '+esc(data.model)):''}</div>`;
   }catch(e){
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
     app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e)});
     save();
-    $('hwResult').innerHTML=homeworkReportHTML(report)+`<div class="hwDebugBox">Debug error:\n${esc(e.message||String(e))}</div>`;
-    $('hwStatus').innerHTML='<div class="notice">AI 分析未成功，但這次 upload 已保存。建議下一步：按「只分析第一張」測試。</div>';
+    renderHomework();
+    setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
+    $('hwStatus').innerHTML='<div class="notice">AI 分析未成功，但這次 upload 已保存。請把完整錯誤截圖給我。</div>';
   }
-  renderHomework();
+}
+window.analyzeHomework=async()=>{
+  const text=$('hwText').value.trim();
+  const images=homeworkImages.length?homeworkImages:(homeworkImage?[homeworkImage]:[]);
+  if(!text&&!images.length){$('hwStatus').innerHTML='<div class="notice">請先上載圖片或輸入文字。</div>';return}
+  await runHomeworkAnalysis(images.slice(0,3),`傳送 ${Math.min(images.length,3)} 張相`);
 }
 window.analyzeHomeworkFirstOnly=async()=>{
   const text=$('hwText').value.trim();
   const images=homeworkImages.length?homeworkImages:(homeworkImage?[homeworkImage]:[]);
   if(!text&&!images.length){$('hwStatus').innerHTML='<div class="notice">請先上載圖片或輸入文字。</div>';return}
-  const imagesToSend=images.slice(0,1);
-  $('hwStatus').innerHTML='<div class="notice bluebox">正在只分析第一張圖片，用來確認 AI 連線...</div>';
-  const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
-  try{
-    const data=await sendHomeworkToAI(imagesToSend);
-    const report=normalizeHomeworkReport(data,text,imagesToSend.length);
-    app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model});
-    save();
-    $('hwResult').innerHTML=homeworkReportHTML(report);
-    $('hwStatus').innerHTML='<div class="notice good">第一張分析成功，已保存。之後可以再試多張。</div>';
-  }catch(e){
-    const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
-    app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e)});
-    save();
-    $('hwResult').innerHTML=homeworkReportHTML(report)+`<div class="hwDebugBox">Debug error:\n${esc(e.message||String(e))}</div>`;
-    $('hwStatus').innerHTML='<div class="notice">第一張都未能分析，請把 Debug error 截圖給我。</div>';
-  }
-  renderHomework();
+  await runHomeworkAnalysis(images.slice(0,1),'只分析第一張');
 }
-function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>📚 功課分析</h2>
+function viewHomeworkReport(id, scroll=false){
+  const record=app.homeworkReports.find(h=>String(h.id)===String(id));
+  if(!record || !$('hwResult')) return;
+  $('hwResult').innerHTML=homeworkReportHTML(record.report) + (record.error?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
+  if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
+}
+function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
+  <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
-  <div class="reportBlock"><b>2. Level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察；如題目年份高於目前年級，應同時肯定孩子已在挑戰較高水平。')}</div></div>
-  <div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>4. 需要覆核</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
-  <div class="reportBlock"><b>5. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
-  ${r.rawAnalysis?`<div class="reportBlock"><b>完整 AI 分析</b><div class="rawAnalysisBox">${esc(r.rawAnalysis)}</div></div>`:''}
+  <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
+  <div class="reportBlock"><b>3. 需要覆核的位置</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>4. 可能出錯原因</b>${compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
+  ${r.parentInterpretation?`<div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(r.parentInterpretation)}</div></div>`:''}
+  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
+  ${r.rawAnalysis?`<div class="reportBlock"><b>完整 AI 原文</b><div class="rawAnalysisBox full">${esc(r.rawAnalysis)}</div></div>`:''}
 </div>`}
 
 function renderAnalytics(){

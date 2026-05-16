@@ -27,13 +27,14 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'input_image', image_url: url }))
         ]
       }],
-      max_output_tokens: 1300
+      max_output_tokens: 2600
     };
 
     const first = await callOpenAI('https://api.openai.com/v1/responses', apiKey, payload, 35000);
     if (first.ok) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
-      return json(200, { analysis: cleanParentText(text), model, route: 'responses', imageCount: images.length });
+      const analysis = cleanParentText(text);
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses', imageCount: images.length });
     }
 
     // Fallback route
@@ -47,14 +48,15 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'image_url', image_url: { url } }))
         ]
       }],
-      max_tokens: 1300,
+      max_tokens: 2600,
       temperature: 0.15
     };
 
     const second = await callOpenAI('https://api.openai.com/v1/chat/completions', apiKey, chatPayload, 35000);
     if (second.ok) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
-      return json(200, { analysis: cleanParentText(text), model: fallbackModel, route: 'chat-fallback', imageCount: images.length });
+      const analysis = cleanParentText(text);
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model: fallbackModel, route: 'chat-fallback', imageCount: images.length });
     }
 
     return json(second.status || first.status || 500, {
@@ -129,6 +131,14 @@ ${JSON.stringify(body.learningContext || {}, null, 2)}
    - 不要寫「題干冇提過全部冇花」這類生硬句子。
 8. 家長看到後要覺得：清楚、溫和、實用、可信。
 
+
+V65 report quality rule:
+- 必須完成所有章節，不要停在半句或只寫 summary。
+- 如果看得清楚，請盡量指出具體題型：加法、減法、乘法、數列規律、family facts、speed and accuracy 等。
+- 如果你能清楚看見某題答案，請先驗算，再判斷「做對 / 需要覆核」。不要把正確例子放入錯題。
+- 如果看不清楚，不要硬講對錯，請寫「相片不夠清楚，建議覆核」。
+- Report 要像補習老師俾家長的完整 feedback：先肯定，再指出 1-3 個重點，再給今晚很小的練習建議。
+
 V33 safety and parent-product rule:
 - 如果家長提到讀寫困難、ADHD、情緒問題、焦慮、資優或高能力，只可以用「學習觀察」角度回應，不可作診斷。
 - 不要寫「孩子有 ADHD / dyslexia / anxiety / gifted」這類結論；除非家長明確提供正式評估，否則只可寫「值得留意」、「可與老師或專業人士討論」。
@@ -141,6 +151,15 @@ V26 accuracy rule（避免前後矛盾）：
 - 如果你舉例，必須先驗算該例子。正確例子要放在「已做得好的地方」，錯誤例子才可放在「需要覆核」。
 - 如果沒有明確錯題，請寫「暫時未見到明確錯題，但有些位置因相片/塗改需要再覆核」。
 - 用「需要覆核的位置」代替「可能錯題」，除非你能清楚看見錯誤。
+
+
+V66 final report rule（必須跟）：
+- 必須完成 0 至 6 所有章節，不要在半句中停止。
+- 每個章節最多 3-5 點，寧願短但完整，不要長到被截斷。
+- 如果圖片清晰，請盡量講具體題型，例如 Speed & Accuracy、加減乘除、Number Patterns、family facts、等差/等差減數。
+- 如果看見孩子答案，先驗算再講。正確答案要放「已做得好的地方」，看不清或疑似錯才放「需要覆核」。
+- 對 Year 2 做 Year 3 worksheet，要寫成「高於目前年級的挑戰，值得肯定，但仍要穩步鞏固」，不要寫天才/資優。
+- 最後必須提供一個今晚可做的小步驟。
 
 輸出格式：
 
@@ -231,6 +250,63 @@ function cleanParentText(text) {
     .replace(/friction|摩擦/gi, '操作阻力')
     .replace(/pattern inconsistency/gi, '規律掌握不穩')
     .trim();
+}
+
+
+function sectionBetween(raw, startMarkers, endMarkers) {
+  const text = String(raw || '');
+  let start = -1;
+  let marker = '';
+  for (const m of startMarkers) {
+    const i = text.indexOf(m);
+    if (i >= 0 && (start < 0 || i < start)) { start = i; marker = m; }
+  }
+  if (start < 0) return '';
+  const from = start + marker.length;
+  let end = text.length;
+  for (const m of endMarkers) {
+    const i = text.indexOf(m, from);
+    if (i >= 0 && i < end) end = i;
+  }
+  return text.slice(from, end).replace(/^[:：\s-]+/, '').trim();
+}
+function bulletsFrom(section, max = 5) {
+  return String(section || '')
+    .split(/\n+/)
+    .map(x => x.replace(/^[\s\-•*]+/, '').trim())
+    .filter(Boolean)
+    .slice(0, max);
+}
+function firstUsefulLine(section) {
+  return String(section || '')
+    .split(/\n+/)
+    .map(x => x.replace(/^[\s\-•*]+/, '').trim())
+    .find(Boolean) || '';
+}
+function buildStructuredHomeworkReport(raw) {
+  const text = cleanParentText(raw || '');
+  const level = sectionBetween(text, ['🌟 0. Learning level awareness', '0. Learning level awareness', 'Learning level awareness'], ['📌 1.', '1. 我大約', '⚠️ 2.']);
+  const content = sectionBetween(text, ['📌 1. 我大約睇到嘅功課內容', '1. 我大約睇到嘅功課內容', '我大約睇到嘅功課內容'], ['⚠️ 2.', '✅ 2b.', '🧠 3.']);
+  const check = sectionBetween(text, ['⚠️ 2. 需要覆核的位置', '2. 需要覆核的位置', '需要覆核的位置'], ['✅ 2b.', '🧠 3.', '💬 4.']);
+  const good = sectionBetween(text, ['✅ 2b. 已做得好的地方', '2b. 已做得好的地方', '已做得好的地方'], ['🧠 3.', '💬 4.', '📈 5.']);
+  const reason = sectionBetween(text, ['🧠 3. 可能出錯原因', '3. 可能出錯原因', '可能出錯原因'], ['💬 4.', '📈 5.', '✅ 6.']);
+  const parent = sectionBetween(text, ['💬 4. 給家長的簡短解讀', '4. 給家長的簡短解讀', '給家長的簡短解讀'], ['📈 5.', '✅ 6.']);
+  const longTerm = sectionBetween(text, ['📈 5. 長期觀察重點', '5. 長期觀察重點', '長期觀察重點'], ['✅ 6.']);
+  const tips = sectionBetween(text, ['✅ 6. 下次做題小貼士', '6. 下次做題小貼士', '下次做題小貼士'], []);
+  return {
+    title: 'AI 功課分析',
+    shortSummary: firstUsefulLine(parent) || firstUsefulLine(level) || text.slice(0, 180),
+    summary: content || text.slice(0, 420),
+    levelAwareness: level || '已按圖片內容和目前年級作初步觀察；如圖片清楚顯示 Year 3 / extension，應肯定孩子正在挑戰較高水平。',
+    strengths: bulletsFrom(good, 4),
+    checkPoints: bulletsFrom(check, 6),
+    reasons: bulletsFrom(reason, 5),
+    parentInterpretation: parent,
+    longTermFocus: bulletsFrom(longTerm, 4),
+    nextStep: firstUsefulLine(tips) || '今晚只揀一題最有代表性的題目慢慢講解。',
+    confidence: 'medium',
+    rawAnalysis: text
+  };
 }
 
 function friendlyError(msg) {
