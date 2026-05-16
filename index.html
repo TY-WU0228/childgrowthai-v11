@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v60 Routine Restore + Click Fix</title>
+  <title>ChildGrowth AI v63 Homework AI Restore + Debug</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -599,6 +599,86 @@
       width:100%;height:80px;object-fit:cover;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc;
     }
 
+  
+    /* V61 Smart Prep Suggestions */
+    .prepSuggestBox{
+      background:linear-gradient(135deg,#f0f9ff,#ecfeff);
+      border:1px solid #bae6fd;
+      border-radius:18px;
+      padding:10px;
+      margin:10px 0;
+      color:#155e75;
+      font-weight:850;
+      line-height:1.45;
+    }
+    .prepSuggestBox small{
+      display:block;
+      color:#64748b;
+      font-weight:800;
+      margin-top:4px;
+    }
+    .prepChipRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-top:8px;
+    }
+    .prepChip{
+      border:1px solid #bfdbfe;
+      background:#fff;
+      color:#1d4ed8;
+      border-radius:999px;
+      padding:7px 10px;
+      font-weight:900;
+      font-size:13px;
+    }
+
+  
+    /* V62 Calendar + Homework History */
+    .multiPreviewGrid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      margin-top:10px;
+    }
+    .multiPreviewGrid img{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:16px;
+      border:1px solid #e5e7eb;
+      background:#f8fafc;
+    }
+    .miniMeta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin:8px 0;
+    }
+    .miniPill{
+      display:inline-flex;
+      align-items:center;
+      border:1px solid #dbeafe;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:12px;
+      font-weight:900;
+    }
+    .rawAnalysisBox{
+      white-space:pre-wrap;
+      background:#f8fafc;
+      border:1px solid #e5e7eb;
+      border-radius:16px;
+      padding:12px;
+      color:#334155;
+      line-height:1.55;
+      font-weight:800;
+      max-height:420px;
+      overflow:auto;
+    }
+
   </style>
 </head>
 <body>
@@ -618,7 +698,7 @@
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v60 Routine restore · Click fix</div>
+    <div class="version">v63 Homework AI restore · Real error</div>
   </header>
 
   <main>
@@ -654,6 +734,7 @@ let routineEditId=null;
 let taskEditId=null;
 let noticePending=null;
 let homeworkImage='';
+let homeworkImages=[];
 
 const DEFAULT_DATA={
   version:46,
@@ -1093,7 +1174,12 @@ function addRoutineFromCapture(text,r){
 }
 
 /* Calendar / iPhone reminder export */
-function icsEscape(s){return String(s||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
+
+/* V62 Calendar / iPhone reminder export - clean ICS */
+function icsEscape(s){
+  const raw=String(s||'').replace(/\\n/g,'\n');
+  return raw.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+}
 function pad2(n){return String(n).padStart(2,'0')}
 function dateForDay(day){
   const today=new Date();
@@ -1113,6 +1199,19 @@ function icsDateTime(date, timeText){
   const p=parseTimeParts(timeText);
   return `${date.getFullYear()}${pad2(date.getMonth()+1)}${pad2(date.getDate())}T${pad2(p.h)}${pad2(p.m)}00`;
 }
+function icsStamp(){
+  return new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+}
+function icsTitle(s, fallback='Activity'){
+  const cleaned=String(s||fallback).replace(/^[^A-Za-z0-9\u4e00-\u9fff]+/,'').trim();
+  return cleaned || fallback;
+}
+function icsUID(id, prefix='childgrowthai'){
+  return `${String(id||Date.now()).replace(/[^\w-]/g,'_')}@${prefix}`;
+}
+function icsBuild(lines){
+  return lines.filter(x=>x!==null && x!==undefined && x!=='').join('\r\n') + '\r\n';
+}
 function downloadICS(filename, content){
   const blob=new Blob([content],{type:'text/calendar;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -1120,96 +1219,112 @@ function downloadICS(filename, content){
   a.href=url; a.download=filename; document.body.appendChild(a); a.click();
   setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},800);
 }
+function safeICSFilename(name){
+  return (icsTitle(name,'calendar_event')).replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics';
+}
+function eventAlarms(title, prep=''){
+  // iOS sometimes displays the two imported alerts in its own order.
+  // This order is chosen to make "1 day before" more likely to appear as the first alert in Calendar edit view.
+  return [
+    'BEGIN:VALARM',
+    'TRIGGER:-PT60M',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${icsEscape('今日活動：'+title)}`,
+    'END:VALARM',
+    'BEGIN:VALARM',
+    'TRIGGER:-P1D',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${icsEscape('明日準備：'+title+(prep?' '+prep:''))}`,
+    'END:VALARM'
+  ];
+}
 function calendarForRoutine(id){
   const r=app.routines.find(x=>String(x.id)===String(id));
   if(!r){alert('找不到行程');return;}
+  const title=icsTitle(r.name||'Activity','Activity');
   const dt = r.oneOffDate ? new Date(r.oneOffDate+'T12:00:00') : dateForDay(r.day);
   const start=icsDateTime(dt,r.start||'09:00');
   const end=icsDateTime(dt,r.end||r.start||'10:00');
-  const recur=r.oneOffDate?'':'RRULE:FREQ=WEEKLY\\n';
-  const desc=`準備：${r.prep||''}\\n提醒：${r.reminder||''}\\n由 ChildGrowth AI 匯出`;
-  const ics=`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//ChildGrowthAI//Calendar//EN
-BEGIN:VEVENT
-UID:${r.id}@childgrowthai
-DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z
-DTSTART:${start}
-DTEND:${end}
-${recur}SUMMARY:${icsEscape(r.name)}
-DESCRIPTION:${icsEscape(desc)}
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:${icsEscape('明日準備：'+(r.name||'Activity')+' '+(r.prep||''))}
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-PT60M
-ACTION:DISPLAY
-DESCRIPTION:${icsEscape('今日活動：'+(r.name||'Activity'))}
-END:VALARM
-END:VEVENT
-END:VCALENDAR`;
-  downloadICS((r.name||'activity').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+  const desc=`準備：${r.prep||''}\n提醒：${r.reminder||''}\n由 ChildGrowth AI 匯出`;
+  const lines=[
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'PRODID:-//ChildGrowthAI//Calendar//EN',
+    'BEGIN:VEVENT',
+    `UID:${icsUID(r.id,'routine.childgrowthai')}`,
+    `DTSTAMP:${icsStamp()}`,
+    `SUMMARY:${icsEscape(title)}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    r.oneOffDate?'':'RRULE:FREQ=WEEKLY',
+    `DESCRIPTION:${icsEscape(desc)}`,
+    ...eventAlarms(title,r.prep||''),
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ];
+  downloadICS(safeICSFilename(title),icsBuild(lines));
 }
 function calendarForNotice(id){
   const n=app.schoolNotices.find(x=>String(x.id)===String(id));
   if(!n){alert('找不到通知');return;}
   if(!n.date){alert('呢個通知未有日期，請先修改日期。');return;}
+  const title=icsTitle(n.title||'School Notice','School Notice');
   const dt=new Date(n.date+'T12:00:00');
   const start=icsDateTime(dt,n.time||'09:00');
   const end=icsDateTime(dt,n.time||'10:00');
-  const desc=`準備：${(n.bringItems||[]).join('、')}\\n分類：${n.category||''}\\n由 ChildGrowth AI 匯出`;
-  const ics=`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//ChildGrowthAI//Notice//EN
-BEGIN:VEVENT
-UID:${n.id}@childgrowthai
-DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z
-DTSTART:${start}
-DTEND:${end}
-SUMMARY:${icsEscape(n.title||'School Notice')}
-DESCRIPTION:${icsEscape(desc)}
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:${icsEscape('明日學校提醒：'+(n.title||'School Notice'))}
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-PT60M
-ACTION:DISPLAY
-DESCRIPTION:${icsEscape('今日學校提醒：'+(n.title||'School Notice'))}
-END:VALARM
-END:VEVENT
-END:VCALENDAR`;
-  downloadICS((n.title||'school_notice').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+  const prep=(n.bringItems||[]).join('、');
+  const desc=`準備：${prep}\n分類：${n.category||''}\n由 ChildGrowth AI 匯出`;
+  const lines=[
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'PRODID:-//ChildGrowthAI//Notice//EN',
+    'BEGIN:VEVENT',
+    `UID:${icsUID(n.id,'notice.childgrowthai')}`,
+    `DTSTAMP:${icsStamp()}`,
+    `SUMMARY:${icsEscape(title)}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `DESCRIPTION:${icsEscape(desc)}`,
+    ...eventAlarms(title,prep),
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ];
+  downloadICS(safeICSFilename(title),icsBuild(lines));
 }
 function calendarForTask(id){
   const t=app.todayTasks.find(x=>String(x.id)===String(id));
   if(!t){alert('找不到任務');return;}
+  const title=icsTitle(t.title||'Today task','Today task');
   const dt=new Date((t.date||todayISO())+'T12:00:00');
   const start=icsDateTime(dt,t.time||'19:00');
   const end=icsDateTime(dt,minText((timeToMin(t.time||'7:00 PM')||19*60)+30));
-  const ics=`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//ChildGrowthAI//Task//EN
-BEGIN:VEVENT
-UID:${t.id}@childgrowthai
-DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z
-DTSTART:${start}
-DTEND:${end}
-SUMMARY:${icsEscape(t.title||'Today task')}
-DESCRIPTION:${icsEscape(t.note||'由 ChildGrowth AI 匯出')}
-BEGIN:VALARM
-TRIGGER:-PT30M
-ACTION:DISPLAY
-DESCRIPTION:${icsEscape('今日任務：'+(t.title||'Today task'))}
-END:VALARM
-END:VEVENT
-END:VCALENDAR`;
-  downloadICS((t.title||'task').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+  const lines=[
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'PRODID:-//ChildGrowthAI//Task//EN',
+    'BEGIN:VEVENT',
+    `UID:${icsUID(t.id,'task.childgrowthai')}`,
+    `DTSTAMP:${icsStamp()}`,
+    `SUMMARY:${icsEscape(title)}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `DESCRIPTION:${icsEscape(t.note||'由 ChildGrowth AI 匯出')}`,
+    'BEGIN:VALARM',
+    'TRIGGER:-PT30M',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${icsEscape('今日任務：'+title)}`,
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ];
+  downloadICS(safeICSFilename(title),icsBuild(lines));
 }
-
 
 /* V60 routine restore + inline click handler fix */
 function v60JaniceDefaultRoutines(){
@@ -1923,32 +2038,130 @@ window.editNotice=(id)=>{const n=app.schoolNotices.find(x=>x.id===id); if(!n)ret
 window.toggleNoticeDone=(id)=>{const n=app.schoolNotices.find(x=>x.id===id);if(n){n.done=!n.done;save();renderCurrent();}}
 window.deleteNotice=(id)=>{if(confirm('刪除這個學校提醒？')){app.schoolNotices=app.schoolNotices.filter(n=>n.id!==id);save();renderCurrent()}}
 
+
 function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
-    <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。結果只作學習觀察，不作診斷。</div>
-    <label>Upload homework photo</label><input id="hwFile" type="file" accept="image/*"><img id="hwPreview" class="preview">
+    <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
+    <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
+    <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <label>補充文字（可選）</label><textarea id="hwText" placeholder="例：這是 Year 3 worksheet / 有幾題不肯定..."></textarea>
-    <div class="actions"><button class="btn primary" onclick="analyzeHomework()">🤖 分析功課</button></div>
+    <div class="actions"><button class="btn primary" onclick="analyzeHomework()">🤖 分析功課</button><button class="btn" onclick="clearHomeworkUpload()">Clear</button></div>
     <div id="hwStatus"></div><div id="hwResult"></div>
   </div>
-  <div class="card"><h2>最近功課分析</h2>${app.homeworkReports.slice(-5).reverse().map(hwRow).join('')||'<div class="notice bluebox">未有功課分析。</div>'}</div>`;
-  const f=$('hwFile'); f.onchange=e=>{const file=e.target.files?.[0]; if(!file)return; const reader=new FileReader(); reader.onload=ev=>{homeworkImage=ev.target.result;$('hwPreview').src=homeworkImage;$('hwPreview').style.display='block'}; reader.readAsDataURL(file)}
+  <div class="card"><h2>最近功課分析</h2>${app.homeworkReports.slice(-8).reverse().map(hwRow).join('')||'<div class="notice bluebox">未有功課分析。</div>'}</div>`;
+  bindHomeworkFiles();
 }
-function hwRow(h){return rowHTML(`${new Date(h.date).toLocaleString()} · ${esc(h.report?.summary||'Homework report')}`,`下一步：${esc(h.report?.nextStep||'')}`)}
-window.analyzeHomework=async()=>{
-  const text=$('hwText').value.trim(); if(!text&&!homeworkImage){$('hwStatus').innerHTML='<div class="notice">請先上載圖片或輸入文字。</div>';return}
-  $('hwStatus').innerHTML='<div class="notice bluebox">正在分析功課...</div>';
-  try{
-    const res=await fetch('/.netlify/functions/analyze-homework',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,image:homeworkImage,child:{name:app.profile.childName,year:app.profile.year}})});
-    if(!res.ok)throw new Error('AI function failed');
-    const data=await res.json(); const report=data.report||data;
-    app.homeworkReports.push({id:'hw_'+Date.now(),date:new Date().toISOString(),report}); save();
-    $('hwResult').innerHTML=homeworkReportHTML(report); $('hwStatus').innerHTML='<div class="notice good">分析完成。</div>';
-  }catch(e){
-    const report={summary:'暫時未能連線 AI。請稍後再試。',nextStep:'先由家長圈出不肯定題目，再上載清晰圖片。',confidence:'low',strengths:[],checkPoints:['AI function / OPENAI_API_KEY 可能未設定好。'],possibleCauses:[]};
-    $('hwResult').innerHTML=homeworkReportHTML(report); $('hwStatus').innerHTML='<div class="notice">AI 分析未成功。</div>';
+function bindHomeworkFiles(){
+  const f=$('hwFile');
+  if(!f) return;
+  f.onchange=async e=>{
+    const files=[...(e.target.files||[])].slice(0,6);
+    homeworkImages=[];
+    homeworkImage='';
+    $('hwPreviewGrid').innerHTML='';
+    if(!files.length) return;
+    for(const file of files){
+      const data=await fileToDataURL(file);
+      homeworkImages.push(data);
+      if(!homeworkImage) homeworkImage=data;
+      const img=document.createElement('img');
+      img.src=data;
+      $('hwPreviewGrid').appendChild(img);
+    }
+    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。建議 1–3 張最清晰，太多會較慢。</div>`;
+  };
+}
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=ev=>resolve(ev.target.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+function clearHomeworkUpload(){
+  homeworkImages=[];
+  homeworkImage='';
+  if($('hwFile')) $('hwFile').value='';
+  if($('hwPreviewGrid')) $('hwPreviewGrid').innerHTML='';
+  if($('hwText')) $('hwText').value='';
+  if($('hwStatus')) $('hwStatus').innerHTML='';
+  if($('hwResult')) $('hwResult').innerHTML='';
+}
+function hwRow(h){
+  const count=h.imageCount?` · ${h.imageCount}張相`:'';
+  const source=h.offline?' · 暫存':'';
+  return rowHTML(`${new Date(h.date).toLocaleString()}${count}${source} · ${esc(h.report?.summary||h.report?.title||'Homework report')}`,
+    `下一步：${esc(h.report?.nextStep||'')}<br>Level：${esc(h.report?.levelAwareness||'')}`);
+}
+function homeworkFallbackReport(text, imageCount, errorMsg=''){
+  return {
+    title:'功課已儲存，等待 AI 完整分析',
+    summary:imageCount?`已收到 ${imageCount} 張功課圖片。AI 暫時未能完成分析，但這次 upload 已保存到最近功課分析。`:'已收到家長補充文字。',
+    levelAwareness:'按目前年級和題目難度作觀察；如果圖片顯示 Year 3 / extension，應同時肯定孩子正在挑戰較高水平。',
+    strengths:['已完成一次功課記錄，這對長期 weekly report 有幫助。'],
+    checkPoints:[errorMsg || 'AI function 回傳錯誤；請看下面真實錯誤訊息。'],
+    nextStep:'先由家長圈出一題最不肯定的題目；AI 連線恢復後可重新分析同一份功課。',
+    confidence:'low',
+    rawAnalysis:''
+  };
+}
+function normalizeHomeworkReport(data, text, imageCount){
+  if(data?.report) return data.report;
+  const raw=data?.analysis || data?.output || data?.summary || '';
+  if(raw){
+    return {
+      title:'AI 功課分析',
+      summary:raw.slice(0,260),
+      levelAwareness:'已按圖片內容和目前年級作初步觀察；詳情見完整分析。',
+      strengths:[],
+      checkPoints:[],
+      nextStep:'今晚只揀一題最有代表性的題目慢慢講解。',
+      confidence:'medium',
+      rawAnalysis:raw
+    };
   }
+  return homeworkFallbackReport(text,imageCount,'AI 回傳格式不完整。');
+}
+window.analyzeHomework=async()=>{
+  const text=$('hwText').value.trim();
+  const images=homeworkImages.length?homeworkImages:(homeworkImage?[homeworkImage]:[]);
+  if(!text&&!images.length){$('hwStatus').innerHTML='<div class="notice">請先上載圖片或輸入文字。</div>';return}
+  $('hwStatus').innerHTML='<div class="notice bluebox">正在分析功課...</div>';
+  const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:images.length,note:text};
+  try{
+    const payload={
+      text,
+      note:text,
+      images:images.slice(0,4),
+      image:images[0]||'',
+      imageDataList:images.slice(0,4),
+      subject:'Homework',
+      status:'uploaded',
+      child:{name:app.profile.childName,year:app.profile.year},
+      learningContext:{childCurrentYear:app.profile.year,childName:app.profile.childName}
+    };
+    const res=await fetch('/.netlify/functions/analyze-homework',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const data=await res.json().catch(()=>({error:'Function did not return JSON'}));
+    if(!res.ok) throw new Error(data.error || data.detail || data.message || ('AI function failed: HTTP '+res.status));
+    const report=normalizeHomeworkReport(data,text,images.length);
+    app.homeworkReports.push({...baseRecord,report,offline:false});
+    save();
+    $('hwResult').innerHTML=homeworkReportHTML(report);
+    $('hwStatus').innerHTML='<div class="notice good">分析完成，已保存到最近功課分析。</div>';
+  }catch(e){
+    const report=homeworkFallbackReport(text,images.length,e.message||String(e));
+    app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e)});
+    save();
+    $('hwResult').innerHTML=homeworkReportHTML(report);
+    $('hwStatus').innerHTML='<div class="notice">AI 分析未成功，但這次 upload 已保存，之後可以再分析。</div>';
+  }
+  renderHomework();
 }
 function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>📚 功課分析</h2>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
@@ -1956,6 +2169,7 @@ function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"
   <div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
   <div class="reportBlock"><b>4. 需要覆核</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
   <div class="reportBlock"><b>5. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
+  ${r.rawAnalysis?`<div class="reportBlock"><b>完整 AI 分析</b><div class="rawAnalysisBox">${esc(r.rawAnalysis)}</div></div>`:''}
 </div>`}
 
 function renderAnalytics(){
@@ -2051,10 +2265,103 @@ function openRoutineManager(){
 window.openRoutineManager=openRoutineManager;
 function closeRoutineManager(){$('routineModal').classList.remove('show'); routineEditId=null}
 window.closeRoutineManager=closeRoutineManager;
+
+/* V61 Smart Prep Suggestions */
+function v61SmartPrepItems(activityName=''){
+  const s=String(activityName||'').toLowerCase();
+  const rules=[
+    {keys:['basketball','籃球'],items:['水樽','運動鞋 / basketball shoes','毛巾','snack','替換衣服']},
+    {keys:['soccer','football','足球'],items:['水樽','足球鞋 / 運動鞋','shin pads','毛巾','snack','外套']},
+    {keys:['swim','swimming','游水','泳'],items:['泳衣','毛巾','goggles','水樽','拖鞋','膠袋放濕衫']},
+    {keys:['tennis','網球'],items:['網球拍','水樽','運動鞋','帽','防曬','毛巾','snack']},
+    {keys:['piano','琴','鋼琴'],items:['琴書','功課簿','鉛筆','記錄本','水樽']},
+    {keys:['chess','棋'],items:['chess book','鉛筆','水樽','snack']},
+    {keys:['chinese','中文','普通話','粵語'],items:['中文書','功課','鉛筆袋','水樽']},
+    {keys:['coding','minecraft','編程'],items:['iPad / laptop 如需要','login 資料','耳機','水樽','snack']},
+    {keys:['art','畫','drawing','painting'],items:['畫簿','鉛筆袋','圍裙 / 舊衫','作品袋','水樽']},
+    {keys:['dance','ballet','跳舞','芭蕾'],items:['舞衣','舞鞋','水樽','毛巾','替換衣服']},
+    {keys:['gym','gymnastics','體操'],items:['運動服','水樽','毛巾','snack','頭髮綁好']},
+    {keys:['school','primary','學校','返學'],items:['書包','lunch box','水樽','帽','reader bag']},
+  ];
+  for(const r of rules){
+    if(r.keys.some(k=>s.includes(k))) return r.items;
+  }
+  if(/ball|sport|training|class|lesson|club|運動|訓練|球/.test(s)){
+    return ['水樽','運動鞋','毛巾','snack','替換衣服'];
+  }
+  return ['水樽','snack','相關功課 / 教材','外套'];
+}
+function v61SmartImpact(activityName=''){
+  const s=String(activityName||'').toLowerCase();
+  if(/swim|soccer|football|basketball|tennis|dance|gym|運動|游水|足球|籃球|網球|體操/.test(s)) return '輕量功課日';
+  return '正常';
+}
+function v61ApplyPrepSuggestion(force=false){
+  const nameEl=$('rName');
+  const prepEl=$('rPrep');
+  const impactEl=$('rImpact');
+  const reminderEl=$('rReminder');
+  if(!nameEl || !prepEl) return;
+  const name=nameEl.value.trim();
+  if(!name) return;
+  const suggestion=v61SmartPrepItems(name).join('、');
+  const shouldFill = force || !prepEl.value.trim() || prepEl.dataset.autoPrep==='1';
+  if(shouldFill){
+    prepEl.value=suggestion;
+    prepEl.dataset.autoPrep='1';
+  }
+  if(impactEl && (!impactEl.value || force)) impactEl.value=v61SmartImpact(name);
+  if(reminderEl && (!reminderEl.value.trim() || force)) reminderEl.value='前一晚 8:00 PM';
+  v61ShowPrepSuggestion(name, suggestion);
+}
+function v61ShowPrepSuggestion(name, suggestion){
+  const anchor=$('rPrep');
+  if(!anchor) return;
+  let box=$('v61PrepSuggestBox');
+  if(!box){
+    box=document.createElement('div');
+    box.id='v61PrepSuggestBox';
+    box.className='prepSuggestBox';
+    anchor.parentNode.insertBefore(box, anchor.nextSibling);
+  }
+  const chips=suggestion.split('、').filter(Boolean).map(x=>`<button type="button" class="prepChip" onclick="v61AddPrepChip('${String(x).replace(/'/g,"\\'")}')">${esc(x)}</button>`).join('');
+  box.innerHTML=`AI 建議準備物品：${esc(suggestion)}<small>根據活動名稱「${esc(name)}」自動建議；可以自己改。</small><div class="prepChipRow">${chips}</div>`;
+}
+function v61AddPrepChip(item){
+  const prepEl=$('rPrep');
+  if(!prepEl) return;
+  const arr=prepEl.value.split(/[、,，]/).map(x=>x.trim()).filter(Boolean);
+  if(!arr.includes(item)) arr.push(item);
+  prepEl.value=arr.join('、');
+  prepEl.dataset.autoPrep='0';
+}
+function v61BindSmartPrep(){
+  const nameEl=$('rName');
+  const prepEl=$('rPrep');
+  if(!nameEl || nameEl.v61Bound) return;
+  nameEl.v61Bound=true;
+  nameEl.addEventListener('input',()=>v61ApplyPrepSuggestion(false));
+  nameEl.addEventListener('change',()=>v61ApplyPrepSuggestion(false));
+  if(prepEl){prepEl.addEventListener('input',()=>{prepEl.dataset.autoPrep='0';});}
+  setTimeout(()=>v61ApplyPrepSuggestion(false),60);
+}
+document.addEventListener('click', function(e){
+  const txt=(e.target && e.target.textContent)||'';
+  if(txt.includes('管理固定行程') || txt.includes('加入固定行程') || txt.includes('修改') || txt.includes('Oakleigh') || txt.includes('Swimming') || txt.includes('Chess')){
+    setTimeout(v61BindSmartPrep,120);
+    setTimeout(v61BindSmartPrep,450);
+  }
+}, true);
+document.addEventListener('focusin', function(e){
+  if(e.target && e.target.id==='rName') setTimeout(v61BindSmartPrep,20);
+});
+window.v61ApplyPrepSuggestion=v61ApplyPrepSuggestion;
+window.v61BindSmartPrep=v61BindSmartPrep;
+
 function renderRoutineSheet(){
   const r=routineEditId?app.routines.find(x=>x.id===routineEditId):null;
   $('routineSheet').innerHTML=`<div class="sheetHead"><h2>🗓️ 管理固定行程</h2><button class="btn" onclick="closeRoutineManager()">關閉</button></div>
-  <div class="notice bluebox">固定行程是長期安排，例如 Mon–Fri school、Thursday swimming、Friday chess。每項都可以修改 / 刪除。</div>
+  <div class="notice bluebox">固定行程是長期安排，例如 Mon–Fri school、Thursday swimming、Friday chess、Basketball。每項都可以修改 / 刪除。</div>
   ${routineEditId?'<div class="notice">正在修改行程。改完後按保存修改。</div>':''}
   <div class="grid">
     <div><label>活動名稱</label><input id="rName" value="${esc(r?.name||'')}" placeholder="例：Oakleigh South Primary School / Swimming"></div>
@@ -2062,7 +2369,7 @@ function renderRoutineSheet(){
     <div><label>開始時間</label><input id="rStart" type="time" value="${esc(timeInputValue(r?.start||''))}"></div>
     <div><label>結束時間</label><input id="rEnd" type="time" value="${esc(timeInputValue(r?.end||''))}"></div>
   </div>
-  <label>準備物品 / 備註</label><textarea id="rPrep" placeholder="例：書包、水樽、reader bag">${esc(r?.prep||'')}</textarea>
+  <label>準備物品 / 備註</label><button type="button" class="btn" onclick="v61ApplyPrepSuggestion(true)">AI 自動建議準備物品</button><textarea id="rPrep" placeholder="例：書包、水樽、reader bag">${esc(r?.prep||'')}</textarea>
   <div class="grid">
     <div><label>提醒時間</label><input id="rReminder" value="${esc(r?.reminder||'前一晚 8:00 PM')}"></div>
     <div><label>功課影響</label><select id="rImpact">${['正常','輕量功課日','不建議額外 worksheet'].map(x=>`<option ${r?.impact===x?'selected':''}>${x}</option>`).join('')}</select></div>
@@ -2076,10 +2383,11 @@ function renderRoutineSheet(){
   </div>
   <h3>已加入固定行程</h3>
   ${app.routines.filter(x=>!x.oneOffDate).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||sortByTime(a,b)).map(routineManageRow).join('')||'<div class="notice bluebox">未有固定行程。</div>'}`;
+  setTimeout(v61BindSmartPrep,80);
 }
 function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
-window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i}
-window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday'}
+window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i;setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
+window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday';setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.saveRoutineFromForm=()=>{
   const name=$('rName').value.trim(), day=$('rDay').value, start=readTimeField('rStart'), end=readTimeField('rEnd'), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'前一晚 8:00 PM', impact=$('rImpact').value;
   if(!name||!start){alert('請最少填活動名稱和開始時間。');return}
