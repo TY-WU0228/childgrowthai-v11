@@ -99,3 +99,20 @@ V54 patch:
 - Activity Progress input cleanup.
 - One dynamic input area under mode buttons.
 - Duplicate Coach/Parent voice boxes hidden.
+
+
+V55 patch:
+- Removed old duplicate Activity Progress DOM.
+- Only one Analyze Activity button remains.
+- Clarified Teacher Comment vs Activity Progress separation.
+
+
+V57 patch:
+- Universal Capture shortcut.
+- Calendar .ics export for routines, tasks and school notices.
+- Neutral splash cover.
+
+
+V58 patch:
+- Final cleanup for Activity Progress duplicate input area.
+- Correct mode-specific upload/voice behaviour.

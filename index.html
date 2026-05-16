@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v54 Activity Input Cleanup</title>
+  <title>ChildGrowth AI v58 Activity Progress Final Cleanup</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -299,44 +299,7 @@
       font-weight:850!important;
       color:#64748b!important;
     }
-    .splashBgFlower{
-      position:absolute;
-      z-index:1;
-      opacity:.18;
-      filter:blur(.2px);
-      pointer-events:none;
-      animation:splashSlow 5s ease-in-out infinite alternate;
-    }
-    .splashBgFlower1{
-      font-size:190px;
-      left:-38px;
-      top:11%;
-      transform:rotate(-18deg);
-    }
-    .splashBgFlower2{
-      font-size:150px;
-      right:-28px;
-      bottom:15%;
-      transform:rotate(16deg);
-      opacity:.14;
-    }
-    .splashOrb{
-      position:absolute;
-      border-radius:999px;
-      pointer-events:none;
-      filter:blur(2px);
-    }
-    .splashOrb1{
-      width:210px;height:210px;
-      background:rgba(139,92,246,.20);
-      left:10%;bottom:20%;
-    }
-    .splashOrb2{
-      width:170px;height:170px;
-      background:rgba(236,72,153,.18);
-      right:12%;top:18%;
-    }
-    @keyframes splashFloat{from{transform:translateY(0) scale(1)}to{transform:translateY(-8px) scale(1.03)}}
+@keyframes splashFloat{from{transform:translateY(0) scale(1)}to{transform:translateY(-8px) scale(1.03)}}
     @keyframes splashSlow{from{transform:translateY(0) rotate(-12deg)}to{transform:translateY(-12px) rotate(8deg)}}
 
   
@@ -457,26 +420,204 @@
       display:none!important;
     }
 
+  
+    /* V55 Activity Clean DOM */
+    #activityProgressCard > #activityFileWrap,
+    #activityProgressCard > .coachVoiceBox,
+    #activityProgressCard > .voiceMiniBox,
+    #activityProgressCard > textarea#activityNote,
+    #activityProgressCard > textarea#activityNote + .actions{
+      display:none!important;
+    }
+    #activityProgressCard > label:has(+ textarea#activityNote),
+    #activityProgressCard > label:has(+ #activityFileWrap){
+      display:none!important;
+    }
+
+  
+    /* V57 Capture + Calendar + Neutral Cover */
+    .splashScreen{
+      position:fixed!important;
+      inset:0!important;
+      z-index:9999!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      overflow:hidden!important;
+      background:
+        radial-gradient(circle at 14% 12%, rgba(59,130,246,.16), transparent 30%),
+        radial-gradient(circle at 86% 76%, rgba(20,184,166,.14), transparent 28%),
+        linear-gradient(155deg,#f8fbff 0%,#eef6ff 46%,#f7fbff 100%)!important;
+      color:#0f172a!important;
+      text-align:center!important;
+      transition:opacity .55s ease, visibility .55s ease!important;
+    }
+    .splashScreen.hide{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+    .splashContent{
+      position:relative;z-index:2;width:min(86vw,520px);padding:34px 24px;border-radius:34px;
+      background:rgba(255,255,255,.48);border:1px solid rgba(255,255,255,.72);
+      box-shadow:0 24px 80px rgba(30,64,175,.12);backdrop-filter:blur(12px);
+    }
+    .splashLogo{
+      width:72px;height:72px;border-radius:24px;margin:0 auto 16px;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,#2563eb,#14b8a6);
+      color:white!important;font-size:26px!important;font-weight:1000!important;letter-spacing:-.08em!important;
+      box-shadow:0 16px 45px rgba(37,99,235,.20);
+      animation:splashFloat 1.2s ease-in-out infinite alternate!important;
+    }
+    .splashTitle{font-size:36px!important;font-weight:1000!important;letter-spacing:-.065em!important;margin-bottom:12px!important;color:#0f172a!important}
+    .splashSlogan{font-size:19px!important;font-weight:950!important;color:#334155!important;margin-bottom:8px!important}
+    .splashSub{font-size:15px!important;font-weight:850!important;color:#64748b!important}
+    .splashPattern{position:absolute;border:1px solid rgba(37,99,235,.12);border-radius:38px;pointer-events:none;opacity:.55}
+    .splashPattern1{width:210px;height:210px;left:-58px;top:12%;transform:rotate(18deg);background:rgba(255,255,255,.25)}
+    .splashPattern2{width:170px;height:170px;right:-46px;bottom:16%;transform:rotate(-22deg);background:rgba(20,184,166,.10)}
+    .splashPattern3{width:120px;height:120px;right:18%;top:12%;border-radius:999px;background:rgba(59,130,246,.08)}
+    @keyframes splashFloat{from{transform:translateY(0) scale(1)}to{transform:translateY(-7px) scale(1.02)}}
+
+    .captureHero{
+      background:linear-gradient(135deg,#eff6ff,#ecfeff);
+      border:1px solid #bfdbfe;
+      border-radius:24px;
+      padding:15px;
+      margin-top:13px;
+    }
+    .captureHero h3{margin:0 0 7px;font-size:21px;color:#0f172a;letter-spacing:-.04em}
+    .captureExamples{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+    .captureExample{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:16px;
+      padding:10px;
+      color:#334155;
+      font-weight:850;
+      line-height:1.35;
+      font-size:13px;
+    }
+    .captureModeGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+    .captureModeBtn{
+      border:1px solid #dbeafe;
+      background:#fff;
+      color:#1d4ed8;
+      border-radius:18px;
+      padding:12px 9px;
+      font-weight:950;
+      text-align:left;
+      min-height:70px;
+    }
+    .captureModeBtn.active{
+      background:#eef2ff;
+      border-color:#818cf8;
+      color:#3730a3;
+      box-shadow:0 0 0 3px rgba(99,102,241,.10);
+    }
+    .capturePreview{
+      max-width:100%;
+      max-height:240px;
+      object-fit:contain;
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      background:#f8fafc;
+      margin-top:10px;
+      display:none;
+    }
+    .captureResult{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:20px;
+      padding:13px;
+      margin-top:12px;
+    }
+    .captureResult h3{margin:0 0 8px}
+    .captureRoute{
+      display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;
+      background:#ecfeff;border:1px solid #67e8f9;color:#155e75;
+      font-weight:950;font-size:13px;margin:4px 4px 0 0;
+    }
+    .calendarHint{
+      background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:16px;
+      padding:10px;margin-top:10px;font-weight:850;line-height:1.45;font-size:13px;
+    }
+    .calendarBtn{background:#ecfdf5!important;color:#166534!important;border-color:#bbf7d0!important}
+    @media(max-width:430px){
+      .captureExamples,.captureModeGrid{grid-template-columns:1fr}
+    }
+
+  
+    /* V58 Activity Progress Final Cleanup */
+    #activityProgressCard .activityInputCard{
+      background:linear-gradient(135deg,#eff6ff,#f5f3ff);
+      border:1px solid #bfdbfe;
+      border-radius:22px;
+      padding:14px;
+      margin:14px 0 4px;
+      color:#1e3a8a;
+    }
+    #activityProgressCard .activityInputCard h3{
+      margin:0 0 8px;color:#0f172a;font-size:22px;letter-spacing:-.04em;
+    }
+    #activityProgressCard .activitySmallSafety{
+      background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;
+      border-radius:14px;padding:9px 10px;margin:9px 0;
+      font-size:13px;font-weight:850;line-height:1.45;
+    }
+    #activityProgressCard .activityVoiceRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    #activityProgressCard .activityVoiceRow select{
+      width:auto;min-width:145px;min-height:44px;padding:8px 12px;border-radius:999px;background:#fff;
+    }
+    #activityProgressCard .activityStatusLine{
+      background:#fff;border:1px solid #e5e7eb;border-radius:15px;
+      padding:9px 10px;margin-top:10px;color:#334155;
+      font-weight:850;line-height:1.45;min-height:38px;
+    }
+    #activityProgressCard .activityStatusLine.live{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+    #activityProgressCard .activityStatusLine.warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+    #activityProgressCard .activityFileHint{
+      background:#fff;border:1px solid #e5e7eb;border-radius:16px;
+      padding:10px;margin-top:10px;color:#475569;font-weight:850;line-height:1.45;
+    }
+    #activityProgressCard .activityPreview{
+      max-width:100%;max-height:240px;object-fit:contain;
+      border:1px solid #e5e7eb;border-radius:18px;background:#f8fafc;
+      margin-top:10px;display:none;
+    }
+    #activityProgressCard .activityFrameGrid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;
+    }
+    #activityProgressCard .activityFrameGrid img{
+      width:100%;height:80px;object-fit:cover;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc;
+    }
+
   </style>
 </head>
 <body>
 <div id="splashScreen" class="splashScreen">
-  <div class="splashBgFlower splashBgFlower1">🌸</div>
-  <div class="splashBgFlower splashBgFlower2">🌺</div>
-  <div class="splashOrb splashOrb1"></div>
-  <div class="splashOrb splashOrb2"></div>
+  <div class="splashPattern splashPattern1"></div>
+  <div class="splashPattern splashPattern2"></div>
+  <div class="splashPattern splashPattern3"></div>
   <div class="splashContent">
-    <div class="splashLogo">🌸</div>
+    <div class="splashLogo">CG</div>
     <div class="splashTitle">ChildGrowth AI</div>
     <div class="splashSlogan">陪孩子成長，看見每一步</div>
-    <div class="splashSub">Let’s grow together, one step at a time.</div>
+    <div class="splashSub">Capture less. Remember more.</div>
   </div>
+</div>
 </div>
 <div class="app">
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v54 Activity input cleanup · One clear input area</div>
+    <div class="version">v58 Activity cleanup · One input only</div>
   </header>
 
   <main>
@@ -496,6 +637,7 @@
   <button class="navbtn" data-tab="profile"><span class="ico">👤</span><span>我的</span></button>
 </nav>
 
+<div id="captureModal" class="modal"><div class="sheet" id="captureSheet"></div></div>
 <div id="routineModal" class="modal"><div class="sheet" id="routineSheet"></div></div>
 <div id="setupModal" class="modal"><div class="sheet" id="setupSheet"></div></div>
 
@@ -529,6 +671,7 @@ const DEFAULT_DATA={
   teacherComments:[],
   homeworkReports:[],
   activityReports:[],
+  captureHistory:[],
   settings:{weekExpanded:false, onboardingDone:true}
 };
 
@@ -649,6 +792,7 @@ function migrate(){
 }
 let app=migrate();
 app.activityReports = Array.isArray(app.activityReports) ? app.activityReports : [];
+app.captureHistory = Array.isArray(app.captureHistory) ? app.captureHistory : [];
 save();
 
 function mirrorLegacy(){
@@ -724,6 +868,342 @@ function compactList(items, empty='暫時未有資料'){
 }
 
 
+
+/* V57 Calendar + Universal Capture */
+let captureMode='voice';
+let captureImage='';
+let capturePending=null;
+
+function captureHomeCardHTML(){
+  return `<div class="card">
+    <h2>＋ 快速記錄 / Capture</h2>
+    <div class="muted">影相、語音或打字，AI 會幫你分流成 School Notice、Teacher Comment、Activity Progress、Homework 或行程提醒。原本詳細功能仍然保留。</div>
+    <div class="captureHero">
+      <h3>家長只需要 capture，AI 負責整理</h3>
+      <div class="captureExamples">
+        <div class="captureExample">📷 影 Compass notice → 變提醒 / Calendar</div>
+        <div class="captureExample">🎙️ 講老師 comment → Teacher Comment</div>
+        <div class="captureExample">🎙️ 講教練 comment → Activity Progress</div>
+        <div class="captureExample">📚 影功課 → Homework Report</div>
+      </div>
+      <div class="actions"><button class="btn primary" onclick="openCapture()">開始快速記錄</button></div>
+    </div>
+  </div>`;
+}
+
+function openCapture(){
+  captureMode='voice';
+  captureImage='';
+  capturePending=null;
+  $('captureModal').classList.add('show');
+  renderCaptureSheet();
+}
+function closeCapture(){
+  $('captureModal').classList.remove('show');
+  capturePending=null;
+}
+function renderCaptureSheet(){
+  $('captureSheet').innerHTML=`<div class="sheetHead"><h2>＋ 快速記錄</h2><button class="btn" onclick="closeCapture()">關閉</button></div>
+    <div class="muted">你可以影相、語音或打字。AI 會先估計應該放去邊，最後一定要你 Confirm Add。</div><div id="V57CalendarExplain" class="calendarHint">Calendar reminder：目前用 .ics 加入 iPhone Calendar，這樣鎖機狀態都可以由 Calendar 彈提醒；正式 Push Notification 可留待之後版本。</div>
+    <div class="captureModeGrid">
+      <button class="captureModeBtn ${captureMode==='photo'?'active':''}" onclick="setCaptureMode('photo')">📷 影相<br><small>功課 / Compass notice / 樂譜 / 棋盤</small></button>
+      <button class="captureModeBtn ${captureMode==='voice'?'active':''}" onclick="setCaptureMode('voice')">🎙️ 語音<br><small>老師 comment / 教練 comment / 家長觀察</small></button>
+      <button class="captureModeBtn ${captureMode==='text'?'active':''}" onclick="setCaptureMode('text')">📝 打字<br><small>快速 note / reminder</small></button>
+      <button class="captureModeBtn ${captureMode==='schedule'?'active':''}" onclick="setCaptureMode('schedule')">📅 行程<br><small>中文堂 / 游水 / piano / 要帶物品</small></button>
+    </div>
+    <div id="captureInputArea">${captureInputHTML()}</div>
+    <div id="captureStatus"></div>
+    <div id="captureResult"></div>`;
+  bindCaptureUpload();
+}
+function setCaptureMode(mode){
+  captureMode=mode;
+  renderCaptureSheet();
+}
+function captureInputHTML(){
+  const isPhoto=captureMode==='photo';
+  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒。' :
+    captureMode==='voice' ? '例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。' :
+    captureMode==='photo' ? '可補充：呢張係功課 / 學校通知 / 樂譜 / 棋盤。' :
+    '例：老師話 reading 有進步，但做數太快。';
+  return `<div class="card" style="box-shadow:none;margin-top:12px">
+    ${isPhoto?`<label>Upload photo</label><input id="captureFile" type="file" accept="image/*"><img id="capturePreview" class="capturePreview">`:''}
+    ${captureMode==='voice'||captureMode==='schedule'?`<div class="voiceMiniBox">
+      <b>🎙️ Voice input</b>
+      <div class="voiceMiniRow">
+        <select id="captureVoiceLang"><option value="zh-HK">廣東話 / English mix</option><option value="en-AU">English</option><option value="zh-CN">普通話</option></select>
+        <button class="btn primary" onclick="v53StartDictation('captureText','captureVoiceStatus','captureVoiceLang','capture')">🎙️ 開始語音</button>
+        <button class="btn" onclick="v53StopDictation()">停止</button>
+        <button class="btn" onclick="v53ClearTextarea('captureText','captureVoiceStatus')">清空</button>
+      </div>
+      <div id="captureVoiceStatus" class="voiceMiniStatus">語音會放入下面文字框。</div>
+    </div>`:''}
+    <label>內容</label>
+    <textarea id="captureText" placeholder="${placeholder}"></textarea>
+    <div class="actions"><button class="btn primary" onclick="analyzeCapture()">🤖 AI 分流</button><button class="btn" onclick="clearCapture()">Clear</button></div>
+    <div class="calendarHint">流程：Capture → AI 估分類 → 家長 Confirm → 加入正確位置 / Calendar。</div>
+  </div>`;
+}
+function bindCaptureUpload(){
+  const f=$('captureFile');
+  if(!f) return;
+  f.onchange=e=>{
+    const file=e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      captureImage=ev.target.result;
+      const img=$('capturePreview');
+      if(img){img.src=captureImage;img.style.display='block';}
+    };
+    reader.readAsDataURL(file);
+  };
+}
+function clearCapture(){
+  captureImage='';
+  capturePending=null;
+  if($('captureText')) $('captureText').value='';
+  if($('captureFile')) $('captureFile').value='';
+  if($('capturePreview')) {$('capturePreview').src='';$('capturePreview').style.display='none';}
+  if($('captureStatus')) $('captureStatus').innerHTML='';
+  if($('captureResult')) $('captureResult').innerHTML='';
+}
+function classifyCaptureFallback(text, mode){
+  const t=String(text||'').toLowerCase();
+  if(mode==='schedule' || /中文堂|chinese class|lesson|class|每星期|星期|monday|tuesday|wednesday|thursday|friday|saturday|sunday|swimming|piano|chess/.test(t) && /\d|am|pm|點|:/.test(t)) return 'routine';
+  if(/compass|school notice|notice|excursion|incursion|bring|\$|payment|permission|dress up|photo day|要帶|付款|同意書|學校通知|通知/.test(t)) return 'schoolNotice';
+  if(/coach|教練|piano|swimming|tennis|chess|soccer|kicking|breathing|rhythm|footwork|老師話.*游水|老師話.*piano/.test(t)) return 'activityProgress';
+  if(/teacher|miss |mr |mrs |老師|課堂|reading group|classroom|上堂|做數|reading/.test(t)) return 'teacherComment';
+  if(mode==='photo' || /homework|worksheet|math|spelling|功課|作業|題目/.test(t)) return 'homework';
+  return 'teacherComment';
+}
+function routeLabel(route){
+  return {schoolNotice:'School Notice / 學校提醒',teacherComment:'Teacher Comment / 老師評語',activityProgress:'Activity Progress / 活動進度',homework:'Homework AI / 功課分析',routine:'Routine / 行程提醒'}[route]||route;
+}
+function activityFromText(text){
+  const t=String(text||'').toLowerCase();
+  if(/swim|游水|breathing|kicking/.test(t)) return 'Swimming';
+  if(/piano|琴|rhythm|樂譜/.test(t)) return 'Piano';
+  if(/tennis|網球|forehand|footwork/.test(t)) return 'Tennis';
+  if(/chess|棋/.test(t)) return 'Chess';
+  if(/soccer|football|足球/.test(t)) return 'Soccer';
+  return 'Custom';
+}
+async function analyzeCapture(){
+  const text=($('captureText')?.value||'').trim();
+  if(!text && !captureImage){
+    $('captureStatus').innerHTML='<div class="notice">請先影相、語音或輸入內容。</div>';
+    return;
+  }
+  $('captureStatus').innerHTML='<div class="notice bluebox">AI 正在分流...</div>';
+  let result=null;
+  try{
+    const res=await fetch('/.netlify/functions/analyze-capture',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text,image:captureImage,mode:captureMode,child:{name:app.profile.childName,year:app.profile.year}})
+    });
+    if(res.ok){
+      const data=await res.json();
+      result=data.result;
+    }
+  }catch(e){}
+  if(!result){
+    const route=classifyCaptureFallback(text,captureMode);
+    result={route,confidence:captureImage&&!text?'low':'medium',title:text.split(/\n/)[0].slice(0,60)||'Captured item',summary:text||'Image captured. Please confirm destination.',activity:activityFromText(text),date:parseNaturalDate(text),time:(text.match(/(\d{1,2}(?::\d{2})?\s?(?:am|pm|AM|PM))/)||[])[1]||'',bringItems:[]};
+  }
+  capturePending={id:'cap_'+Date.now(),createdAt:new Date().toISOString(),mode:captureMode,text,imageAttached:!!captureImage,...result};
+  renderCaptureResult();
+  $('captureStatus').innerHTML='<div class="notice good">已完成分流，請確認。</div>';
+}
+function renderCaptureResult(){
+  const r=capturePending; if(!r) return;
+  $('captureResult').innerHTML=`<div class="captureResult">
+    <h3>AI 建議放到：</h3>
+    <span class="captureRoute">${esc(routeLabel(r.route))}</span>
+    <div class="premiumDivider"></div>
+    ${rowHTML('標題 / Summary',esc(r.title||r.summary||''))}
+    ${rowHTML('信心',esc(r.confidence||'medium') + (r.confidence==='low'?' · 建議先 Edit':'') )}
+    <div class="actions">
+      <button class="btn primary" onclick="confirmCapture()">Confirm Add</button>
+      <button class="btn" onclick="changeCaptureRoute('schoolNotice')">改成 School Notice</button>
+      <button class="btn" onclick="changeCaptureRoute('teacherComment')">改成 Teacher Comment</button>
+      <button class="btn" onclick="changeCaptureRoute('activityProgress')">改成 Activity</button>
+      <button class="btn" onclick="changeCaptureRoute('routine')">改成行程</button>
+    </div>
+  </div>`;
+}
+function changeCaptureRoute(route){
+  if(!capturePending) return;
+  capturePending.route=route;
+  renderCaptureResult();
+}
+function confirmCapture(){
+  const r=capturePending; if(!r) return;
+  const text=r.text||r.summary||r.title||'';
+  if(r.route==='schoolNotice'){
+    const n=fallbackNotice(text);
+    n.id='notice_'+Date.now();
+    n.title=r.title||n.title;
+    n.date=r.date||n.date;
+    n.time=r.time||n.time;
+    n.done=false;
+    app.schoolNotices.push(n);
+  }else if(r.route==='teacherComment'){
+    app.teacherComments.push({id:'tc_'+Date.now(),date:new Date().toISOString(),category:'Capture',text:text||'Captured teacher comment'});
+  }else if(r.route==='activityProgress'){
+    const activity=r.activity||activityFromText(text);
+    const report=typeof localActivityFallback==='function'?localActivityFallback(activity,text):{activity,summary:text,nextPractice:'下次只集中一個小目標。',coachQuestion:'下次問教練：最應該練哪一點？',safetyNote:'AI 只作家長角度整理。'};
+    app.activityReports=Array.isArray(app.activityReports)?app.activityReports:[];
+    app.activityReports.push({id:'act_'+Date.now(),date:new Date().toISOString(),activity,mode:'capture',note:text,imageCount:r.imageAttached?1:0,report});
+  }else if(r.route==='homework'){
+    app.homeworkReports.push({id:'hw_'+Date.now(),date:new Date().toISOString(),report:{summary:text||'Captured homework image',levelAwareness:'由 Capture 加入；如要完整分析，請到 Homework AI 上載清晰相片。',strengths:[],checkPoints:['可到 Homework AI 做完整分析。'],nextStep:'今晚只揀一題最不肯定的題目慢慢講。',confidence:r.imageAttached?'medium':'low'}});
+  }else if(r.route==='routine'){
+    const added=addRoutineFromCapture(text,r);
+    if(!added) return;
+  }
+  app.captureHistory.push(r);
+  save();
+  closeCapture();
+  renderCurrent();
+  alert('已加入：'+routeLabel(r.route));
+}
+function addRoutineFromCapture(text,r){
+  let day='';
+  const lower=String(text||'').toLowerCase();
+  for(const d of DAYS){ if(lower.includes(d.toLowerCase()) || text.includes(DAY_LABEL[d])) day=d; }
+  if(!day && r.date) day=new Date(r.date+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long'});
+  if(!day) day=prompt('請輸入星期，例如 Saturday / 星期六：','Saturday');
+  if(DAY_LABEL[day]){} // no-op
+  const name=prompt('行程名稱：', r.title || (lower.includes('chinese')||text.includes('中文')?'中文堂':'New activity'));
+  if(!name) return false;
+  const start=prompt('開始時間，例如 9:20 AM：', r.time || '');
+  if(!start) return false;
+  const end=prompt('結束時間，例如 12:20 PM：','');
+  const prep=prompt('要準備物品：','水樽、功課');
+  const item={id:'r_'+Date.now(),day,name,start,end,prep,reminder:'前一晚 8:00 PM',impact:'正常',source:'capture'};
+  app.routines.push(item);
+  return true;
+}
+
+/* Calendar / iPhone reminder export */
+function icsEscape(s){return String(s||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
+function pad2(n){return String(n).padStart(2,'0')}
+function dateForDay(day){
+  const today=new Date();
+  const idx=DAYS.indexOf(day);
+  if(idx<0) return today;
+  const target=(idx+1)%7; // JS Sunday=0; our Monday index=0
+  let diff=(target-today.getDay()+7)%7;
+  if(diff===0) diff=7;
+  const d=new Date(today); d.setDate(today.getDate()+diff); return d;
+}
+function parseTimeParts(t, fallback='09:00'){
+  const m=timeToMin(t);
+  const mins=m===null?timeToMin(fallback):m;
+  return {h:Math.floor(mins/60),m:mins%60};
+}
+function icsDateTime(date, timeText){
+  const p=parseTimeParts(timeText);
+  return `${date.getFullYear()}${pad2(date.getMonth()+1)}${pad2(date.getDate())}T${pad2(p.h)}${pad2(p.m)}00`;
+}
+function downloadICS(filename, content){
+  const blob=new Blob([content],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},800);
+}
+function calendarForRoutine(id){
+  const r=app.routines.find(x=>String(x.id)===String(id));
+  if(!r){alert('找不到行程');return;}
+  const dt = r.oneOffDate ? new Date(r.oneOffDate+'T12:00:00') : dateForDay(r.day);
+  const start=icsDateTime(dt,r.start||'09:00');
+  const end=icsDateTime(dt,r.end||r.start||'10:00');
+  const recur=r.oneOffDate?'':'RRULE:FREQ=WEEKLY\\n';
+  const desc=`準備：${r.prep||''}\\n提醒：${r.reminder||''}\\n由 ChildGrowth AI 匯出`;
+  const ics=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ChildGrowthAI//Calendar//EN
+BEGIN:VEVENT
+UID:${r.id}@childgrowthai
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z
+DTSTART:${start}
+DTEND:${end}
+${recur}SUMMARY:${icsEscape(r.name)}
+DESCRIPTION:${icsEscape(desc)}
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:${icsEscape('明日準備：'+(r.name||'Activity')+' '+(r.prep||''))}
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT60M
+ACTION:DISPLAY
+DESCRIPTION:${icsEscape('今日活動：'+(r.name||'Activity'))}
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+  downloadICS((r.name||'activity').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+}
+function calendarForNotice(id){
+  const n=app.schoolNotices.find(x=>String(x.id)===String(id));
+  if(!n){alert('找不到通知');return;}
+  if(!n.date){alert('呢個通知未有日期，請先修改日期。');return;}
+  const dt=new Date(n.date+'T12:00:00');
+  const start=icsDateTime(dt,n.time||'09:00');
+  const end=icsDateTime(dt,n.time||'10:00');
+  const desc=`準備：${(n.bringItems||[]).join('、')}\\n分類：${n.category||''}\\n由 ChildGrowth AI 匯出`;
+  const ics=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ChildGrowthAI//Notice//EN
+BEGIN:VEVENT
+UID:${n.id}@childgrowthai
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z
+DTSTART:${start}
+DTEND:${end}
+SUMMARY:${icsEscape(n.title||'School Notice')}
+DESCRIPTION:${icsEscape(desc)}
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:${icsEscape('明日學校提醒：'+(n.title||'School Notice'))}
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT60M
+ACTION:DISPLAY
+DESCRIPTION:${icsEscape('今日學校提醒：'+(n.title||'School Notice'))}
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+  downloadICS((n.title||'school_notice').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+}
+function calendarForTask(id){
+  const t=app.todayTasks.find(x=>String(x.id)===String(id));
+  if(!t){alert('找不到任務');return;}
+  const dt=new Date((t.date||todayISO())+'T12:00:00');
+  const start=icsDateTime(dt,t.time||'19:00');
+  const end=icsDateTime(dt,minText((timeToMin(t.time||'7:00 PM')||19*60)+30));
+  const ics=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ChildGrowthAI//Task//EN
+BEGIN:VEVENT
+UID:${t.id}@childgrowthai
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').split('.')[0]}Z
+DTSTART:${start}
+DTEND:${end}
+SUMMARY:${icsEscape(t.title||'Today task')}
+DESCRIPTION:${icsEscape(t.note||'由 ChildGrowth AI 匯出')}
+BEGIN:VALARM
+TRIGGER:-PT30M
+ACTION:DISPLAY
+DESCRIPTION:${icsEscape('今日任務：'+(t.title||'Today task'))}
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+  downloadICS((t.title||'task').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+}
+
 function renderHome(){
   const today=dayName(0), tomorrow=dayName(1);
   const tr=routinesForDay(today), tm=routinesForDay(tomorrow);
@@ -741,11 +1221,14 @@ function renderHome(){
       </div>
       <div class="insight">🤖 Parent Insight：${dailyInsight(tr,tasks,notices)}</div>
       <div class="actions">
-        <button class="btn primary" onclick="go('homework')">📚 Upload 功課</button>
+        <button class="btn primary" onclick="openCapture()">＋ 快速記錄</button>
+        <button class="btn" onclick="go('homework')">📚 Upload 功課</button>
         <button class="btn" onclick="go('record')">🎙️ 記錄 / School Notice</button>
         <button class="btn" onclick="go('profile')">🗓️ 一週總覽</button>
       </div>
     </div>
+
+    ${captureHomeCardHTML()}
 
     <div class="card">
       <h2>📌 今日 / 明日提醒</h2>
@@ -785,15 +1268,16 @@ function renderHome(){
 function routineRow(r){
   const time=[r.start,r.end].filter(Boolean).join(' – ');
   return rowHTML(`${time?esc(time)+' · ':''}${esc(r.name)}`,
-    `${r.prep?'準備：'+esc(r.prep)+'<br>':''}${r.reminder?'提醒：'+esc(r.reminder)+'<br>':''}${r.impact?'功課安排：'+esc(r.impact):''}`);
+    `${r.prep?'準備：'+esc(r.prep)+'<br>':''}${r.reminder?'提醒：'+esc(r.reminder)+'<br>':''}${r.impact?'功課安排：'+esc(r.impact):''}`,
+    `<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">加入 Calendar</button>`);
 }
 function taskRow(t){
   return rowHTML(`${t.time?esc(t.time)+' · ':''}${esc(t.title)}`, esc(t.note||''), 
-    `<button class="btn" onclick="editTask('${esc(t.id)}')">修改</button><button class="btn danger" onclick="deleteTask('${esc(t.id)}')">刪除</button>`);
+    `<button class="btn calendarBtn" onclick="calendarForTask('${esc(t.id)}')">Calendar</button><button class="btn" onclick="editTask('${esc(t.id)}')">修改</button><button class="btn danger" onclick="deleteTask('${esc(t.id)}')">刪除</button>`);
 }
 function noticeRow(n){
   const doneClass=n.done?' noticeDone':'';
-  return `<div class="row${doneClass}"><div><b>${esc(n.date||'未定日期')} ${n.time?esc(n.time)+' · ':''}${esc(n.title)}</b><small>分類：${esc(n.category||'school event')}<br>準備：${(n.bringItems||[]).map(esc).join('、')||'未填'}<br>提醒：${(n.reminders||[]).map(esc).join('、')||'前一晚 8:00 PM'}${n.done?'<br>狀態：已完成':''}</small></div><div class="rowActions"><button class="btn" onclick="toggleNoticeDone('${esc(n.id)}')">${n.done?'未完成':'完成'}</button><button class="btn" onclick="editNotice('${esc(n.id)}')">修改</button><button class="btn danger" onclick="deleteNotice('${esc(n.id)}')">刪除</button></div></div>`;
+  return `<div class="row${doneClass}"><div><b>${esc(n.date||'未定日期')} ${n.time?esc(n.time)+' · ':''}${esc(n.title)}</b><small>分類：${esc(n.category||'school event')}<br>準備：${(n.bringItems||[]).map(esc).join('、')||'未填'}<br>提醒：${(n.reminders||[]).map(esc).join('、')||'前一晚 8:00 PM'}${n.done?'<br>狀態：已完成':''}</small></div><div class="rowActions"><button class="btn calendarBtn" onclick="calendarForNotice('${esc(n.id)}')">Calendar</button><button class="btn" onclick="toggleNoticeDone('${esc(n.id)}')">${n.done?'未完成':'完成'}</button><button class="btn" onclick="editNotice('${esc(n.id)}')">修改</button><button class="btn danger" onclick="deleteNotice('${esc(n.id)}')">刪除</button></div></div>`;
 }
 
 window.quickTask=(title,pref,note)=>{addTask({title,time:nextFutureTime(pref),note,date:todayISO()})}
@@ -817,230 +1301,59 @@ let activityImage='';
 let activityVideoFrames=[];
 let activityFileType='';
 
-function activityProgressCardHTML(){
-  return `<div class="card">
-    <h2>🏅 Activity Progress AI</h2>
-    <div class="muted">記錄課外活動進度，例如 piano、swimming、tennis、chess、soccer、art。呢個同「老師 comment」唔重複：老師 comment 是一般學校/課堂觀察；Activity Progress 是針對某一個課外活動的進度、練習重點和下次可問教練的問題。</div>
-    <div class="notice">Beta：AI 只做家長角度觀察，不能取代鋼琴老師、游水教練、網球教練或醫療/專業評估。短片模式會抽取幾張畫面作參考，不會做精準動作評分。</div>
-    <label>活動類型</label>
-    <select id="actType"><option>Piano</option><option>Swimming</option><option>Tennis</option><option>Chess</option><option>Soccer</option><option>Art</option><option>Dance / Gymnastics</option><option>Custom</option></select>
-    <label>輸入模式</label>
-    <div class="activityModeGrid">
-      <button class="modeBtn active" id="modePhoto" onclick="setActivityMode('photo')">📷 Photo<br><small>樂譜/棋盤/作品</small></button>
-      <button class="modeBtn" id="modeVideo" onclick="setActivityMode('video')">🎥 Short video<br><small>動作活動 beta</small></button>
-      <button class="modeBtn" id="modeVoice" onclick="setActivityMode('voice')">🎙️ Voice note<br><small>家長口述</small></button>
-      <button class="modeBtn" id="modeCoach" onclick="setActivityMode('coach')">📝 Coach comment<br><small>教練評語</small></button>
-    </div>
 
-    <div id="activityUnifiedInput">
-      <h3 id="v54ActivityInputTitle">📷 Photo / 相片輸入</h3>
-      <div class="muted" id="v54ActivityInputDesc">上載樂譜、棋盤、作品、證書或教練紙條。AI 會整理成家長可理解的練習重點。</div>
-      <div class="v54SmallSafety" id="v54ActivitySafety">Beta：AI 只作家長角度整理，不取代正式老師 / 教練 / 專業評估。</div>
+/* V58 clean Activity Progress + shared voice dictation */
+let v58ActivityMode = 'photo';
+let v58ActivityImage = '';
+let v58ActivityVideoFrames = [];
+let v58Recognition = null;
+let v58VoiceTimer = null;
+let v58VoiceStatusId = null;
 
-      <div id="v54ActivityFileArea">
-        <label id="v54FileLabel">Upload photo</label>
-        <input id="v54ActivityFile" type="file" accept="image/*">
-        <img id="v54ActivityPreview" class="activityPreview">
-        <div id="v54ActivityFrames" class="activityFrameGrid"></div>
-        <div class="v54FileHint" id="v54FileHint">Photo mode 適合：piano 樂譜、chess 棋盤、畫作、證書、教練紙條。</div>
-      </div>
-
-      <div id="v54VoiceControls">
-        <div class="v54VoiceRow">
-          <select id="v54ActivityLang">
-            <option value="zh-HK">廣東話 / English mix</option>
-            <option value="en-AU">English</option>
-            <option value="zh-CN">普通話</option>
-          </select>
-          <button class="btn primary" onclick="v54StartActivityVoice()">🎙️ 開始語音</button>
-          <button class="btn" onclick="v54StopActivityVoice()">停止</button>
-          <button class="btn" onclick="v54ClearActivityText()">清空</button>
-        </div>
-        <div id="v54ActivityVoiceStatus" class="v54ActivityStatus">語音會放入下面輸入欄位；你可以先檢查再 Analyze。</div>
-      </div>
-
-      <label id="v54TextLabel">補充內容 / 家長觀察</label>
-      <textarea id="v54ActivityNote" placeholder="例：今日游水教練話 kicking 有進步，但 breathing 同 turning 仲要練。"></textarea>
-
-      <div class="actions">
-        <button class="btn primary" onclick="v54AnalyzeActivity()">🤖 Analyze Activity</button>
-        <button class="btn" onclick="v54ClearActivityText()">Clear</button>
-      </div>
-    </div>
-
-    <div id="activityFileWrap">
-      <label>Upload photo / short video / audio</label>
-      <input id="activityFile" type="file" accept="image/*,video/*,audio/*">
-      <img id="activityPreview" class="activityPreview">
-      <div id="activityFrames" class="activityFrameGrid"></div>
-    </div>
-
-    <div class="coachVoiceBox">
-      <b>🎙️ Coach Voice Note</b>
-      <div class="muted">聽完 piano / swimming / tennis / chess coach comment 後，可以用你自己把聲快速講返重點。AI 會整理成中文家長易明版和下次練習重點。</div>
-      <div class="notice" style="margin-top:10px">安全提示：建議由家長自己轉述，不要未經同意直接錄教練本人說話。</div>
-      <div class="coachVoiceRow">
-        <select id="coachVoiceLang">
-          <option value="zh-HK">廣東話 / English mix</option>
-          <option value="en-AU">English</option>
-          <option value="zh-CN">普通話</option>
-        </select>
-        <button class="btn primary" onclick="startCoachVoiceNote()">🎙️ 開始語音</button>
-        <button class="btn" onclick="stopCoachVoiceNote()">停止</button>
-        <button class="btn" onclick="clearCoachVoiceNote()">清空語音文字</button>
-      </div>
-      <div id="coachVoiceStatus" class="voiceStatus">例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。</div>
-    </div>
-
-    
-    <div class="voiceMiniBox">
-      <b>🎙️ Parent / Coach Comment Voice</b>
-      <div class="muted">呢個位可以記低家長觀察或教練評語。你可以直接講：「今日游水老師話 kicking 好咗，但 breathing 仲要練。」</div>
-      <div class="voiceMiniRow">
-        <select id="activityVoiceLang">
-          <option value="zh-HK">廣東話 / English mix</option>
-          <option value="en-AU">English</option>
-          <option value="zh-CN">普通話</option>
-        </select>
-        <button class="btn primary" onclick="v53StartDictation('activityNote','activityVoiceStatus','activityVoiceLang','activity comment')">🎙️ 開始語音</button>
-        <button class="btn" onclick="v53StopDictation()">停止</button>
-        <button class="btn" onclick="v53ClearTextarea('activityNote','activityVoiceStatus')">清空</button>
-      </div>
-      <div id="activityVoiceStatus" class="voiceMiniStatus">語音會放入下面「補充內容 / 家長觀察 / 教練 comment」欄位。</div>
-    </div>
-
-    <label>補充內容 / 家長觀察 / 教練 comment</label>
-    <textarea id="activityNote" placeholder="例：今日游水老師話 kick 有進步，但轉身仲未熟。或者：這是 piano 第 1–2 行，佢一錯就想由頭彈。"></textarea>
-    <div class="actions"><button class="btn primary" onclick="analyzeActivityProgress()">🤖 Analyze Activity</button><button class="btn" onclick="clearActivityProgress()">Clear</button></div>
-    <div id="activityStatus"></div><div id="activityResult"></div>
-  </div>`;
-}
-function setActivityMode(mode){
-  activityMode=mode;
-  ['Photo','Video','Voice','Coach'].forEach(x=>{const el=$('mode'+x); if(el) el.classList.toggle('active', mode===x.toLowerCase());});
-  const file=$('activityFile'); if(file) file.accept = mode==='photo' ? 'image/*' : mode==='video' ? 'video/*' : mode==='voice' ? 'audio/*' : 'image/*';
-  const wrap=$('activityFileWrap'); if(wrap) wrap.style.display = (mode==='voice' || mode==='coach') ? 'none' : 'block';
-}
-function bindActivityUpload(){
-  const f=$('activityFile'); if(!f || f.v49Bound) return; f.v49Bound=true;
-  f.onchange=async e=>{
-    const file=e.target.files && e.target.files[0]; if(!file) return;
-    activityFileType=file.type || ''; activityImage=''; activityVideoFrames=[];
-    const preview=$('activityPreview'), frames=$('activityFrames');
-    if(preview){preview.style.display='none';preview.src='';} if(frames) frames.innerHTML='';
-    if(file.type.startsWith('image/')){
-      const reader=new FileReader(); reader.onload=ev=>{activityImage=ev.target.result; if(preview){preview.src=activityImage; preview.style.display='block';}}; reader.readAsDataURL(file);
-    } else if(file.type.startsWith('video/')){
-      $('activityStatus').innerHTML='<div class="notice bluebox">正在抽取短片畫面作 beta 分析...</div>';
-      try{activityVideoFrames=await extractVideoFrames(file,3); if(frames) frames.innerHTML=activityVideoFrames.map(src=>`<img src="${src}">`).join(''); $('activityStatus').innerHTML='<div class="notice good">已抽取短片畫面。AI 會用這些畫面 + 你的補充文字作家長角度觀察。</div>';}
-      catch(err){$('activityStatus').innerHTML='<div class="notice">短片畫面抽取未成功，請改用截圖或補充文字。</div>';}
-    } else if(file.type.startsWith('audio/')){
-      $('activityStatus').innerHTML='<div class="notice bluebox">已選擇 audio。現階段請在補充內容簡述教練/家長觀察。</div>';
-    }
-  };
-}
-function extractVideoFrames(file,count=3){
-  return new Promise((resolve,reject)=>{
-    const video=document.createElement('video'); const url=URL.createObjectURL(file); video.src=url; video.muted=true; video.playsInline=true; video.preload='metadata';
-    const frames=[], canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
-    video.onloadedmetadata=()=>{const dur=Math.min(video.duration||1,20); const times=[dur*0.2,dur*0.5,dur*0.8].map(x=>Math.max(0.1,Math.min(dur-0.1,x))); let i=0;
-      const grab=()=>{if(i>=times.length){URL.revokeObjectURL(url); resolve(frames); return;} video.currentTime=times[i++];};
-      video.onseeked=()=>{canvas.width=Math.min(video.videoWidth||640,900); canvas.height=Math.round(canvas.width*((video.videoHeight||360)/(video.videoWidth||640))); ctx.drawImage(video,0,0,canvas.width,canvas.height); frames.push(canvas.toDataURL('image/jpeg',0.78)); grab();}; grab();
-    };
-    video.onerror=()=>{URL.revokeObjectURL(url); reject(new Error('video load failed'))};
-  });
-}
-function localActivityFallback(activity,note){
-  const lower=(note||'').toLowerCase();
-  const byType={Piano:['分小節慢練','不要一錯就由頭開始','先練第 1–2 行或最難 2 小節'],Swimming:['留意身體是否放鬆','下次問教練 breathing / kicking / body position','活動後功課要減量'],Tennis:['留意預備姿勢和 follow-through','下次問教練 footwork / timing','不要只追求大力擊球'],Chess:['回顧是否太快落子','練習 fork / pin / checkmate pattern','每步棋前先看對方威脅'],Soccer:['留意控球和跑位','下次問教練 first touch / passing','活動後安排輕量功課'],Art:['保留作品作進度比較','鼓勵描述創作想法','下次集中一個技巧例如線條/顏色'],'Dance / Gymnastics':['留意動作連貫性','安全第一，不作技術診斷','下次問教練伸展/核心控制'],Custom:['記錄教練 comment','只設定一個下次練習目標','活動後觀察情緒和疲倦度']};
-  return {activity,summary:note?`家長/教練提供的觀察：${note.slice(0,220)}`:`已記錄 ${activity} 練習，需要更多相片/短片/文字才可更準。`,strengths:(lower.includes('好')||lower.includes('進步'))?['已有進步訊號，值得肯定。']:['能夠持續參與練習本身已經是進步。'],watchPoints:byType[activity]||byType.Custom,nextPractice:(byType[activity]||byType.Custom)[0],coachQuestion:activity==='Piano'?'下次可問老師：應該先練哪兩個小節？':`下次可問教練：${(byType[activity]||byType.Custom)[1]}`,confidence:note?'medium':'low',safetyNote:'AI 只作家長角度整理，不取代正式教練評估。'};
-}
-async function analyzeActivityProgress(){
-  const activity=$('actType').value, note=$('activityNote').value.trim(); const images=[...(activityImage?[activityImage]:[]),...activityVideoFrames];
-  if(!note && !images.length){$('activityStatus').innerHTML='<div class="notice">請先上載相片/短片，或輸入家長觀察 / 教練 comment。</div>'; return;}
-  $('activityStatus').innerHTML='<div class="notice bluebox">正在分析課外活動進度...</div>';
-  try{let report=null; try{const res=await fetch('/.netlify/functions/analyze-activity-progress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({activity,mode:activityMode,note,images,child:{name:app.profile.childName,year:app.profile.year}})}); if(!res.ok) throw new Error('AI function failed '+res.status); const data=await res.json(); report=data.report;} catch(aiErr){report=localActivityFallback(activity,note);} const entry={id:'act_'+Date.now(),date:new Date().toISOString(),activity,mode:activityMode,note,imageCount:images.length,report}; app.activityReports.push(entry); save(); $('activityResult').innerHTML=activityReportHTML(report); $('activityStatus').innerHTML='<div class="notice good">分析完成，已加入 Activity Progress 記錄。</div>';}
-  catch(e){$('activityStatus').innerHTML='<div class="notice">分析未成功，請稍後再試。</div>';}
-}
-function activityReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>🏅 Activity Progress Report</h2><div class="reportBlock"><b>1. 今日活動</b><div class="muted">${esc(r.activity||'Activity')}</div></div><div class="reportBlock"><b>2. 我睇到 / 家長提供咗咩</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div><div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'能夠持續參與練習本身已經值得肯定。')}</div><div class="reportBlock"><b>4. 需要留意</b>${compactList(r.watchPoints||[],'暫時未有明顯需要留意事項。')}</div><div class="reportBlock"><b>5. 下次練習重點</b><div class="muted">${esc(r.nextPractice||'只設定一個細目標，避免一次練太多。')}</div></div><div class="reportBlock"><b>6. 可以問教練一句</b><div class="muted">${esc(r.coachQuestion||'下次可以問教練：今星期最應該集中練哪一個小地方？')}</div></div><div class="notice">${esc(r.safetyNote||'AI 只作家長角度整理，不取代正式教練評估。')}</div></div>`;}
-function clearActivityProgress(){activityImage='';activityVideoFrames=[];activityFileType=''; ['activityFile','activityNote'].forEach(id=>{const el=$(id); if(el) el.value='';}); const p=$('activityPreview'); if(p){p.src='';p.style.display='none';} const frames=$('activityFrames'); if(frames) frames.innerHTML=''; const s=$('activityStatus'); if(s) s.innerHTML=''; const r=$('activityResult'); if(r) r.innerHTML='';}
-
-
-let coachRecognition=null;
-let coachVoiceTimer=null;
-let coachInterimText='';
-function setVoiceStatus(text, mode=''){const el=$('coachVoiceStatus');if(!el)return;el.className='voiceStatus '+(mode==='live'?'voiceLive ':mode==='warn'?'voiceWarn ':'');el.innerHTML=text;}
-function appendCoachText(text){const area=$('activityNote');if(!area||!text)return;const current=area.value.trim();area.value=current?current+'\n'+text.trim():text.trim();}
-function startCoachVoiceNote(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){setVoiceStatus('⚠️ 呢個 browser 暫時唔支援語音。請直接打字輸入 coach comment。','warn');return;}
-  stopCoachVoiceNote(false);
-  const lang=($('coachVoiceLang')?.value)||'zh-HK';
-  coachRecognition=new SR();coachRecognition.lang=lang;coachRecognition.interimResults=true;coachRecognition.continuous=false;coachRecognition.maxAlternatives=1;
-  let finalText='';coachInterimText='';
-  setVoiceStatus('🎙️ 正在聽你講 coach comment。可以中英夾雜，最多約 25 秒。','live');
-  coachVoiceTimer=setTimeout(()=>{const text=(finalText||coachInterimText||'').trim();try{coachRecognition&&coachRecognition.stop()}catch(e){} if(text){appendCoachText(text);setVoiceStatus('✅ 已加入語音文字。你可以補充更多，或直接 Analyze Activity。','live');}else{setVoiceStatus('⚠️ 未聽到清楚內容。可以再試一次或直接打字。','warn');} coachRecognition=null;},25000);
-  coachRecognition.onresult=(e)=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const part=e.results[i][0].transcript||'';if(e.results[i].isFinal)finalText+=part;else interim+=part;}coachInterimText=interim;const display=(finalText||interim||'').trim();if(display)setVoiceStatus('🎙️ 聽到：'+esc(display),'live');};
-  coachRecognition.onerror=(e)=>{clearTimeout(coachVoiceTimer);coachRecognition=null;setVoiceStatus('⚠️ 語音輸入未成功：'+esc(e.error||'unknown')+'。可以再試或直接打字。','warn');};
-  coachRecognition.onend=()=>{clearTimeout(coachVoiceTimer);const text=(finalText||coachInterimText||'').trim();if(text){appendCoachText(text);setVoiceStatus('✅ 已加入語音文字。請檢查後 Analyze Activity。','live');}else{setVoiceStatus('語音已停止。如未加入文字，可以再試一次。','warn');}coachRecognition=null;};
-  try{coachRecognition.start();}catch(e){setVoiceStatus('⚠️ 語音功能啟動失敗。請直接打字。','warn');coachRecognition=null;}
-}
-function stopCoachVoiceNote(show=true){if(coachVoiceTimer)clearTimeout(coachVoiceTimer);coachVoiceTimer=null;try{if(coachRecognition)coachRecognition.stop();}catch(e){}coachRecognition=null;if(show)setVoiceStatus('已停止語音。','warn');}
-function clearCoachVoiceNote(){const area=$('activityNote');if(area)area.value='';setVoiceStatus('已清空。可以重新語音輸入或打字。');}
-
-
-/* V53 generic voice dictation */
-let v53Recognition=null;
-let v53Timer=null;
-let v53TargetTextareaId=null;
-let v53StatusId=null;
-
-function v53SetVoiceStatus(statusId, text, mode=''){
-  const el=$(statusId);
+function v58Status(id, text, mode=''){
+  const el=$(id);
   if(!el) return;
-  el.className='voiceMiniStatus ' + (mode==='live'?'live':mode==='warn'?'warn':'');
+  el.className='activityStatusLine ' + (mode==='live'?'live':mode==='warn'?'warn':'');
   el.innerHTML=text;
 }
-function v53AppendToTextarea(textareaId, text){
+function v58AppendText(textareaId, text){
   const area=$(textareaId);
   if(!area || !text) return;
   const current=area.value.trim();
   area.value=current ? current + '\n' + text.trim() : text.trim();
-  area.dispatchEvent(new Event('input', {bubbles:true}));
+  area.dispatchEvent(new Event('input',{bubbles:true}));
 }
 function v53StartDictation(textareaId, statusId, langSelectId, label='語音輸入'){
   const SR=window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){
-    v53SetVoiceStatus(statusId,'⚠️ 呢個 browser 暫時唔支援語音，請直接打字。','warn');
+    v58Status(statusId,'⚠️ 呢個 browser 暫時唔支援語音，請直接打字。','warn');
     return;
   }
   v53StopDictation(false);
-  v53TargetTextareaId=textareaId;
-  v53StatusId=statusId;
+  v58VoiceStatusId=statusId;
   const lang=($(langSelectId)?.value)||'zh-HK';
-  v53Recognition=new SR();
-  v53Recognition.lang=lang;
-  v53Recognition.interimResults=true;
-  v53Recognition.continuous=false;
-  v53Recognition.maxAlternatives=1;
-
+  v58Recognition=new SR();
+  v58Recognition.lang=lang;
+  v58Recognition.interimResults=true;
+  v58Recognition.continuous=false;
+  v58Recognition.maxAlternatives=1;
   let finalText='';
   let interimText='';
-  v53SetVoiceStatus(statusId,`🎙️ 正在聽 ${label}，可以中英夾雜，最多約 25 秒。`,'live');
+  v58Status(statusId,`🎙️ 正在聽 ${label}，可以中英夾雜，最多約 25 秒。`,'live');
 
-  v53Timer=setTimeout(()=>{
+  v58VoiceTimer=setTimeout(()=>{
     const text=(finalText || interimText || '').trim();
-    try{v53Recognition && v53Recognition.stop();}catch(e){}
+    try{v58Recognition && v58Recognition.stop();}catch(e){}
     if(text){
-      v53AppendToTextarea(textareaId,text);
-      v53SetVoiceStatus(statusId,'✅ 已加入語音文字。請檢查後再儲存 / Analyze。','live');
+      v58AppendText(textareaId,text);
+      v58Status(statusId,'✅ 已加入語音文字，請檢查後再儲存 / Analyze。','live');
     }else{
-      v53SetVoiceStatus(statusId,'⚠️ 未聽到清楚內容。可以再試一次或直接打字。','warn');
+      v58Status(statusId,'⚠️ 未聽到清楚內容，可以再試一次或直接打字。','warn');
     }
-    v53Recognition=null;
+    v58Recognition=null;
   },25000);
 
-  v53Recognition.onresult=(e)=>{
+  v58Recognition.onresult=(e)=>{
     let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       const part=e.results[i][0].transcript || '';
@@ -1049,330 +1362,328 @@ function v53StartDictation(textareaId, statusId, langSelectId, label='語音輸�
     }
     interimText=interim;
     const display=(finalText || interim || '').trim();
-    if(display) v53SetVoiceStatus(statusId,'🎙️ 聽到：'+esc(display),'live');
+    if(display) v58Status(statusId,'🎙️ 聽到：'+esc(display),'live');
   };
-
-  v53Recognition.onerror=(e)=>{
-    clearTimeout(v53Timer);
-    v53Recognition=null;
-    v53SetVoiceStatus(statusId,'⚠️ 語音輸入未成功：'+esc(e.error||'unknown')+'。可以再試或直接打字。','warn');
+  v58Recognition.onerror=(e)=>{
+    clearTimeout(v58VoiceTimer);
+    v58Recognition=null;
+    v58Status(statusId,'⚠️ 語音輸入未成功：'+esc(e.error||'unknown')+'。可以再試或直接打字。','warn');
   };
-
-  v53Recognition.onend=()=>{
-    clearTimeout(v53Timer);
+  v58Recognition.onend=()=>{
+    clearTimeout(v58VoiceTimer);
     const text=(finalText || interimText || '').trim();
     if(text){
-      v53AppendToTextarea(textareaId,text);
-      v53SetVoiceStatus(statusId,'✅ 已加入語音文字。請檢查後再儲存 / Analyze。','live');
+      v58AppendText(textareaId,text);
+      v58Status(statusId,'✅ 已加入語音文字，請檢查後再儲存 / Analyze。','live');
     }else{
-      v53SetVoiceStatus(statusId,'語音已停止。如未加入文字，可以再試一次。','warn');
+      v58Status(statusId,'語音已停止。如未加入文字，可以再試一次。','warn');
     }
-    v53Recognition=null;
+    v58Recognition=null;
   };
-
-  try{v53Recognition.start();}catch(e){
-    v53Recognition=null;
-    v53SetVoiceStatus(statusId,'⚠️ 語音功能啟動失敗，請直接打字。','warn');
+  try{v58Recognition.start();}catch(e){
+    v58Recognition=null;
+    v58Status(statusId,'⚠️ 語音功能啟動失敗，請直接打字。','warn');
   }
 }
 function v53StopDictation(show=true){
-  if(v53Timer) clearTimeout(v53Timer);
-  v53Timer=null;
-  try{ if(v53Recognition) v53Recognition.stop(); }catch(e){}
-  v53Recognition=null;
-  if(show && v53StatusId) v53SetVoiceStatus(v53StatusId,'已停止語音。','warn');
+  if(v58VoiceTimer) clearTimeout(v58VoiceTimer);
+  v58VoiceTimer=null;
+  try{ if(v58Recognition) v58Recognition.stop(); }catch(e){}
+  v58Recognition=null;
+  if(show && v58VoiceStatusId) v58Status(v58VoiceStatusId,'已停止語音。','warn');
 }
 function v53ClearTextarea(textareaId, statusId){
   const area=$(textareaId);
   if(area) area.value='';
-  v53SetVoiceStatus(statusId,'已清空。可以重新語音輸入或打字。');
-}
-window.v53StartDictation=v53StartDictation;
-window.v53StopDictation=v53StopDictation;
-window.v53ClearTextarea=v53ClearTextarea;
-
-/* Keep old Coach Voice buttons working by mapping to V53 generic dictation. */
-function startCoachVoiceNote(){ v53StartDictation('activityNote','coachVoiceStatus','coachVoiceLang','coach comment'); }
-function stopCoachVoiceNote(show=true){ v53StopDictation(show); }
-function clearCoachVoiceNote(){ v53ClearTextarea('activityNote','coachVoiceStatus'); }
-
-
-/* V53 robust Activity mode switching */
-function v53SetActivityMode(mode){
-  window.activityMode = mode;
-  try{ activityMode = mode; }catch(e){}
-  const map={photo:'Photo',video:'Video',voice:'Voice',coach:'Coach'};
-  Object.keys(map).forEach(k=>{
-    const el=$('mode'+map[k]);
-    if(el) el.classList.toggle('active', mode===k);
-  });
-  const file=$('activityFile');
-  if(file){
-    file.accept = mode==='photo' ? 'image/*' : mode==='video' ? 'video/*' : mode==='voice' ? 'audio/*' : 'image/*';
-  }
-  const wrap=$('activityFileWrap');
-  if(wrap){
-    wrap.style.display = (mode==='coach') ? 'none' : 'block';
-  }
-  const note=$('activityNote');
-  if(note){
-    note.placeholder = mode==='photo' ? '例：這是 piano 第 1–2 行，佢一錯就想由頭彈。' :
-                       mode==='video' ? '例：這段 swimming / tennis short video，想睇動作流暢度和下次練習重點。' :
-                       mode==='voice' ? '例：家長口述今日活動觀察。' :
-                       '例：教練話 kicking / rhythm / footwork 有進步，但某一點要練。';
-  }
-  const status=$('activityStatus');
-  if(status){
-    status.innerHTML='<div class="notice bluebox">已選擇 '+esc(mode)+' 模式。</div>';
-  }
-}
-function setActivityMode(mode){ v53SetActivityMode(mode); }
-window.setActivityMode=v53SetActivityMode;
-
-function v53BindActivityModeButtons(){
-  const configs=[
-    ['modePhoto','photo'],
-    ['modeVideo','video'],
-    ['modeVoice','voice'],
-    ['modeCoach','coach']
-  ];
-  configs.forEach(([id,mode])=>{
-    const el=$(id);
-    if(el){
-      el.type='button';
-      el.onclick=function(e){ if(e){e.preventDefault();e.stopPropagation();} v53SetActivityMode(mode); return false; };
-    }
-  });
+  v58Status(statusId,'已清空。可以重新語音輸入或打字。');
 }
 
+function activityProgressCardHTML(){
+  return `<div class="card" id="activityProgressCard">
+    <h2>🏅 Activity Progress AI</h2>
+    <div class="muted">記錄課外活動進度，例如 piano、swimming、tennis、chess、soccer、art。呢個同 Teacher Comment 分開：Teacher Comment 是學校 / 課堂觀察；Activity Progress 是課外活動進度、練習重點和教練問題。</div>
+    <div class="notice">Beta：AI 只作家長角度整理，不取代正式老師、教練或專業評估。</div>
 
-/* V54 one clear Activity input area */
-let v54ActivityImage='';
-let v54ActivityVideoFrames=[];
-let v54CurrentMode='photo';
+    <label>活動類型</label>
+    <select id="actType">
+      <option>Piano</option><option>Swimming</option><option>Tennis</option><option>Chess</option>
+      <option>Soccer</option><option>Art</option><option>Dance / Gymnastics</option><option>Custom</option>
+    </select>
 
-function v54ModeMeta(mode){
-  const data={
+    <label>輸入模式</label>
+    <div class="activityModeGrid">
+      <button type="button" class="modeBtn active" id="modePhoto" onclick="setActivityMode('photo')">📷 Photo<br><small>樂譜 / 棋盤 / 作品</small></button>
+      <button type="button" class="modeBtn" id="modeVideo" onclick="setActivityMode('video')">🎥 Short video<br><small>動作活動 beta</small></button>
+      <button type="button" class="modeBtn" id="modeVoice" onclick="setActivityMode('voice')">🎙️ Voice note<br><small>家長口述</small></button>
+      <button type="button" class="modeBtn" id="modeCoach" onclick="setActivityMode('coach')">📝 Coach comment<br><small>教練評語</small></button>
+    </div>
+
+    <div class="activityInputCard">
+      <h3 id="activityInputTitle">📷 Photo / 相片輸入</h3>
+      <div class="muted" id="activityInputDesc">上載樂譜、棋盤、作品、證書或教練紙條。AI 會整理成家長可理解的練習重點。</div>
+      <div class="activitySmallSafety" id="activitySafety">Beta：AI 只作家長角度整理，不取代正式老師 / 教練 / 專業評估。</div>
+
+      <div id="activityFileArea">
+        <label id="activityFileLabel">Upload photo</label>
+        <input id="activityFileClean" type="file" accept="image/*">
+        <img id="activityPreviewClean" class="activityPreview">
+        <div id="activityFramesClean" class="activityFrameGrid"></div>
+        <div class="activityFileHint" id="activityFileHint">Photo mode 適合：piano 樂譜、chess 棋盤、畫作、證書、教練紙條。</div>
+      </div>
+
+      <div id="activityVoiceControls">
+        <div class="activityVoiceRow">
+          <select id="activityVoiceLang">
+            <option value="zh-HK">廣東話 / English mix</option>
+            <option value="en-AU">English</option>
+            <option value="zh-CN">普通話</option>
+          </select>
+          <button type="button" class="btn primary" onclick="v53StartDictation('activityNoteClean','activityVoiceStatus','activityVoiceLang','activity comment')">🎙️ 開始語音</button>
+          <button type="button" class="btn" onclick="v53StopDictation()">停止</button>
+          <button type="button" class="btn" onclick="v53ClearTextarea('activityNoteClean','activityVoiceStatus')">清空</button>
+        </div>
+        <div id="activityVoiceStatus" class="activityStatusLine">語音會放入下面輸入欄位；你可以先檢查再 Analyze。</div>
+      </div>
+
+      <label id="activityTextLabel">補充內容 / 家長觀察</label>
+      <textarea id="activityNoteClean" placeholder="例：今日游水教練話 kicking 有進步，但 breathing 同 turning 仲要練。"></textarea>
+
+      <div class="actions">
+        <button type="button" class="btn primary" onclick="analyzeActivityProgress()">🤖 Analyze Activity</button>
+        <button type="button" class="btn" onclick="clearActivityProgress()">Clear</button>
+      </div>
+    </div>
+
+    <div id="activityStatus"></div>
+    <div id="activityResult"></div>
+  </div>`;
+}
+
+function activityModeMeta(mode){
+  const m={
     photo:{
       title:'📷 Photo / 相片輸入',
       desc:'上載樂譜、棋盤、作品、證書或教練紙條。AI 會整理成家長可理解的練習重點。',
       safety:'Beta：AI 只作家長角度整理，不取代正式老師 / 教練 / 專業評估。',
-      fileLabel:'Upload photo',
-      accept:'image/*',
-      fileHint:'Photo mode 適合：piano 樂譜、chess 棋盤、畫作、證書、教練紙條。',
+      showFile:true, showVoice:false, accept:'image/*', fileLabel:'Upload photo',
+      hint:'Photo mode 適合：piano 樂譜、chess 棋盤、畫作、證書、教練紙條。',
       textLabel:'補充內容 / 家長觀察',
       placeholder:'例：這是 piano 第 1–2 行，佢一錯就想由頭彈。'
     },
     video:{
-      title:'🎥 Short video / 動作片段',
-      desc:'適合 swimming、tennis、soccer、dance 等動作活動。App 會抽幾張畫面作 beta 參考。',
+      title:'🎥 Short video / 短片輸入',
+      desc:'上載 10–20 秒短片，適合 swimming、tennis、soccer、dance 等動作活動。',
       safety:'短片模式只做家長角度觀察，不做精準動作評分，不取代教練。',
-      fileLabel:'Upload short video',
-      accept:'video/*',
-      fileHint:'建議 10–20 秒短片。AI 會用抽取畫面 + 你的補充說明分析。',
+      showFile:true, showVoice:false, accept:'video/*', fileLabel:'Upload short video',
+      hint:'Short video mode 適合：游水、網球、足球、舞蹈、體操。AI 會抽幾張畫面作參考。',
       textLabel:'補充內容 / 家長觀察',
-      placeholder:'例：這段 tennis 片想睇揮拍是否流暢；或者 swimming 轉身位置是否常停頓。'
+      placeholder:'例：這段 swimming 片想睇轉身是否常停頓；或 tennis 揮拍是否流暢。'
     },
     voice:{
-      title:'🎙️ 家長觀察輸入',
-      desc:'家長可以直接口述今日觀察，例如小朋友是否專心、容易放棄、有無進步、情緒如何。',
-      safety:'語音會先變成文字，你可以檢查後再 Analyze。',
-      fileLabel:'Upload audio（可選）',
-      accept:'audio/*',
-      fileHint:'現階段建議直接用「開始語音」轉文字；audio file 只作備用。',
+      title:'🎙️ Voice note / 家長口述',
+      desc:'家長直接口述今日觀察，例如表現、情緒、專注力、完成度或需要鼓勵的位置。',
+      safety:'語音會先轉成文字，你可以檢查後再 Analyze。',
+      showFile:false, showVoice:true,
       textLabel:'家長觀察',
       placeholder:'例：今日彈琴第一段順咗，但一錯就想停，需要鼓勵佢慢慢來。'
     },
     coach:{
-      title:'📝 教練評語輸入',
-      desc:'建議由家長簡單轉述教練重點，例如技巧進步、需要加強位置、下次要問教練嘅問題。',
+      title:'📝 Coach comment / 教練評語',
+      desc:'聽完教練 comment 後，由家長用自己說話轉述重點，AI 會整理成易明摘要和下次練習重點。',
       safety:'安全提示：建議由家長轉述教練評語，避免未經同意直接錄音。',
-      fileLabel:'Upload coach note photo（可選）',
-      accept:'image/*',
-      fileHint:'可以影教練紙條；如果只是聽完教練講，直接用語音或打字更快。',
+      showFile:false, showVoice:true,
       textLabel:'教練評語 / 家長轉述',
       placeholder:'例：今日游水教練話 kicking 有進步，但 breathing 同 turning 仲要練。'
     }
   };
-  return data[mode] || data.photo;
+  return m[mode] || m.photo;
 }
 
-function v54HideOldActivityInputs(){
-  const oldWrap=$('activityFileWrap');
-  if(oldWrap) oldWrap.style.display='none';
-  const oldNote=$('activityNote');
-  if(oldNote){
-    const oldLabel=[...document.querySelectorAll('label')].find(l=>l.getAttribute('for')==='activityNote' || (l.nextElementSibling && l.nextElementSibling.id==='activityNote'));
-    if(oldLabel) oldLabel.style.display='none';
-    oldNote.style.display='none';
-  }
-  // Hide duplicate old buttons inside Activity card if they are immediately after activityNote.
-  // Keep mode buttons visible and keep Teacher voice visible.
-  document.querySelectorAll('.coachVoiceBox').forEach(box=>{
-    if(box.closest('#record') && !box.closest('#activityUnifiedInput')) box.style.display='none';
-  });
-  document.querySelectorAll('.voiceMiniBox').forEach(box=>{
-    if(box.closest('#record') && !box.querySelector('#teacherVoiceStatus') && !box.closest('#activityUnifiedInput')) box.style.display='none';
-  });
-}
-
-function v54SetActivityMode(mode){
-  v54CurrentMode=mode;
-  try{ activityMode=mode; }catch(e){}
-  window.activityMode=mode;
-
+function setActivityMode(mode){
+  v58ActivityMode=mode;
   const map={photo:'Photo',video:'Video',voice:'Voice',coach:'Coach'};
   Object.keys(map).forEach(k=>{
     const el=$('mode'+map[k]);
     if(el) el.classList.toggle('active', mode===k);
   });
 
-  const m=v54ModeMeta(mode);
-  if($('v54ActivityInputTitle')) $('v54ActivityInputTitle').textContent=m.title;
-  if($('v54ActivityInputDesc')) $('v54ActivityInputDesc').textContent=m.desc;
-  if($('v54ActivitySafety')) $('v54ActivitySafety').textContent=m.safety;
-  if($('v54FileLabel')) $('v54FileLabel').textContent=m.fileLabel;
-  if($('v54ActivityFile')) $('v54ActivityFile').accept=m.accept;
-  if($('v54FileHint')) $('v54FileHint').textContent=m.fileHint;
-  if($('v54TextLabel')) $('v54TextLabel').textContent=m.textLabel;
-  if($('v54ActivityNote')) $('v54ActivityNote').placeholder=m.placeholder;
+  const m=activityModeMeta(mode);
+  if($('activityInputTitle')) $('activityInputTitle').textContent=m.title;
+  if($('activityInputDesc')) $('activityInputDesc').textContent=m.desc;
+  if($('activitySafety')) $('activitySafety').textContent=m.safety;
+  if($('activityTextLabel')) $('activityTextLabel').textContent=m.textLabel;
+  if($('activityNoteClean')) $('activityNoteClean').placeholder=m.placeholder;
 
-  const fileArea=$('v54ActivityFileArea');
-  if(fileArea) fileArea.style.display = (mode==='voice') ? 'none' : 'block';
+  const fileArea=$('activityFileArea');
+  const voiceArea=$('activityVoiceControls');
+  if(fileArea) fileArea.style.display=m.showFile?'block':'none';
+  if(voiceArea) voiceArea.style.display=m.showVoice?'block':'none';
 
-  const voiceControls=$('v54VoiceControls');
-  if(voiceControls) voiceControls.style.display = (mode==='photo'||mode==='video') ? 'none' : 'block';
-
-  const status=$('activityStatus');
-  if(status) status.innerHTML='<div class="notice bluebox">已切換到 '+esc(m.title.replace(/[📷🎥🎙️📝]/g,'').trim())+'。</div>';
-
-  v54HideOldActivityInputs();
+  const file=$('activityFileClean');
+  if(file){
+    file.accept=m.accept||'';
+    file.value='';
+  }
+  if($('activityFileLabel')) $('activityFileLabel').textContent=m.fileLabel || '';
+  if($('activityFileHint')) $('activityFileHint').textContent=m.hint || '';
+  resetActivityFilePreview();
+  if($('activityStatus')) $('activityStatus').innerHTML='';
 }
-
-function setActivityMode(mode){ v54SetActivityMode(mode); }
-window.setActivityMode=v54SetActivityMode;
-
-function v54BindActivityModeButtons(){
-  [['modePhoto','photo'],['modeVideo','video'],['modeVoice','voice'],['modeCoach','coach']].forEach(([id,mode])=>{
-    const el=$(id);
-    if(el){
-      el.type='button';
-      el.onclick=function(e){ if(e){e.preventDefault(); e.stopPropagation();} v54SetActivityMode(mode); return false; };
-    }
-  });
+function resetActivityFilePreview(){
+  v58ActivityImage='';
+  v58ActivityVideoFrames=[];
+  const img=$('activityPreviewClean');
+  const frames=$('activityFramesClean');
+  if(img){img.src='';img.style.display='none';}
+  if(frames) frames.innerHTML='';
 }
-
-async function v54BindUnifiedFile(){
-  const f=$('v54ActivityFile');
-  if(!f || f.v54Bound) return;
-  f.v54Bound=true;
+function bindActivityUpload(){
+  const f=$('activityFileClean');
+  if(!f || f.v58Bound) return;
+  f.v58Bound=true;
   f.onchange=async e=>{
     const file=e.target.files && e.target.files[0];
     if(!file) return;
-    v54ActivityImage='';
-    v54ActivityVideoFrames=[];
-    const prev=$('v54ActivityPreview');
-    const frames=$('v54ActivityFrames');
-    if(prev){prev.style.display='none';prev.src='';}
-    if(frames) frames.innerHTML='';
-
+    resetActivityFilePreview();
     if(file.type.startsWith('image/')){
       const reader=new FileReader();
       reader.onload=ev=>{
-        v54ActivityImage=ev.target.result;
-        if(prev){prev.src=v54ActivityImage;prev.style.display='block';}
+        v58ActivityImage=ev.target.result;
+        const img=$('activityPreviewClean');
+        if(img){img.src=v58ActivityImage;img.style.display='block';}
       };
       reader.readAsDataURL(file);
     }else if(file.type.startsWith('video/')){
-      const st=$('activityStatus');
-      if(st) st.innerHTML='<div class="notice bluebox">正在抽取短片畫面...</div>';
+      if($('activityStatus')) $('activityStatus').innerHTML='<div class="notice bluebox">正在抽取短片畫面作 beta 分析...</div>';
       try{
-        if(typeof extractVideoFrames==='function') v54ActivityVideoFrames=await extractVideoFrames(file,3);
-        if(frames) frames.innerHTML=v54ActivityVideoFrames.map(src=>`<img src="${src}">`).join('');
-        if(st) st.innerHTML='<div class="notice good">已抽取短片畫面，請加少少補充文字再 Analyze。</div>';
+        v58ActivityVideoFrames=await extractVideoFrames(file,3);
+        const frames=$('activityFramesClean');
+        if(frames) frames.innerHTML=v58ActivityVideoFrames.map(src=>`<img src="${src}">`).join('');
+        if($('activityStatus')) $('activityStatus').innerHTML='<div class="notice good">已抽取短片畫面。請加少少補充內容再 Analyze。</div>';
       }catch(err){
-        if(st) st.innerHTML='<div class="notice">短片抽圖未成功，請改用截圖或文字描述。</div>';
+        if($('activityStatus')) $('activityStatus').innerHTML='<div class="notice">短片畫面抽取未成功，請改用截圖或補充文字。</div>';
       }
-    }else if(file.type.startsWith('audio/')){
-      const st=$('activityStatus');
-      if(st) st.innerHTML='<div class="notice bluebox">已選擇 audio。建議用語音轉文字或在下方補充內容。</div>';
     }
   };
 }
-
-function v54StartActivityVoice(){
-  if(typeof v53StartDictation==='function'){
-    v53StartDictation('v54ActivityNote','v54ActivityVoiceStatus','v54ActivityLang',v54CurrentMode==='coach'?'coach comment':'activity observation');
-    return;
-  }
-  alert('語音功能暫時未能啟動，請直接打字。');
-}
-function v54StopActivityVoice(){
-  if(typeof v53StopDictation==='function') v53StopDictation();
-}
-function v54ClearActivityText(){
-  const area=$('v54ActivityNote');
-  if(area) area.value='';
-  if(typeof v53ClearTextarea==='function') {
-    const status=$('v54ActivityVoiceStatus');
-    if(status) status.textContent='已清空。可以重新語音輸入或打字。';
+function initialiseActivityProgress(){
+  bindActivityUpload();
+  setActivityMode(v58ActivityMode || 'photo');
+  const card=$('activityProgressCard');
+  if(card){
+    card.querySelectorAll('#activityFileWrap,.coachVoiceBox,.voiceMiniBox,#activityNote').forEach(x=>x.remove());
+    const analyze=[...card.querySelectorAll('button')].filter(b=>/Analyze Activity/i.test(b.textContent||''));
+    analyze.forEach((b,i)=>{ if(i>0) b.remove(); });
   }
 }
 
-async function v54AnalyzeActivity(){
-  const activity=$('actType') ? $('actType').value : 'Activity';
-  const note=($('v54ActivityNote')?.value||'').trim();
-  const images=[...(v54ActivityImage?[v54ActivityImage]:[]),...v54ActivityVideoFrames];
+function extractVideoFrames(file,count=3){
+  return new Promise((resolve,reject)=>{
+    const video=document.createElement('video');
+    const url=URL.createObjectURL(file);
+    video.src=url;
+    video.muted=true;
+    video.playsInline=true;
+    video.preload='metadata';
+    const frames=[];
+    const canvas=document.createElement('canvas');
+    const ctx=canvas.getContext('2d');
+    video.onloadedmetadata=()=>{
+      const dur=Math.min(video.duration || 1, 20);
+      const times=[dur*0.2,dur*0.5,dur*0.8].map(x=>Math.max(0.1,Math.min(dur-0.1,x)));
+      let i=0;
+      const grab=()=>{ if(i>=Math.min(count,times.length)){URL.revokeObjectURL(url);resolve(frames);return;} video.currentTime=times[i++]; };
+      video.onseeked=()=>{
+        canvas.width=Math.min(video.videoWidth || 640, 900);
+        canvas.height=Math.round(canvas.width*((video.videoHeight||360)/(video.videoWidth||640)));
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        frames.push(canvas.toDataURL('image/jpeg',0.78));
+        grab();
+      };
+      grab();
+    };
+    video.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('video load failed'));};
+  });
+}
 
+function localActivityFallback(activity,note){
+  const lower=(note||'').toLowerCase();
+  const tips={
+    Piano:['分小節慢練','不要一錯就由頭開始','先練第 1–2 行或最難 2 小節'],
+    Swimming:['留意身體是否放鬆','下次問教練 breathing / kicking / body position','活動後功課要減量'],
+    Tennis:['留意預備姿勢和 follow-through','下次問教練 footwork / timing','不要只追求大力擊球'],
+    Chess:['回顧是否太快落子','練習 fork / pin / checkmate pattern','每步棋前先看對方威脅'],
+    Soccer:['留意控球和跑位','下次問教練 first touch / passing','活動後安排輕量功課'],
+    Art:['保留作品作進度比較','鼓勵描述創作想法','下次集中一個技巧例如線條/顏色'],
+    'Dance / Gymnastics':['留意動作連貫性','安全第一，不作技術診斷','下次問教練伸展/核心控制'],
+    Custom:['記錄教練 comment','只設定一個下次練習目標','活動後觀察情緒和疲倦度']
+  };
+  const arr=tips[activity]||tips.Custom;
+  return {
+    activity,
+    summary: note ? `家長/教練提供的觀察：${note.slice(0,220)}` : `已記錄 ${activity} 練習，需要更多相片/短片/文字才可更準。`,
+    strengths: lower.includes('好')||lower.includes('進步')?['已有進步訊號，值得肯定。']:['能夠持續參與練習本身已經是進步。'],
+    watchPoints: arr,
+    nextPractice: arr[0],
+    coachQuestion: activity==='Piano'?'下次可問老師：應該先練哪兩個小節？':`下次可問教練：${arr[1]}`,
+    confidence: note?'medium':'low',
+    safetyNote:'AI 只作家長角度整理，不取代正式教練評估。'
+  };
+}
+async function analyzeActivityProgress(){
+  const activity=$('actType')?.value || 'Activity';
+  const note=($('activityNoteClean')?.value||'').trim();
+  const images=[...(v58ActivityImage?[v58ActivityImage]:[]),...v58ActivityVideoFrames];
   if(!note && !images.length){
-    const st=$('activityStatus');
-    if(st) st.innerHTML='<div class="notice">請先上載相片/短片，或用語音/文字輸入觀察。</div>';
+    if($('activityStatus')) $('activityStatus').innerHTML='<div class="notice">請先上載相片/短片，或用語音/文字輸入觀察。</div>';
     return;
   }
-
-  const st=$('activityStatus');
-  if(st) st.innerHTML='<div class="notice bluebox">正在分析課外活動進度...</div>';
-
+  if($('activityStatus')) $('activityStatus').innerHTML='<div class="notice bluebox">正在分析課外活動進度...</div>';
+  let report=null;
   try{
-    let report=null;
-    try{
-      const res=await fetch('/.netlify/functions/analyze-activity-progress',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({activity,mode:v54CurrentMode,note,images,child:{name:app.profile.childName,year:app.profile.year}})
-      });
-      if(!res.ok) throw new Error('AI function failed '+res.status);
-      const data=await res.json();
-      report=data.report;
-    }catch(aiErr){
-      if(typeof localActivityFallback==='function') report=localActivityFallback(activity,note);
-      else report={activity,summary:note||'已記錄活動資料。',strengths:['已完成一次活動記錄。'],watchPoints:['下次只集中一個小目標。'],nextPractice:'短時間練習一個重點。',coachQuestion:'下次可以問教練：最應該練哪一個地方？',safetyNote:'AI 只作家長角度整理，不取代正式教練評估。'};
-    }
-    app.activityReports=Array.isArray(app.activityReports)?app.activityReports:[];
-    app.activityReports.push({id:'act_'+Date.now(),date:new Date().toISOString(),activity,mode:v54CurrentMode,note,imageCount:images.length,report});
-    save();
-    if($('activityResult')){
-      if(typeof activityReportHTML==='function') $('activityResult').innerHTML=activityReportHTML(report);
-      else $('activityResult').innerHTML='<div class="notice good">已完成分析。</div>';
-    }
-    if(st) st.innerHTML='<div class="notice good">分析完成，已加入 Activity Progress 記錄。</div>';
+    const res=await fetch('/.netlify/functions/analyze-activity-progress',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({activity,mode:v58ActivityMode,note,images,child:{name:app.profile.childName,year:app.profile.year}})
+    });
+    if(!res.ok) throw new Error('AI function failed');
+    const data=await res.json();
+    report=data.report;
   }catch(e){
-    if(st) st.innerHTML='<div class="notice">分析未成功，請稍後再試。</div>';
+    report=localActivityFallback(activity,note);
   }
+  app.activityReports=Array.isArray(app.activityReports)?app.activityReports:[];
+  app.activityReports.push({id:'act_'+Date.now(),date:new Date().toISOString(),activity,mode:v58ActivityMode,note,imageCount:images.length,report});
+  save();
+  if($('activityResult')) $('activityResult').innerHTML=activityReportHTML(report);
+  if($('activityStatus')) $('activityStatus').innerHTML='<div class="notice good">分析完成，已加入 Activity Progress 記錄。</div>';
 }
-
-function v54InitialiseActivityInput(){
-  v54HideOldActivityInputs();
-  v54BindActivityModeButtons();
-  v54BindUnifiedFile();
-  v54SetActivityMode(v54CurrentMode || 'photo');
+function activityReportHTML(r){
+  return `<div class="card" style="box-shadow:none">
+    <h2>🏅 Activity Progress Report</h2>
+    <div class="reportBlock"><b>1. 今日活動</b><div class="muted">${esc(r.activity||'Activity')}</div></div>
+    <div class="reportBlock"><b>2. 我睇到 / 家長提供咗咩</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
+    <div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'能夠持續參與練習本身已經值得肯定。')}</div>
+    <div class="reportBlock"><b>4. 需要留意</b>${compactList(r.watchPoints||[],'暫時未有明顯需要留意事項。')}</div>
+    <div class="reportBlock"><b>5. 下次練習重點</b><div class="muted">${esc(r.nextPractice||'只設定一個細目標，避免一次練太多。')}</div></div>
+    <div class="reportBlock"><b>6. 可以問教練一句</b><div class="muted">${esc(r.coachQuestion||'下次可以問教練：今星期最應該集中練哪一個小地方？')}</div></div>
+    <div class="notice">${esc(r.safetyNote||'AI 只作家長角度整理，不取代正式教練評估。')}</div>
+  </div>`;
+}
+function clearActivityProgress(){
+  resetActivityFilePreview();
+  const file=$('activityFileClean'); if(file) file.value='';
+  const note=$('activityNoteClean'); if(note) note.value='';
+  if($('activityVoiceStatus')) $('activityVoiceStatus').textContent='已清空。可以重新輸入。';
+  if($('activityStatus')) $('activityStatus').innerHTML='';
+  if($('activityResult')) $('activityResult').innerHTML='';
 }
 
 function renderRecord(){
   $('record').innerHTML=`
     <div class="card">
       <h2>🎙️ 記錄</h2>
-      <div class="muted">集中輸入老師 comment、情緒記錄、School Notice AI。輸入資料越穩定，weekly report 越有用。</div>
+      <div class="muted">可以用詳細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
     </div>
     <div class="card">
       <h2>🙂 Emotion Check</h2>
@@ -1410,10 +1721,7 @@ function renderRecord(){
     ${noticeManagerHTML()}
   `;
   bindNoticeUpload();
-  bindActivityUpload();
-  v53BindActivityModeButtons();
-  v54InitialiseActivityInput();
-  v53BindActivityModeButtons(); try{v53SetActivityMode(window.activityMode||activityMode||'photo');}catch(e){v53SetActivityMode('photo');}
+  initialiseActivityProgress();
 }
 function moodIcon(m){return {Normal:'🙂',Tired:'😴',Frustrated:'😫',Happy:'😊'}[m]||'🙂'}
 window.addEmotion=(m)=>{app.emotions.push({id:'em_'+Date.now(),date:new Date().toISOString(),mood:m});save();renderRecord();renderHome()}
@@ -1659,7 +1967,7 @@ function renderRoutineSheet(){
   <h3>已加入固定行程</h3>
   ${app.routines.filter(x=>!x.oneOffDate).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||sortByTime(a,b)).map(routineManageRow).join('')||'<div class="notice bluebox">未有固定行程。</div>'}`;
 }
-function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
+function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
 window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i}
 window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday'}
 window.saveRoutineFromForm=()=>{
