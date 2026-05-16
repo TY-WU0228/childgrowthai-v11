@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
+  <meta name="childgrowth-version" content="v60-routine-restore-click-fix">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v59 Safe Deploy</title>
+  <title>ChildGrowth AI v60 Routine Restore + Click Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -617,7 +618,7 @@
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v59 Safe Deploy · Activity fixed</div>
+    <div class="version">v60 Routine restore · Click fix</div>
   </header>
 
   <main>
@@ -793,6 +794,7 @@ function migrate(){
 let app=migrate();
 app.activityReports = Array.isArray(app.activityReports) ? app.activityReports : [];
 app.captureHistory = Array.isArray(app.captureHistory) ? app.captureHistory : [];
+v60RestoreJaniceRoutines(false);
 save();
 
 function mirrorLegacy(){
@@ -813,7 +815,11 @@ function go(tab){
   currentTab=tab;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===tab));
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
-  try{renderCurrent();}catch(e){console.error(e);const home=document.getElementById('home');if(home)home.innerHTML='<div class="bootError">⚠️ 首頁載入失敗，已阻止空白畫面。請更新到 V51 或重新整理。<br><small>'+String(e.message||e)+'</small></div>';}
+  try{v60ExportInlineHandlers();
+v60BindActivityClicks();
+v60RestoreJaniceRoutines(false);
+renderCurrent();
+setTimeout(()=>{v60ExportInlineHandlers();v60HardCleanActivityDom();},250);}catch(e){console.error(e);const home=document.getElementById('home');if(home)home.innerHTML='<div class="bootError">⚠️ 首頁載入失敗，已阻止空白畫面。請更新到 V51 或重新整理。<br><small>'+String(e.message||e)+'</small></div>';}
 hideSplash();
   window.scrollTo({top:0,behavior:'auto'});
 }
@@ -1202,6 +1208,110 @@ END:VALARM
 END:VEVENT
 END:VCALENDAR`;
   downloadICS((t.title||'task').replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics',ics);
+}
+
+
+/* V60 routine restore + inline click handler fix */
+function v60JaniceDefaultRoutines(){
+  return [
+    {day:'Monday',name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+    {day:'Tuesday',name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+    {day:'Wednesday',name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+    {day:'Thursday',name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+    {day:'Friday',name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'},
+    {day:'Tuesday',name:'💻 Minecraft coding',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'7:00 PM',prep:'泳衣、毛巾、goggles、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'},
+    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課、鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Sunday',name:'📚 QS school',start:'9:00 AM',end:'12:00 PM',prep:'功課、水樽',reminder:'前一晚 8:00 PM',impact:'正常'}
+  ];
+}
+function v60RoutineKey(r){
+  return norm((r.day||'')+'_'+(r.name||'').replace(/[^\w\u4e00-\u9fff]+/g,'')+'_'+(r.start||''));
+}
+function v60RestoreJaniceRoutines(force=false){
+  try{
+    app.routines = Array.isArray(app.routines) ? app.routines : [];
+    const child = String(app.profile?.childName || '').toLowerCase();
+    const isJanice = child.includes('janice') || child.includes('珍妮') || child==='';
+    if(!isJanice && !force) return false;
+
+    // Correct accidental old school name if present.
+    app.routines.forEach(r=>{
+      if(/all\s*prime/i.test(r.name||'')) r.name='🏫 Oakleigh South Primary School';
+    });
+
+    const defaults = v60JaniceDefaultRoutines();
+    const existing = new Set(app.routines.map(v60RoutineKey));
+    let added = 0;
+
+    const hasWeekdaySchool = ['Monday','Tuesday','Wednesday','Thursday','Friday'].every(day =>
+      app.routines.some(r => r.day===day && /school|primary|oakleigh/i.test(r.name||''))
+    );
+
+    // If weekday school is missing, restore all core defaults. If force, restore missing defaults.
+    if(force || !hasWeekdaySchool || app.routines.length===0){
+      defaults.forEach((d,idx)=>{
+        const item={...d,id:'v60_'+idx+'_'+Date.now(),source:'v60-restore'};
+        const key=v60RoutineKey(item);
+        if(!existing.has(key)){
+          app.routines.push(item);
+          existing.add(key);
+          added++;
+        }
+      });
+    }
+    if(added>0){ save(); return true; }
+    return false;
+  }catch(e){
+    console.warn('v60 routine restore failed', e);
+    return false;
+  }
+}
+function v60ManualRestoreRoutines(){
+  const ok = confirm('要修復 Janice 預設固定行程嗎？會補回 Monday–Friday school、Thursday swimming、Friday chess、Saturday Chinese 等；不會刪除你現有資料。');
+  if(!ok) return;
+  const changed = v60RestoreJaniceRoutines(true);
+  save();
+  renderCurrent();
+  alert(changed ? '已補回缺失固定行程。' : '沒有需要補回的行程。');
+}
+function v60ExportInlineHandlers(){
+  const names=[
+    'setActivityMode','analyzeActivityProgress','clearActivityProgress',
+    'v53StartDictation','v53StopDictation','v53ClearTextarea',
+    'openCapture','closeCapture','setCaptureMode','analyzeCapture','clearCapture',
+    'confirmCapture','changeCaptureRoute',
+    'calendarForRoutine','calendarForNotice','calendarForTask',
+    'v60ManualRestoreRoutines'
+  ];
+  names.forEach(n=>{try{ if(typeof eval(n)==='function') window[n]=eval(n); }catch(e){}});
+}
+function v60HardCleanActivityDom(){
+  const card=$('activityProgressCard');
+  if(!card) return;
+  card.querySelectorAll('#activityFileWrap,.coachVoiceBox,.voiceMiniBox,#activityNote,#v54ActivityFile,#v54ActivityNote').forEach(el=>el.remove());
+  [...card.querySelectorAll('label')].forEach(label=>{
+    const txt=(label.textContent||'').trim();
+    if(txt==='Upload photo / short video / audio') label.remove();
+  });
+  const analyze=[...card.querySelectorAll('button')].filter(b=>/Analyze Activity/i.test(b.textContent||''));
+  analyze.forEach((b,i)=>{ if(i>0) b.closest('.actions') ? b.closest('.actions').remove() : b.remove(); });
+}
+function v60BindActivityClicks(){
+  document.addEventListener('click', function(e){
+    const btn=e.target.closest && e.target.closest('#modePhoto,#modeVideo,#modeVoice,#modeCoach');
+    if(!btn) return;
+    const map={modePhoto:'photo',modeVideo:'video',modeVoice:'voice',modeCoach:'coach'};
+    if(map[btn.id] && typeof window.setActivityMode==='function'){
+      e.preventDefault();
+      e.stopPropagation();
+      window.setActivityMode(map[btn.id]);
+      v60HardCleanActivityDom();
+      return false;
+    }
+  }, true);
 }
 
 function renderHome(){
@@ -1906,7 +2016,7 @@ function renderProfile(){
       <div class="metric"><b>${esc(p.age)}</b><span>年齡</span></div>
     </div>
     <div style="margin-top:12px">${(p.strengths||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join('')}${(p.watchAreas||[]).map(x=>`<span class="chip" style="background:#fff7ed;color:#9a3412;border-color:#fed7aa">${esc(x)}</span>`).join('')}</div>
-    <div class="actions"><button class="btn primary" onclick="openSetup()">修改小朋友設定</button><button class="btn" onclick="openRoutineManager()">管理固定行程</button></div>
+    <div class="actions"><button class="btn primary" onclick="openSetup()">修改小朋友設定</button><button class="btn" onclick="openRoutineManager()">管理固定行程</button><button class="btn calendarBtn" onclick="v60ManualRestoreRoutines()">修復固定行程</button></div>
   </div>
   <div class="card">
     <h2>🗓️ 固定行程摘要</h2>
