@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v70 Report Classification Stable</title>
+  <title>ChildGrowth AI v71 Calendar 8PM Reminder Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -833,6 +833,19 @@
       line-height:1.45;
     }
 
+  
+    /* V71 Calendar 8PM reminder fix */
+    .calendarReminderNote{
+      background:#ecfeff;
+      border:1px solid #67e8f9;
+      color:#155e75;
+      border-radius:16px;
+      padding:10px;
+      margin:10px 0;
+      font-weight:850;
+      line-height:1.45;
+    }
+
   </style>
 </head>
 <body>
@@ -1376,19 +1389,37 @@ function downloadICS(filename, content){
 function safeICSFilename(name){
   return (icsTitle(name,'calendar_event')).replace(/[^\w\u4e00-\u9fff]+/g,'_')+'.ics';
 }
-function eventAlarms(title, prep=''){
-  // iOS sometimes displays the two imported alerts in its own order.
-  // This order is chosen to make "1 day before" more likely to appear as the first alert in Calendar edit view.
+function durationBeforeEventFromPrevious8pm(startTime){
+  // iOS "1 day before" means exactly 24 hours before event start, not "previous night 8pm".
+  // For a recurring event, use a relative trigger from event start back to the previous day's 8:00 PM.
+  const startM = timeToMin(startTime || '09:00');
+  const mins = (startM===null ? 9*60 : startM) + (24*60 - 20*60); // previous 8pm -> event start
+  const days = Math.floor(mins / (24*60));
+  const rem = mins % (24*60);
+  const h = Math.floor(rem / 60);
+  const m = rem % 60;
+  let out = '-P';
+  if(days) out += days + 'D';
+  if(h || m || !days){
+    out += 'T';
+    if(h) out += h + 'H';
+    if(m) out += m + 'M';
+    if(!h && !m) out += '0M';
+  }
+  return out;
+}
+function eventAlarms(title, prep='', startTime='09:00'){
+  const previous8pmTrigger = durationBeforeEventFromPrevious8pm(startTime);
   return [
+    'BEGIN:VALARM',
+    `TRIGGER:${previous8pmTrigger}`,
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${icsEscape('前一晚8:00準備：'+title+(prep?'｜'+prep:''))}`,
+    'END:VALARM',
     'BEGIN:VALARM',
     'TRIGGER:-PT60M',
     'ACTION:DISPLAY',
-    `DESCRIPTION:${icsEscape('今日活動：'+title)}`,
-    'END:VALARM',
-    'BEGIN:VALARM',
-    'TRIGGER:-P1D',
-    'ACTION:DISPLAY',
-    `DESCRIPTION:${icsEscape('明日準備：'+title+(prep?' '+prep:''))}`,
+    `DESCRIPTION:${icsEscape('1小時後：'+title)}`,
     'END:VALARM'
   ];
 }
@@ -1414,7 +1445,7 @@ function calendarForRoutine(id){
     `DTEND:${end}`,
     r.oneOffDate?'':'RRULE:FREQ=WEEKLY',
     `DESCRIPTION:${icsEscape(desc)}`,
-    ...eventAlarms(title,r.prep||''),
+    ...eventAlarms(title,r.prep||'',r.start||'09:00'),
     'END:VEVENT',
     'END:VCALENDAR'
   ];
@@ -1443,7 +1474,7 @@ function calendarForNotice(id){
     `DTSTART:${start}`,
     `DTEND:${end}`,
     `DESCRIPTION:${icsEscape(desc)}`,
-    ...eventAlarms(title,prep),
+    ...eventAlarms(title,prep,n.time||'09:00'),
     'END:VEVENT',
     'END:VCALENDAR'
   ];
