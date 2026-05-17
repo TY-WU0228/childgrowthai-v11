@@ -154,6 +154,17 @@ V26 accuracy rule（避免前後矛盾）：
 
 
 
+V74 Report Engine v1 rule（最高優先）：
+- 每份功課 report 除了家長可讀內容，亦要幫 app 建立長期 Growth Memory。
+- 你需要在內容中清楚反映：
+  1) subject，例如 Maths / English / Reading；
+  2) worksheetLevel，例如 Year 3 / Level 3 / extension；
+  3) skillsStrong，例如 multiplication facts / number patterns；
+  4) skillsToReview，例如 carrying / place value / reading instruction；
+  5) errorTypes，例如 careless / carrying / multi-step load / photo unclear；
+  6) confidence: High / Medium / Low。
+- 不要亂診斷，不要講資優或能力低。用「初步觀察 / 可能 / 建議家長確認」。
+- 最後的 next step 必須非常具體，可以今晚做到。
 V70 final classification rule（最高優先）：
 - 請你先在心入面把每一條 bullet 分成三類：GOOD / REVIEW / UNCLEAR。
 - GOOD：答案正確、做得好、暫未見錯誤、成功推算、態度好。
@@ -230,7 +241,15 @@ V66 final report rule（必須跟）：
 - 下次可留意：
 
 ✅ 6. 下次做題小貼士
-- 只列 2-3 個最實用做法。`;
+- 只列 2-3 個最實用做法。
+
+🏷️ 7. Growth Memory Tags
+- subject:
+- worksheetLevel:
+- skillsStrong:
+- skillsToReview:
+- errorTypes:
+- confidence: High / Medium / Low`;
 }
 
 function cleanImageDataUrl(input) {

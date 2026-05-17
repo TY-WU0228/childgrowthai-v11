@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v73 Slogan Fix Only</title>
+  <title>ChildGrowth AI v74 Report Engine v1</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -846,6 +846,42 @@
       font-weight:850;
       line-height:1.45;
     }
+
+  
+    /* V74 Report Engine v1 */
+    .growthTagWrap{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+    .growthTag{
+      display:inline-flex;align-items:center;gap:5px;
+      background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;
+      border-radius:999px;padding:6px 10px;font-weight:900;font-size:13px;line-height:1.2
+    }
+    .growthTag.review{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+    .growthTag.good{background:#ecfdf5;border-color:#86efac;color:#166534}
+    .growthTag.neutral{background:#f8fafc;border-color:#e2e8f0;color:#475569}
+    .qualityMeter{
+      width:100%;height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0
+    }
+    .qualityFill{height:100%;background:linear-gradient(90deg,#3b82f6,#7c3aed);border-radius:999px}
+    .engineCard{
+      background:linear-gradient(135deg,#f8fafc,#eef6ff);
+      border:1px solid #bfdbfe;border-radius:22px;padding:14px;margin-top:12px
+    }
+    .engineMiniGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+    @media(min-width:700px){.engineMiniGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    .engineMini{
+      background:white;border:1px solid #e5e7eb;border-radius:18px;padding:12px;
+      box-shadow:0 6px 18px rgba(15,23,42,.04)
+    }
+    .engineMini b{display:block;font-size:24px;color:#db2777}
+    .engineMini span{font-size:12px;color:#64748b;font-weight:850}
+    .frameworkBox details{
+      border:1px solid #e5e7eb;border-radius:18px;background:#fff;margin-top:8px;overflow:hidden
+    }
+    .frameworkBox summary{
+      cursor:pointer;padding:12px 14px;font-weight:950;color:#1e3a8a;list-style:none
+    }
+    .frameworkBox summary::-webkit-details-marker{display:none}
+    .frameworkBody{padding:0 14px 14px;color:#475569;font-weight:750;line-height:1.55}
 
   </style>
 </head>
@@ -2242,7 +2278,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V70：Report 分類固定規則：啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V70 rule：</b>「需要覆核」只放【明確錯】、【需家長確認】或未完成；「正確 / 寫得正確 / 暫未見錯誤」一定歸入「已做得好的地方」或略過。</div>
+    <div class="hwActionNote">V74：Report Engine v1 已加入 Growth Memory tags。每份功課會儲存 subject、level、strong skills、review skills、error type、confidence、next step，為 weekly / growth report 做基礎。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
     <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2351,12 +2387,15 @@ function toggleHomeworkHistory(){
   renderHomework();
 }
 function hwRow(h){
+  const report=v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0);
   const count=h.imageCount?` · ${h.imageCount}張相`:'';
   const source=h.offline?' · 暫存':'';
-  const summary=esc(h.report?.shortSummary || h.report?.summary || h.report?.title || 'Homework report');
+  const summary=esc(report.shortSummary || report.summary || report.title || 'Homework report');
+  const q=report.reportQuality?.score||0;
+  const tags=[report.growth?.subject,report.growth?.worksheetLevel,...(report.growth?.skillsToReview||[]).slice(0,2)].filter(Boolean);
   return `<div class="row homeworkRecentCard">
-    <div><b>${new Date(h.date).toLocaleString()}${count}${source}</b>
-      <small>${summary}<br>下一步：${esc(h.report?.nextStep||'')}<br>Level：${esc(h.report?.levelAwareness||'')}</small>
+    <div><b>${new Date(h.date).toLocaleString()}${count}${source} · Quality ${q}/100</b>
+      <small>${summary}<br>下一步：${esc(report.nextStep||'')}<br>Tags：${esc(tags.join(' · ')||'未有')}</small>
       <div class="rowActions"><button class="btn" onclick="viewHomeworkReport('${esc(h.id)}')">查看完整分析</button></div>
     </div>
   </div>`;
@@ -2511,12 +2550,210 @@ function v70SanitizeHomeworkReport(r){
   return r;
 }
 
+
+function v74TextOfReport(r){
+  return [
+    r?.title,r?.shortSummary,r?.summary,r?.levelAwareness,
+    ...(Array.isArray(r?.strengths)?r.strengths:[]),
+    ...(Array.isArray(r?.checkPoints)?r.checkPoints:[]),
+    ...(Array.isArray(r?.reasons)?r.reasons:[]),
+    r?.parentInterpretation,r?.nextStep,r?.rawAnalysis
+  ].filter(Boolean).join(' ');
+}
+function v74Has(text, patterns){return patterns.some(p=>p.test(text))}
+function v74Add(arr,item){if(item && !arr.includes(item)) arr.push(item)}
+function v74DetectSubject(text){
+  const t=String(text||'').toLowerCase();
+  if(v74Has(t,[/math|maths|number|addition|subtraction|multiplication|division|pattern|加法|減法|乘法|除法|數列|數學|運算/])) return 'Maths';
+  if(v74Has(t,[/reading|comprehension|spelling|grammar|phonics|vocab|英文|閱讀|串字|拼字|文法/])) return 'English / Reading';
+  if(v74Has(t,[/writing|handwriting|sentence|story|寫作|書寫/])) return 'Writing';
+  return 'General Learning';
+}
+function v74DetectWorksheetLevel(text){
+  const s=String(text||'');
+  const level=s.match(/Level\s*([0-9]+)/i);
+  const year=s.match(/Year\s*([0-9]+)/i);
+  if(level) return 'Level '+level[1];
+  if(year) return 'Year '+year[1];
+  if(/高一級|高過|extension|challenge|挑戰/.test(s)) return 'Extension / above current year';
+  return '未明確標示';
+}
+function v74DetectSkillsFromText(text){
+  const s=String(text||'');
+  const skills=[];
+  if(v74Has(s,[/multiplication|乘法|×|\bx\b/i])) v74Add(skills,'multiplication facts');
+  if(v74Has(s,[/addition|加法|\+/i])) v74Add(skills,'addition');
+  if(v74Has(s,[/subtraction|減法|-/i])) v74Add(skills,'subtraction');
+  if(v74Has(s,[/division|除法|÷/i])) v74Add(skills,'division');
+  if(v74Has(s,[/number pattern|patterns|數列|規律/i])) v74Add(skills,'number patterns');
+  if(v74Has(s,[/family facts|fact families/i])) v74Add(skills,'family facts');
+  if(v74Has(s,[/multi-step|兩步|多步|三數|two-step/i])) v74Add(skills,'multi-step calculation');
+  if(v74Has(s,[/place value|位值|十位|個位/i])) v74Add(skills,'place value');
+  if(v74Has(s,[/carrying|進位/i])) v74Add(skills,'carrying');
+  if(v74Has(s,[/reading|閱讀/i])) v74Add(skills,'reading detail');
+  if(v74Has(s,[/spelling|串字|拼字/i])) v74Add(skills,'spelling');
+  if(v74Has(s,[/grammar|文法/i])) v74Add(skills,'grammar');
+  if(v74Has(s,[/handwriting|書寫|字體/i])) v74Add(skills,'handwriting');
+  return skills;
+}
+function v74DetectErrorTypes(text){
+  const s=String(text||'');
+  const out=[];
+  if(v74Has(s,[/careless|粗心|心急|太快|漏檢查/i])) v74Add(out,'careless / rushing');
+  if(v74Has(s,[/carrying|進位/i])) v74Add(out,'carrying');
+  if(v74Has(s,[/place value|位值|十位|個位/i])) v74Add(out,'place value');
+  if(v74Has(s,[/instruction|read.*question|閱讀題目|睇題|題目理解/i])) v74Add(out,'instruction reading');
+  if(v74Has(s,[/working memory|多步|步驟|multi-step/i])) v74Add(out,'multi-step load');
+  if(v74Has(s,[/pattern|規律|數列/i])) v74Add(out,'pattern reasoning');
+  if(v74Has(s,[/unclear|看不清|睇唔清|陰影|手寫|需家長確認/i])) v74Add(out,'handwriting / photo unclear');
+  if(v74Has(s,[/tired|frustrated|疲倦|攰|挫敗/i])) v74Add(out,'emotion / tiredness');
+  return out;
+}
+function v74DetectConfidence(r){
+  const s=v74TextOfReport(r);
+  if(/low|模糊|看不清|睇唔清|多處.*確認|資料不足/i.test(s)) return 'Low';
+  if(/需家長確認|unclear|陰影|手寫/i.test(s)) return 'Medium';
+  if((r?.strengths||[]).length && (r?.checkPoints||[]).length>=0) return 'High';
+  return r?.confidence || 'Medium';
+}
+function v74QualityScore(r){
+  let score=0;
+  const s=v74TextOfReport(r);
+  if(r?.levelAwareness) score+=10;
+  if(v74DetectSubject(s)!=='General Learning') score+=10;
+  if((r?.strengths||[]).length) score+=15;
+  if(Array.isArray(r?.checkPoints)) score+=15;
+  if((r?.reasons||[]).length) score+=15;
+  if(r?.parentInterpretation) score+=10;
+  if(r?.nextStep) score+=15;
+  if(v74DetectConfidence(r)) score+=5;
+  if(v74DetectSkillsFromText(s).length) score+=5;
+  return Math.max(0,Math.min(100,score));
+}
+function v74EnrichHomeworkReport(report, note='', imageCount=0){
+  report=v70SanitizeHomeworkReport(report||{});
+  const allText=v74TextOfReport(report)+' '+String(note||'');
+  const strongText=(report.strengths||[]).join(' ');
+  const reviewText=[...(report.checkPoints||[]),...(report.reasons||[])].join(' ');
+  const strongSkills=v74DetectSkillsFromText(strongText).length?v74DetectSkillsFromText(strongText):v74DetectSkillsFromText(allText);
+  const reviewSkills=v74DetectSkillsFromText(reviewText);
+  const errorTypes=v74DetectErrorTypes(reviewText || allText);
+  const confidence=v74DetectConfidence(report);
+  const qualityScore=v74QualityScore(report);
+  report.growth={
+    engineVersion:'v1',
+    subject:v74DetectSubject(allText),
+    worksheetLevel:v74DetectWorksheetLevel(allText),
+    childYear:app?.profile?.year || '',
+    skillsStrong:strongSkills.slice(0,6),
+    skillsToReview:reviewSkills.slice(0,6),
+    errorTypes:errorTypes.slice(0,6),
+    confidence,
+    imageCount,
+    nextStep:report.nextStep || '',
+    trendTags:[...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)].slice(0,12)
+  };
+  report.reportQuality={
+    score:qualityScore,
+    label:qualityScore>=85?'Wow-ready':qualityScore>=75?'Useful beta':qualityScore>=60?'Needs more evidence':'Insufficient data',
+    checks:{
+      levelAwareness:!!report.levelAwareness,
+      concreteSkills:strongSkills.length+reviewSkills.length>0,
+      clearStrengths:(report.strengths||[]).length>0,
+      reviewPoints:Array.isArray(report.checkPoints),
+      reasons:(report.reasons||[]).length>0,
+      nextStep:!!report.nextStep,
+      confidence:!!confidence
+    }
+  };
+  return report;
+}
+function v74TagHTML(items,type='neutral'){
+  return (items||[]).slice(0,8).map(x=>`<span class="growthTag ${type}">${esc(x)}</span>`).join('');
+}
+function v74Count(items){
+  const map={};
+  (items||[]).filter(Boolean).forEach(x=>map[x]=(map[x]||0)+1);
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+function v74RecentHomework(days=28){
+  const cutoff=Date.now()-days*86400000;
+  return (app.homeworkReports||[]).filter(h=>new Date(h.date||0).getTime()>=cutoff);
+}
+function v74AllHomeworkReports(){
+  return (app.homeworkReports||[]).map(h=>({record:h, report:v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0)}));
+}
+function v74GrowthStats(){
+  const all=v74AllHomeworkReports();
+  const recent=all.filter(x=>new Date(x.record.date||0).getTime()>=Date.now()-28*86400000);
+  const list=recent.length?recent:all.slice(-10);
+  const strong=v74Count(list.flatMap(x=>x.report.growth?.skillsStrong||[]));
+  const review=v74Count(list.flatMap(x=>x.report.growth?.skillsToReview||[]));
+  const errors=v74Count(list.flatMap(x=>x.report.growth?.errorTypes||[]));
+  const subjects=v74Count(list.map(x=>x.report.growth?.subject));
+  const avgQuality=list.length?Math.round(list.reduce((a,x)=>a+(x.report.reportQuality?.score||0),0)/list.length):0;
+  const moods=(app.emotions||[]).slice(-14).map(e=>e.mood);
+  const tired=moods.filter(m=>/tired|frustrated|攰|疲|挫/i.test(m)).length;
+  const busyDays=DAYS.map(d=>[d,routinesForDay(d,false).length]).sort((a,b)=>b[1]-a[1]);
+  const readiness=Math.min(100,
+    Math.round(
+      Math.min(35,(app.homeworkReports||[]).length*7)+
+      Math.min(20,(app.emotions||[]).length*4)+
+      Math.min(20,(app.teacherComments||[]).length*5)+
+      Math.min(15,(app.activityReports||[]).length*5)+
+      Math.min(10,(app.routines||[]).filter(r=>!r.oneOffDate).length*2)
+    )
+  );
+  return {all,list,strong,review,errors,subjects,avgQuality,moods,tired,busyDays,readiness};
+}
+function v74ReportEngineSnapshotHTML(){
+  const st=v74GrowthStats();
+  return `<div class="engineCard">
+    <h2>🧠 Report Engine v1 / Growth Memory</h2>
+    <div class="muted">每份功課會被轉成可累積 data：subject、level、strong skills、review skills、error types、confidence、next step。資料越多，weekly / growth report 越準。</div>
+    <div class="engineMiniGrid">
+      <div class="engineMini"><b>${st.readiness}</b><span>Growth memory readiness /100</span></div>
+      <div class="engineMini"><b>${st.avgQuality||0}</b><span>平均 report quality /100</span></div>
+      <div class="engineMini"><b>${(app.homeworkReports||[]).length}</b><span>功課分析 records</span></div>
+      <div class="engineMini"><b>${(app.emotions||[]).length}</b><span>情緒記錄</span></div>
+    </div>
+    <div class="reportBlock"><b>目前較明顯強項 tags</b><div class="growthTagWrap">${v74TagHTML(st.strong.slice(0,5).map(([k,v])=>`${k} ×${v}`),'good') || '<span class="muted">資料仍不足</span>'}</div></div>
+    <div class="reportBlock"><b>目前較常覆核 tags</b><div class="growthTagWrap">${v74TagHTML(st.review.slice(0,5).map(([k,v])=>`${k} ×${v}`),'review') || '<span class="muted">資料仍不足</span>'}</div></div>
+  </div>`;
+}
+function v74FrameworkHTML(){
+  return `<div class="card frameworkBox">
+    <h2>📏 Report Quality Framework v1</h2>
+    <div class="muted">內部標準：每份 report 要有證據、有分析、有方向、有下一步。</div>
+    <details open><summary>一份 Wow report 要答到咩？</summary>
+      <div class="frameworkBody">
+        1. 小朋友目前大概咩程度？<br>
+        2. 強項係咩？<br>
+        3. 反覆要留意位係咩？<br>
+        4. 係能力、粗心、情緒、疲勞，定題目太深？<br>
+        5. 今晚 / 今週具體做咩？
+      </div>
+    </details>
+    <details><summary>Report 必須遵守嘅 safety rules</summary>
+      <div class="frameworkBody">
+        不診斷 ADHD / 讀寫障礙 / 自閉 / 焦慮；不話小朋友資優或能力低；不取代老師或專業人士；看不清只寫「需家長確認」；正確答案不可放入覆核。
+      </div>
+    </details>
+    <details><summary>Report Quality Score /100</summary>
+      <div class="frameworkBody">
+        Level awareness 10｜具體題型 10｜強項/覆核分類 20｜原因分析 15｜下一步 15｜Growth tags 10｜家長語氣 10｜confidence 10。<br>
+        85+ = Wow-ready；75+ = Useful beta；低過 75 要補證據或更具體。
+      </div>
+    </details>
+  </div>`;
+}
+
 function normalizeHomeworkReport(data, text, imageCount){
   if(data?.report){
     const r=data.report;
     r.rawAnalysis = r.rawAnalysis || r.fullAnalysis || r.analysis || '';
     r.shortSummary = r.shortSummary || String(r.summary||'').slice(0,180);
-    return r;
+    return v74EnrichHomeworkReport(r,text,imageCount);
   }
   const raw=data?.analysis || data?.output || data?.summary || '';
   if(raw){
@@ -2540,9 +2777,9 @@ function normalizeHomeworkReport(data, text, imageCount){
       confidence:'medium',
       rawAnalysis:raw
     };
-    return v70SanitizeHomeworkReport(reportObj);
+    return v74EnrichHomeworkReport(reportObj,text,imageCount);
   }
-  return homeworkFallbackReport(text,imageCount,'AI 回傳格式不完整。');
+  return v74EnrichHomeworkReport(homeworkFallbackReport(text,imageCount,'AI 回傳格式不完整。'),text,imageCount);
 }
 async function sendHomeworkToAI(imagesToSend){
   const text=$('hwText').value.trim();
@@ -2612,7 +2849,25 @@ function viewHomeworkReport(id, scroll=false){
   $('hwResult').innerHTML=homeworkReportHTML(record.report) + (record.error?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
   if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
-function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
+function homeworkReportHTML(r){
+  r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  const q=r.reportQuality||{};
+  const g=r.growth||{};
+  const score=q.score||0;
+  return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
+  <div class="engineCard">
+    <h2>🧠 Growth Memory Tags</h2>
+    <div class="qualityMeter"><div class="qualityFill" style="width:${Math.max(5,score)}%"></div></div>
+    <div class="muted">Report Quality：<b>${score}/100</b> · ${esc(q.label||'')}</div>
+    <div class="growthTagWrap">
+      <span class="growthTag neutral">Subject: ${esc(g.subject||'')}</span>
+      <span class="growthTag neutral">Level: ${esc(g.worksheetLevel||'')}</span>
+      <span class="growthTag neutral">Child: ${esc(g.childYear||'')}</span>
+      <span class="growthTag neutral">Confidence: ${esc(g.confidence||'')}</span>
+    </div>
+    <div class="reportBlock"><b>Strong skills</b><div class="growthTagWrap">${v74TagHTML(g.skillsStrong||[],'good') || '<span class="muted">未有足夠資料</span>'}</div></div>
+    <div class="reportBlock"><b>Review skills / Error type</b><div class="growthTagWrap">${v74TagHTML([...(g.skillsToReview||[]),...(g.errorTypes||[])],'review') || '<span class="muted">未有足夠資料</span>'}</div></div>
+  </div>
   <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
   <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
@@ -2626,6 +2881,7 @@ function homeworkReportHTML(r){return `<div class="card" style="box-shadow:none"
 function renderAnalytics(){
   const emotions=app.emotions, hw=app.homeworkReports, comments=app.teacherComments, notices=app.schoolNotices, acts=app.activityReports||[];
   const lastMood=emotions.length?emotions[emotions.length-1].mood:'未記錄';
+  const st=v74GrowthStats();
   $('analytics').innerHTML=`<div class="card">
     <h2>🤖 分析 Dashboard</h2>
     <div class="grid">
@@ -2634,39 +2890,60 @@ function renderAnalytics(){
       <div class="metric"><b>${comments.length}</b><span>老師 Comment</span></div>
       <div class="metric"><b>${notices.length}</b><span>學校通知</span></div>
       <div class="metric"><b>${acts.length}</b><span>活動進度</span></div>
+      <div class="metric"><b>${st.readiness}</b><span>Growth Memory /100</span></div>
     </div>
-    <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。記錄越穩定，weekly report 越準。</div>
+    <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。Report Engine v1 會把功課、情緒、老師 comment 和活動資料轉成可累積趨勢。</div>
   </div>
+  ${v74ReportEngineSnapshotHTML()}
   <div class="card">
     <h2>🧾 Weekly Review / 家長小結</h2>
     ${weeklyReportHTML()}
-  </div>`;
+  </div>
+  ${v74FrameworkHTML()}`;
 }
+
 function weeklyReportHTML(){
+  const st=v74GrowthStats();
   const total=app.todayTasks.length+app.schoolNotices.length+app.routines.length+app.emotions.length+app.homeworkReports.length+app.teacherComments.length+(app.activityReports||[]).length;
-  const recentMoods=app.emotions.slice(-7).map(e=>e.mood);
-  const tired=recentMoods.filter(m=>/tired|frustrated/i.test(m)).length;
-  const busyDays=DAYS.map(d=>[d,routinesForDay(d,false).length]).sort((a,b)=>b[1]-a[1]);
-  const topBusy=busyDays[0];
-  const latestHW=app.homeworkReports.slice(-1)[0]?.report;
-  const latestAct=(app.activityReports||[]).slice(-1)[0]?.report;
+  const recentHW=st.list;
+  const topStrong=st.strong.slice(0,4).map(([k,v])=>`${k} ×${v}`);
+  const topReview=st.review.slice(0,4).map(([k,v])=>`${k} ×${v}`);
+  const topErrors=st.errors.slice(0,4).map(([k,v])=>`${k} ×${v}`);
+  const subject=st.subjects[0]?.[0]||'未明確';
+  const recentMoods=st.moods;
   const openNotices=app.schoolNotices.filter(n=>!n.done && (!n.date || n.date>=todayISO()));
-  const observations=[
-    app.routines.length?`固定行程已建立 ${app.routines.filter(r=>!r.oneOffDate).length} 項，可開始比較活動量與功課狀態。`:'固定行程資料仍不足，建議先加入 Mon–Fri school 及主要課外活動。',
-    recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。${tired?'有疲倦/挫敗訊號，活動多的日子要減量。':'暫時未見明顯疲倦模式。'}`:'未有足夠情緒記錄。',
-    openNotices.length?`有 ${openNotices.length} 個未完成學校通知，需檢查要帶物品 / 付款 / deadline。`:'暫時沒有未完成學校通知。',
-    latestHW?`最近功課重點：${latestHW.nextStep||latestHW.summary||'可按 homework report 下一步跟進。'}`:'未有足夠功課分析資料.',
-    latestAct?`最近活動重點：${latestAct.nextPractice||latestAct.summary||'可按 Activity Progress report 下一步跟進。'}`:'未有活動進度分析資料。'
+  const latestHW=recentHW.slice(-1)[0]?.report;
+  const latestAct=(app.activityReports||[]).slice(-1)[0]?.report;
+  const topBusy=st.busyDays[0];
+  const academic=[
+    recentHW.length?`最近 ${recentHW.length} 份功課記錄主要集中在 ${subject}。`:'未有足夠功課資料。',
+    topStrong.length?`較明顯強項：${topStrong.join('、')}。`:'強項 tags 仍不足，需要多 2–3 份功課分析。',
+    topReview.length?`較常覆核：${topReview.join('、')}。`:'暫時未見反覆覆核 pattern。',
+    topErrors.length?`可能錯誤類型：${topErrors.join('、')}。`:'錯誤類型資料仍不足。',
+    st.avgQuality?`最近 report 平均 quality：${st.avgQuality}/100。`:'Report quality 仍未有足夠樣本。'
   ];
-  const nextActions=[
-    '下星期只揀一個學習重點，例如 number patterns / reading details。',
-    '每天最多記錄一個情緒或一張功課相，保持資料穩定。',
-    topBusy&&topBusy[1]>=2?`${DAY_LABEL[topBusy[0]]} 較忙，當日功課建議輕量。`:'活動量暫時不算密集，可以安排短練習。'
+  const emotion=[
+    recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
+    st.tired?`有 ${st.tired} 次 tired/frustrated 訊號；活動多或夜晚功課時建議減量。`:'暫時未見明顯疲倦 / 挫敗 pattern。',
+    topBusy&&topBusy[1]>=2?`${DAY_LABEL[topBusy[0]]} 固定活動較多，當日建議安排輕量功課。`:'固定活動量暫時不算密集。'
   ];
-  return `<div class="reportBlock"><b>1. 本週資料</b><ul><li>目前共有 ${total} 項資料。</li><li>固定行程：${app.routines.filter(r=>!r.oneOffDate).length} 項。</li><li>功課分析：${app.homeworkReports.length} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
-  <div class="reportBlock"><b>2. AI 觀察</b>${compactList(observations)}</div>
-  <div class="reportBlock"><b>3. 家長下一步</b>${compactList(nextActions)}</div>
-  <div class="notice">提醒：呢份 weekly review 係 beta，資料越穩定越準；唔需要每日填好多，最重要係持續。</div>`;
+  const comments=[
+    app.teacherComments.length?`學校老師 comment 已有 ${app.teacherComments.length} 條，可開始連結學校觀察與功課表現。`:'未有足夠學校老師 comment。',
+    (app.activityReports||[]).length?`課外活動進度已有 ${(app.activityReports||[]).length} 條，之後可分開看 activity progress。`:'未有足夠課外活動進度。',
+    openNotices.length?`仍有 ${openNotices.length} 個未完成學校通知，需要檢查準備物品 / 付款 / deadline。`:'暫時沒有未完成學校通知。'
+  ];
+  const actions=[
+    latestHW?.nextStep || '先累積 2–3 份功課分析，Report Engine 才能更準確。',
+    topReview[0]?`今週只揀一個重點練：${topReview[0].replace(/ ×\d+$/,'')}。每次 10–15 分鐘。`:'今週先保持穩定記錄，不需要加太多任務。',
+    st.tired?'Tired / frustrated 日子只做 reading log 或簡短練習，不安排深度數學。':'活動多日仍建議短練習，避免一次做太多。'
+  ];
+  return `<div class="reportBlock"><b>1. This Week Snapshot</b><ul><li>目前共有 ${total} 項資料。</li><li>Growth Memory readiness：${st.readiness}/100。</li><li>功課分析：${app.homeworkReports.length} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
+  <div class="reportBlock"><b>2. Academic Progress / 學習趨勢</b>${compactList(academic)}</div>
+  <div class="reportBlock"><b>3. Repeated Review Areas / 反覆留意位</b><div class="growthTagWrap">${v74TagHTML(st.review.slice(0,6).map(([k,v])=>`${k} ×${v}`),'review') || '<span class="muted">資料仍不足</span>'}</div></div>
+  <div class="reportBlock"><b>4. Emotion & Energy Pattern</b>${compactList(emotion)}</div>
+  <div class="reportBlock"><b>5. School / Activity Comments</b>${compactList(comments)}</div>
+  <div class="reportBlock"><b>6. Parent Action Plan</b>${compactList(actions)}</div>
+  <div class="notice">Report Engine v1 仍是 beta：它會從已儲存的 homework / emotion / teacher comment / activity progress 找 pattern。資料越穩定、越多次，weekly / growth report 會越準。</div>`;
 }
 
 function renderProfile(){
