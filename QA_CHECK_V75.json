@@ -1,0 +1,12 @@
+{
+  "version": true,
+  "prompt simplified": true,
+  "image dedupe": true,
+  "error shown": true,
+  "Growth Memory retained": true,
+  "V72 calendar retained": true,
+  "V70 classification retained": true,
+  "official slogan retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}

@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v74 Report Engine v1</title>
+  <title>ChildGrowth AI v75 Homework AI Reliability Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -2278,7 +2278,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V74：Report Engine v1 已加入 Growth Memory tags。每份功課會儲存 subject、level、strong skills、review skills、error type、confidence、next step，為 weekly / growth report 做基礎。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
+    <div class="hwActionNote">V75：修復 Homework AI 分析穩定性。保留 Report Engine v1，但簡化後端 prompt、避免同一張相重複傳送，並顯示真正錯誤原因方便 debug。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
     <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2828,7 +2828,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
-    $('hwStatus').innerHTML='<div class="notice">AI 分析未成功，但這次 upload 已保存。請把完整錯誤截圖給我。</div>';
+    $('hwStatus').innerHTML=`<div class="notice">AI 分析未成功，但這次 upload 已保存。錯誤：${esc(e.message||String(e))}</div>`;
   }
 }
 window.analyzeHomework=async()=>{
