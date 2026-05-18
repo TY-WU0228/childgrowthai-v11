@@ -109,9 +109,9 @@ ${JSON.stringify(context, null, 2)}
 1. 先看圖片上是否有 Year / Level / Grade / Term / worksheet 標題。看不到就講「相片上未見明確年級」。
 2. 比較 worksheet level 和小朋友目前年級，但不要講「資優 / 智力高 / 智力低」。
 3. 你不是正式批改老師；鉛筆字、陰影、角度可能令你誤讀。看不清就寫【需家長確認】。
-4. 「已做得好的地方」只放正確 / 做得好 / 成功推算 / 暫未見錯誤。
-5. 「需要覆核的位置」只放【明確錯】、【需家長確認】、未完成 / 漏做。
-6. 如果一句同時有「正確應該係31 / 應該係31 / Janice寫21」，這是錯題，要放入需要覆核。
+4. 「已做得好的地方」只放正確 / 做得好 / 成功推算 / 暫未見錯誤。不要把任何錯題放入這裡。
+5. 「需要覆核的位置」只放【明確錯】、【需家長確認】、未完成 / 漏做。正確題、暫無錯、答案正確不可放入這裡。
+6. 如果你在任何段落提到「18+13寫咗21」或「正確應該係31」，一定要在需要覆核列出【明確錯】18+13=21，正確應為31。
 7. 如果一句有「寫得正確 / 答對 / 成功推算 / 暫未見錯誤」，不可放入需要覆核。
 8. 每個判斷要有證據：我見到咩，所以推論咩。
 9. 不作醫療、心理、讀寫障礙、ADHD 或資優診斷。
@@ -341,6 +341,79 @@ function sanitizeStructuredReportV70(report) {
   return report;
 }
 
+
+function calcExpressionV76(expr) {
+  try {
+    const cleaned = String(expr || '').replace(/×/g, '*').replace(/x/gi, '*').replace(/÷/g, '/').replace(/[^0-9+\-*/(). ]/g, '');
+    if (!cleaned || !/[+\-*/]/.test(cleaned)) return null;
+    if (!/^[0-9+\-*/().\s]+$/.test(cleaned)) return null;
+    const val = Function('"use strict";return (' + cleaned + ')')();
+    if (Number.isFinite(val) && Math.abs(val - Math.round(val)) < 1e-9) return Math.round(val);
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+function extractArithmeticErrorsV76(text) {
+  const s = String(text || '').replace(/×/g, 'x').replace(/\s+/g, ' ');
+  const out = [];
+  const patterns = [
+    /((?:\d+\s*[+xX*]\s*)+\d+)\s*(?:=|＝)?\s*(?:寫咗|寫了|寫|答咗|答了|答|Janice\s*(?:寫|答))\s*(\d+)/g,
+    /((?:\d+\s*[+xX*]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/g
+  ];
+  patterns.forEach(rx => {
+    let m;
+    while ((m = rx.exec(s)) !== null) {
+      const expr = m[1];
+      const childAns = parseInt(m[2], 10);
+      const correct = calcExpressionV76(expr);
+      if (correct === null) continue;
+      if (childAns !== correct) {
+        out.push(`【明確錯】${expr.replace(/\s+/g, '')} = ${childAns}，正確應為 ${correct}`);
+      }
+    }
+  });
+  return out;
+}
+function isPositiveOnlyLineV76(line) {
+  const s = String(line || '');
+  const hasPositive = /正確|暫無錯|暫未見錯|暫時未見錯|暫時未見到錯|未見錯誤|答案正確|寫得正確|暫無錯誤|暫未見明確錯|答對|答啱|成功推算|掌握|順利/i.test(s);
+  const hasError = /明確錯|正確應該|正確應為|應該係|應為|應是|錯誤|計錯|寫咗\s*\d+|寫了\s*\d+|寫\s*\d+.*正確應/i.test(s);
+  return hasPositive && !hasError;
+}
+function hardGuardReportV76(report) {
+  report = report || {};
+  const good = [];
+  const review = [];
+  (Array.isArray(report.strengths) ? report.strengths : []).forEach(x => {
+    const s = normalizeReportLine ? normalizeReportLine(x) : String(x || '').trim();
+    if (!s) return;
+    const errs = extractArithmeticErrorsV76(s);
+    if (errs.length) review.push(...errs);
+    else good.push(s);
+  });
+  (Array.isArray(report.checkPoints) ? report.checkPoints : []).forEach(x => {
+    const s = normalizeReportLine ? normalizeReportLine(x) : String(x || '').trim();
+    if (!s) return;
+    const errs = extractArithmeticErrorsV76(s);
+    if (errs.length) { review.push(...errs); return; }
+    if (isPositiveOnlyLineV76(s)) {
+      good.push(s.replace(/^\s*請家長確認[:：]?\s*/, '').replace(/^\s*【明確錯】\s*/, '').replace(/^\s*【需家長確認】\s*/, ''));
+      return;
+    }
+    review.push(s);
+  });
+  const scanText = [
+    ...(Array.isArray(report.reasons) ? report.reasons : []),
+    report.parentInterpretation,
+    report.rawAnalysis
+  ].filter(Boolean).join(' ');
+  review.push(...extractArithmeticErrorsV76(scanText));
+  report.strengths = uniqueLinesV70 ? uniqueLinesV70(good).slice(0, 6) : [...new Set(good)].slice(0, 6);
+  report.checkPoints = uniqueLinesV70 ? uniqueLinesV70(review).slice(0, 6) : [...new Set(review)].slice(0, 6);
+  return report;
+}
+
 function buildStructuredHomeworkReport(raw) {
   const text = cleanParentText(raw || '');
   const level = sectionBetween(text, ['🌟 0. Learning level awareness', '0. Learning level awareness', 'Learning level awareness'], ['📌 1.', '1. 我大約', '⚠️ 2.']);
@@ -367,7 +440,7 @@ function buildStructuredHomeworkReport(raw) {
     confidence: 'medium',
     rawAnalysis: text
   };
-  return sanitizeStructuredReportV70(report);
+  return hardGuardReportV76(sanitizeStructuredReportV70(report));
 }
 
 function friendlyError(msg) {

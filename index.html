@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v75 Homework AI Reliability Fix</title>
+  <title>ChildGrowth AI v76 Homework Classification Guard</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -2278,7 +2278,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選多張相，例如第 1 頁、第 2 頁、答案頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V75：修復 Homework AI 分析穩定性。保留 Report Engine v1，但簡化後端 prompt、避免同一張相重複傳送，並顯示真正錯誤原因方便 debug。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
+    <div class="hwActionNote">V76：加入 Homework Classification Guard。正確題不會留在「需要覆核」；AI 在原因段提到的清楚算錯題，會自動補入「需要覆核」。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
     <label>Upload homework photos</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2551,6 +2551,71 @@ function v70SanitizeHomeworkReport(r){
 }
 
 
+
+function v76CalcExpression(expr){
+  try{
+    const cleaned=String(expr||'').replace(/×/g,'*').replace(/x/gi,'*').replace(/÷/g,'/').replace(/[^0-9+\-*/(). ]/g,'');
+    if(!cleaned || !/[+\-*/]/.test(cleaned)) return null;
+    // simple arithmetic only
+    if(!/^[0-9+\-*/().\s]+$/.test(cleaned)) return null;
+    const val=Function('"use strict";return ('+cleaned+')')();
+    if(Number.isFinite(val) && Math.abs(val-Math.round(val))<1e-9) return Math.round(val);
+    return null;
+  }catch(e){return null;}
+}
+function v76ExtractArithmeticErrors(text){
+  const s=String(text||'').replace(/×/g,'x').replace(/\s+/g,' ');
+  const out=[];
+  const patterns=[
+    /((?:\d+\s*[+xX*]\s*)+\d+)\s*(?:=|＝)?\s*(?:寫咗|寫了|寫|答咗|答了|答|Janice\s*(?:寫|答))\s*(\d+)/g,
+    /((?:\d+\s*[+xX*]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/g
+  ];
+  patterns.forEach(rx=>{
+    let m;
+    while((m=rx.exec(s))!==null){
+      const expr=m[1];
+      const childAns=parseInt(m[2],10);
+      const correct=v76CalcExpression(expr);
+      if(correct===null) continue;
+      if(childAns!==correct){
+        out.push(`【明確錯】${expr.replace(/\s+/g,'')} = ${childAns}，正確應為 ${correct}`);
+      }
+    }
+  });
+  return out;
+}
+function v76IsPositiveOnlyLine(line){
+  const s=String(line||'');
+  const hasPositive=/正確|暫無錯|暫未見錯|暫時未見錯|暫時未見到錯|未見錯誤|答案正確|寫得正確|暫無錯誤|暫未見明確錯|答對|答啱|成功推算|掌握|順利/i.test(s);
+  const hasError=/明確錯|正確應該|正確應為|應該係|應為|應是|錯誤|計錯|寫咗\s*\d+|寫了\s*\d+|寫\s*\d+.*正確應/i.test(s);
+  return hasPositive && !hasError;
+}
+function v76HardGuardHomeworkReport(r){
+  r=r||{};
+  const good=[];
+  const review=[];
+  (Array.isArray(r.strengths)?r.strengths:[]).forEach(x=>{
+    const s=v70NormalizeLine? v70NormalizeLine(x):String(x||'').trim();
+    if(!s) return;
+    if(v76ExtractArithmeticErrors(s).length){review.push(...v76ExtractArithmeticErrors(s));}
+    else good.push(s);
+  });
+  (Array.isArray(r.checkPoints)?r.checkPoints:[]).forEach(x=>{
+    const s=v70NormalizeLine? v70NormalizeLine(x):String(x||'').trim();
+    if(!s) return;
+    const mathErr=v76ExtractArithmeticErrors(s);
+    if(mathErr.length){review.push(...mathErr); return;}
+    if(v76IsPositiveOnlyLine(s)){good.push(s.replace(/^\s*請家長確認[:：]?\s*/,'').replace(/^\s*【明確錯】\s*/,'').replace(/^\s*【需家長確認】\s*/,'')); return;}
+    review.push(s);
+  });
+  // Also scan reasons/rawAnalysis: if AI says "18+13寫咗21" there, add it to Review.
+  const scanText=[...(Array.isArray(r.reasons)?r.reasons:[]),r.parentInterpretation,r.rawAnalysis].filter(Boolean).join(' ');
+  review.push(...v76ExtractArithmeticErrors(scanText));
+  r.strengths=v70Unique? v70Unique(good).slice(0,6):Array.from(new Set(good)).slice(0,6);
+  r.checkPoints=v70Unique? v70Unique(review).slice(0,6):Array.from(new Set(review)).slice(0,6);
+  return r;
+}
+
 function v74TextOfReport(r){
   return [
     r?.title,r?.shortSummary,r?.summary,r?.levelAwareness,
@@ -2631,7 +2696,7 @@ function v74QualityScore(r){
   return Math.max(0,Math.min(100,score));
 }
 function v74EnrichHomeworkReport(report, note='', imageCount=0){
-  report=v70SanitizeHomeworkReport(report||{});
+  report=v76HardGuardHomeworkReport(v70SanitizeHomeworkReport(report||{}));
   const allText=v74TextOfReport(report)+' '+String(note||'');
   const strongText=(report.strengths||[]).join(' ');
   const reviewText=[...(report.checkPoints||[]),...(report.reasons||[])].join(' ');
@@ -2871,7 +2936,7 @@ function homeworkReportHTML(r){
   <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
   <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>3. 需要覆核的位置（只放明確錯 / 看不清 / 未完成）</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>3. 需要覆核的位置（只放明確錯 / 看不清 / 未完成；正確題會自動移走）</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
   <div class="reportBlock"><b>4. 可能出錯原因</b>${compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
   ${r.parentInterpretation?`<div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(r.parentInterpretation)}</div></div>`:''}
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>

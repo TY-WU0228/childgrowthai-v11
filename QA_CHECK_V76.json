@@ -1,0 +1,12 @@
+{
+  "version": true,
+  "frontend hard guard": true,
+  "backend hard guard": true,
+  "18+13 prompt rule": true,
+  "V75 reliability retained": true,
+  "V74 report retained": true,
+  "V72 calendar retained": true,
+  "official slogan retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}
