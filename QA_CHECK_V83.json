@@ -1,0 +1,15 @@
+{
+  "version": true,
+  "one by one chunking": true,
+  "frontend retry": true,
+  "debug pills": true,
+  "backend fast model ignores OPENAI_MODEL": true,
+  "backend longer timeout": true,
+  "backend debug JSON": true,
+  "V82 retained": true,
+  "V81 retained": true,
+  "6 photos retained": true,
+  "main js syntax": true,
+  "functions syntax": true,
+  "runtime smoke": true
+}

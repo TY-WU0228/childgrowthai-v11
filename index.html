@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v82 Parent-facing Report Polish</title>
+  <title>ChildGrowth AI v84 Trial-ready QA + Report Wow Layer</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -960,6 +960,34 @@
     .v82EvidenceCard b{display:block;color:#0f172a}
     .v82EvidenceCard small{color:#64748b;font-weight:800}
     .qualityCaution{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:9px;font-weight:900;margin-top:8px}
+
+  
+    /* V83 Backend Reliability */
+    .reliabilityBox{background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:18px;padding:12px;margin-top:10px;font-weight:900;line-height:1.45}
+    .reliabilityWarn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:18px;padding:12px;margin-top:10px;font-weight:900;line-height:1.45}
+    .debugPills{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+    .debugPill{background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900;color:#475569}
+
+  
+    /* V84 Trial-ready QA + Report Wow Layer */
+    .wowHero{background:linear-gradient(135deg,#fff7ed,#eef2ff);border:1px solid #fed7aa;border-radius:24px;padding:16px;margin:12px 0}
+    .wowHero h2{margin:0 0 8px;font-size:28px}
+    .wowSentence{font-size:21px;line-height:1.55;font-weight:1000;color:#0f172a}
+    .wowSub{margin-top:8px;color:#64748b;font-weight:850;line-height:1.45}
+    .trialQABox{background:#f8fafc;border:1px solid #cbd5e1;border-radius:18px;padding:12px;margin-top:12px}
+    .trialQABox h3{margin:0 0 8px;font-size:20px}
+    .qaScoreRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+    .qaTile{background:white;border:1px solid #e5e7eb;border-radius:16px;padding:10px}
+    .qaTile b{display:block;font-size:24px;color:#2563eb}
+    .qaList{margin:8px 0 0 0;padding-left:20px;color:#475569;font-weight:850;line-height:1.45}
+    .qaPass{color:#166534}.qaWarn{color:#9a3412}.qaFail{color:#991b1b}
+    .trialChecklist{background:#f0f9ff;border:1px solid #bae6fd;border-radius:18px;padding:12px;margin-top:12px;color:#0c4a6e;font-weight:850;line-height:1.45}
+    .trialChecklist details{margin-top:8px}
+    .trialStatusPill{display:inline-flex;border-radius:999px;padding:5px 10px;font-weight:950;font-size:12px;border:1px solid #e2e8f0;background:#fff}
+    .trialReady{color:#166534;border-color:#86efac;background:#ecfdf5}
+    .trialNeedsWork{color:#9a3412;border-color:#fed7aa;background:#fff7ed}
+    .trialNotReady{color:#991b1b;border-color:#fecaca;background:#fef2f2}
+    .failSafeHero{background:#fff7ed;border:1px solid #fed7aa;border-radius:22px;padding:14px;margin:12px 0;color:#9a3412;font-weight:900;line-height:1.5}
 
   </style>
 </head>
@@ -2356,7 +2384,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選最多 6 張相，例如第 1–6 頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V82：Parent-facing Report Polish。家長先睇清楚結論，Reading Intelligence 改成直向卡片；technical evidence 預設收起；只把真正錯題/看不清放入覆核。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
+    <div class="hwActionNote">V84：Trial-ready QA + Report Wow Layer。加入家長 Wow Summary、內部 QA checklist、真實 report quality reasons、fail-safe report，不再把未完成分析扮成完整 report。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
     <label>Upload homework photos（最多 6 張）</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2406,8 +2434,8 @@ async function bindHomeworkFiles(){
     }
     const sendCount=Math.min(homeworkImages.length,6);
     const kb=Math.round(JSON.stringify(homeworkImages.slice(0,sendCount)).length/1024);
-    if($('hwImageInfo')) $('hwImageInfo').textContent=`已準備 ${homeworkImages.length} 張；會送頭 ${sendCount} 張去 AI。多於 2 張會自動分批分析，避免 timeout。估計傳送大小：${kb}KB\n`+info.join('\n');
-    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。V81 會先壓縮；多於 2 張會分批分析。如仍失敗，請試「只分析第一張」。</div>`;
+    if($('hwImageInfo')) $('hwImageInfo').textContent=`已準備 ${homeworkImages.length} 張；會送頭 ${sendCount} 張去 AI。V83 會逐張分析，多張相會自動分批並自動 retry，避免 timeout。估計傳送大小：${kb}KB\n`+info.join('\n');
+    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。V83 會先壓縮；多張相會逐張分析並自動 retry。如仍失敗，請試「只分析第一張」。</div>`;
   };
 }
 function fileToDataURL(file){
@@ -2500,6 +2528,8 @@ function homeworkFallbackReport(text, imageCount, errorMsg=''){
     checkPoints:[errorMsg || 'AI function 回傳錯誤；請看下面真實錯誤訊息。'],
     nextStep:'如果 3 張相未成功，請按「只分析第一張」先確認 AI 連線，成功後再試 2–3 張。',
     confidence:'low',
+    reportQuality:{score:35,label:'Upload saved / AI incomplete',checks:{analysisComplete:false}},
+    growth:{subject:'General Learning',worksheetLevel:'Unknown',childYear:app?.profile?.year||'',skillsStrong:[],skillsToReview:['AI incomplete'],errorTypes:['AI timeout / incomplete'],confidence:'Low',imageCount},
     rawAnalysis:''
   };
 }
@@ -3283,7 +3313,7 @@ function v74ReportEngineSnapshotHTML(){
 }
 function v74FrameworkHTML(){
   return `<div class="card frameworkBox">
-    <h2>📏 Report Quality Framework v1</h2>
+    <h2>📏 Report Quality Framework v2</h2>
     <div class="muted">內部標準：每份 report 要有證據、有分析、有方向、有下一步。</div>
     <details open><summary>一份 Wow report 要答到咩？</summary>
       <div class="frameworkBody">
@@ -3302,7 +3332,7 @@ function v74FrameworkHTML(){
     <details><summary>Report Quality Score /100</summary>
       <div class="frameworkBody">
         Level awareness 10｜具體題型 10｜強項/覆核分類 20｜原因分析 15｜下一步 15｜Growth tags 10｜家長語氣 10｜confidence 10。<br>
-        85+ = Wow-ready；75+ = Useful beta；低過 75 要補證據或更具體。
+        85+ = Trial-ready for friendly parents；70+ = Usable beta；低過 70 不建議給外人試。Confidence Low 或 AI incomplete 會自動 cap 分。
       </div>
     </details>
   </div>`;
@@ -3377,32 +3407,118 @@ function v81MergeHomeworkReports(reports, imageCount){
     imageCount
   };
 }
+
+function v83IsTimeoutError(msg){
+  return /timeout|逾時|aborted|504|Function did not return JSON|AI 分析逾時/i.test(String(msg||''));
+}
+function v83ImageKb(data){
+  return Math.round(String(data||'').length/1024);
+}
+function v83DebugFromData(data){
+  const d=data?.debug||{};
+  const parts=[];
+  if(data?.model) parts.push(`model: ${data.model}`);
+  if(data?.route) parts.push(`route: ${data.route}`);
+  if(data?.imageCount) parts.push(`${data.imageCount} 張`);
+  if(d.timeoutMs) parts.push(`timeout ${d.timeoutMs}ms`);
+  if(d.approxKB) parts.push(`${d.approxKB}KB`);
+  if(data?.retries) parts.push(`retry ${data.retries}`);
+  return parts;
+}
+function v83ShrinkDataUrl(dataUrl,maxDim=850,quality=0.48){
+  return new Promise(resolve=>{
+    try{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        const scale=Math.min(1,maxDim/Math.max(w,h));
+        w=Math.max(1,Math.round(w*scale)); h=Math.max(1,Math.round(h*scale));
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        let out=canvas.toDataURL('image/jpeg',quality);
+        if(out.length>420*1024){
+          const c2=document.createElement('canvas');
+          const s2=Math.sqrt((420*1024)/out.length);
+          c2.width=Math.max(650,Math.round(w*s2));
+          c2.height=Math.max(650,Math.round(h*s2));
+          const x2=c2.getContext('2d');
+          x2.fillStyle='#fff'; x2.fillRect(0,0,c2.width,c2.height);
+          x2.drawImage(img,0,0,c2.width,c2.height);
+          out=c2.toDataURL('image/jpeg',0.42);
+        }
+        resolve(out);
+      };
+      img.onerror=()=>resolve(dataUrl);
+      img.src=dataUrl;
+    }catch(e){resolve(dataUrl);}
+  });
+}
+async function sendHomeworkToAIWithRetry(imagesToSend, label=''){
+  const originalKb=Math.round(JSON.stringify(imagesToSend||[]).length/1024);
+  try{
+    return await sendHomeworkToAI(imagesToSend,{aiMode:'fast',reliabilityMode:'v83-first',originalKb});
+  }catch(e){
+    const msg=e.message||String(e);
+    if(!v83IsTimeoutError(msg) || !(imagesToSend||[]).length) throw e;
+    if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">AI 第一次逾時，正在自動 retry：改用超壓縮圖片 + fast model。${label?esc(label):''}</div>`;
+    const smaller=[];
+    for(const img of imagesToSend){ smaller.push(await v83ShrinkDataUrl(img,850,0.46)); }
+    const retryKb=Math.round(JSON.stringify(smaller).length/1024);
+    const data=await sendHomeworkToAI(smaller,{aiMode:'fast',reliabilityMode:'v83-retry-ultra-compressed',originalKb,retryKb,retry:true});
+    data.retries=(data.retries||0)+1;
+    data.debug={...(data.debug||{}),originalKb,retryKb,frontendRetry:true};
+    return data;
+  }
+}
+
 async function sendHomeworkToAIChunked(imagesToSend){
-  const maxPerCall=2;
-  if((imagesToSend||[]).length<=maxPerCall) return await sendHomeworkToAI(imagesToSend);
+  // V83: one image per AI call is slower but much more reliable on serverless.
+  const maxPerCall=1;
+  const total=Math.ceil((imagesToSend||[]).length/maxPerCall);
+  if((imagesToSend||[]).length<=maxPerCall) return await sendHomeworkToAIWithRetry(imagesToSend,'單張相');
   const all=[];
   const analyses=[];
-  let model='', route='chunked';
+  const errors=[];
+  let model='', route='chunked-v83', debugParts=[];
   for(let i=0;i<imagesToSend.length;i+=maxPerCall){
     const chunk=imagesToSend.slice(i,i+maxPerCall);
-    if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">正在分批分析功課... 第 ${Math.floor(i/maxPerCall)+1} 批 / ${Math.ceil(imagesToSend.length/maxPerCall)}，每批最多 ${maxPerCall} 張，避免 timeout。</div>`;
-    const data=await sendHomeworkToAI(chunk);
-    const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
-    all.push(report);
-    analyses.push(data.analysis||report.rawAnalysis||'');
-    model=data.model||model;
-    route=data.route||route;
+    const batchNo=Math.floor(i/maxPerCall)+1;
+    const kb=Math.round(JSON.stringify(chunk).length/1024);
+    if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">V83 正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。若逾時會自動 retry 超壓縮版本。</div>`;
+    try{
+      const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
+      const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+      all.push(report);
+      analyses.push(data.analysis||report.rawAnalysis||'');
+      model=data.model||model;
+      route=data.route||route;
+      debugParts.push(...v83DebugFromData(data));
+    }catch(e){
+      errors.push(`第 ${batchNo} 張：${e.message||String(e)}`);
+    }
+  }
+  if(!all.length){
+    throw new Error('所有圖片分析都逾時或失敗：'+errors.join('；'));
+  }
+  const merged=v81MergeHomeworkReports(all, imagesToSend.length);
+  if(errors.length){
+    merged.parentInterpretation=(merged.parentInterpretation||'')+` 部分圖片暫時未能完成分析：${errors.join('；')}`;
+    merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片 AI 未完成，建議稍後重試或用「只分析第一張」。'];
   }
   return {
-    analysis:analyses.filter(Boolean).join('\n\n--- 分批分析 ---\n\n'),
-    report:v81MergeHomeworkReports(all, imagesToSend.length),
+    analysis:analyses.filter(Boolean).join('\n\n--- V83 逐張分批分析 ---\n\n'),
+    report:merged,
     model,
-    route:'chunked-'+route,
-    imageCount:imagesToSend.length
+    route:'v83-one-by-one-'+route,
+    imageCount:imagesToSend.length,
+    debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
   };
 }
 
-async function sendHomeworkToAI(imagesToSend){
+async function sendHomeworkToAI(imagesToSend, options={}){
   const text=$('hwText').value.trim();
   const payload={
     text,
@@ -3413,6 +3529,9 @@ async function sendHomeworkToAI(imagesToSend){
     subject:'Homework',
     status:'uploaded',
     child:{name:app.profile.childName,year:app.profile.year},
+    aiMode:options.aiMode||'fast',
+    reliabilityMode:options.reliabilityMode||'v83',
+    frontendDebug:{originalKb:options.originalKb||0,retryKb:options.retryKb||0,retry:!!options.retry},
     learningContext:{
       childCurrentYear:app.profile.year,
       childName:app.profile.childName,
@@ -3437,23 +3556,26 @@ async function sendHomeworkToAI(imagesToSend){
 async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const text=$('hwText').value.trim();
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。${imagesToSend.length>2?' 會分批處理避免 timeout。':''}</div>`;
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。${imagesToSend.length>1?' V83 會逐張處理避免 timeout。':''}</div>`;
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
     const report=normalizeHomeworkReport(data,text,imagesToSend.length);
-    app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model});
+    report.runtime={success:true,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
+    app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
-    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${data.model?(' Model: '+esc(data.model)):''}</div>`;
+    const dbg=v83DebugFromData(data);
+    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${data.model?(' Model: '+esc(data.model)):''}${dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
   }catch(e){
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
+    report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e)});
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
-    $('hwStatus').innerHTML=`<div class="notice">AI 分析未成功，但這次 upload 已保存。錯誤：${esc(e.message||String(e))}</div>`;
+    $('hwStatus').innerHTML=`<div class="notice">AI 分析未成功，但這次 upload 已保存。錯誤：${esc(e.message||String(e))}<div class="reliabilityWarn">V83 建議：先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。</div></div>`;
   }
 }
 window.analyzeHomework=async()=>{
@@ -3471,7 +3593,7 @@ window.analyzeHomeworkFirstOnly=async()=>{
 function viewHomeworkReport(id, scroll=false){
   const record=app.homeworkReports.find(h=>String(h.id)===String(id));
   if(!record || !$('hwResult')) return;
-  $('hwResult').innerHTML=homeworkReportHTML(record.report) + (record.error?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
+  $('hwResult').innerHTML=homeworkReportHTML(record.report, record) + (record.error?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
   if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
 
@@ -3662,7 +3784,97 @@ function v82ParentStrengths(report){
   return report.strengths||[];
 }
 
-function homeworkReportHTML(r){
+
+function v84Unique(arr){
+  const out=[]; const seen=new Set();
+  (arr||[]).forEach(x=>{const s=String(x||'').trim(); if(!s) return; const k=s.toLowerCase().replace(/\s+/g,' '); if(seen.has(k)) return; seen.add(k); out.push(s);});
+  return out;
+}
+function v84IsIncompleteReport(report, record){
+  const text=[report?.summary,report?.shortSummary,report?.parentInterpretation,report?.levelAwareness,record?.error,report?.runtime?.error].join(' ');
+  return !!(record?.offline || report?.runtime?.success===false || /AI 暫時未能完成|等待 AI|分析未成功|逾時|timeout|upload 已保存|未完成分析/i.test(text));
+}
+function v84CleanSkills(items){
+  return v84Unique((items||[]).filter(x=>x&&!v80IsGenericTag(x)).map(x=>String(x).trim()))
+    .filter(x=>!/none clearly|handwriting \/ photo unclear|photo unclear|careless \/ rushing/i.test(x)).slice(0,6);
+}
+function v84ReportQA(report, record={}){
+  const e=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  const reading=v82ReadingRows(e);
+  const trueReview=v82TrueReviewEvidence(report);
+  const incomplete=v84IsIncompleteReport(report,record);
+  const confidence=String(report?.growth?.confidence||report?.confidence||'Medium');
+  const low=/low/i.test(confidence);
+  const hasParent=!!v82CleanText(report?.parentInterpretation||report?.shortSummary);
+  const hasNext=!!v82CleanText(report?.nextStep);
+  const hasStrong=v84CleanSkills(report?.growth?.skillsStrong||[]).length>0 || e.some(x=>x.status==='correct');
+  const noisyRaw=(report?.engineV2?.evidence||[]).length-e.length;
+  const contradictions=(report?.checkPoints||[]).filter(x=>/明確錯|需要覆核/.test(String(x)) && /正確|無需覆核|目前答案正確|暫未見/.test(String(x))).length;
+  const reasons=[]; let score=0;
+  if(!incomplete){score+=15; reasons.push(['pass','AI 完成分析，不是 fallback report']);} else reasons.push(['fail','AI 未完成完整分析，不能當正式 report']);
+  if(e.length>=1){score+=15; reasons.push(['pass',`有 ${e.length} 條乾淨 evidence`]);} else reasons.push(['warn','未有乾淨題目 evidence']);
+  if(reading.length>=3 || e.filter(x=>/[+\-xX*×÷\/]/.test(x.question||'')).length>=3){score+=15; reasons.push(['pass','有足夠題目級別 evidence']);} else if(e.length){score+=8; reasons.push(['warn','題目級 evidence 數量仍偏少']);}
+  if(contradictions===0){score+=15; reasons.push(['pass','未見分類矛盾']);} else reasons.push(['fail',`發現 ${contradictions} 個分類矛盾`]);
+  if(hasStrong){score+=10; reasons.push(['pass','有具體 strong skill / 做得好位置']);} else reasons.push(['warn','strong skill 不夠具體']);
+  if(trueReview.length || v82ReviewList(report).some(x=>/暫未見明確錯題/.test(x))){score+=10; reasons.push(['pass','覆核區有清楚規則']);} else reasons.push(['warn','覆核區未夠乾淨']);
+  if(hasParent){score+=10; reasons.push(['pass','有家長可讀解讀']);} else reasons.push(['warn','缺少家長解讀']);
+  if(hasNext){score+=10; reasons.push(['pass','有今晚可做的一件事']);} else reasons.push(['warn','缺少具體 next step']);
+  if(noisyRaw<=3){score+=5; reasons.push(['pass','technical noise 已控制']);} else reasons.push(['warn',`仍有 ${noisyRaw} 條 evidence 被清走`]);
+  if(low){score=Math.min(score,78); reasons.push(['warn','Confidence Low：trial 時要小心解讀']);}
+  score=Math.max(0,Math.min(95,Math.round(score)));
+  let label='Not trial-ready', cls='trialNotReady';
+  if(score>=85 && !incomplete){label='Trial-ready for friendly parents'; cls='trialReady';}
+  else if(score>=70 && !incomplete){label='Usable beta, test carefully'; cls='trialNeedsWork';}
+  return {score,label,cls,reasons,incomplete,confidence,evidenceCount:e.length,readingCount:reading.length,contradictions,noisyRaw};
+}
+function v84WowSummary(report, record={}){
+  if(report?.wowSummary) return String(report.wowSummary).trim();
+  if(v84IsIncompleteReport(report,record)){
+    const n=record?.imageCount||report?.growth?.imageCount||0;
+    return `已收到${n?` ${n} 張`:''}功課圖片，但 AI 未完成分析；今次只作 upload 保存，請稍後重試或先分析第一張。`;
+  }
+  const e=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  const reading=v82ReadingRows(e);
+  const review=v82TrueReviewEvidence(report);
+  const strong=v84CleanSkills(report?.growth?.skillsStrong||[]);
+  const subject=String(report?.growth?.subject||'');
+  if(reading.length>=3 && reading.every(x=>x.status==='correct')){
+    const skills=v84Unique(reading.map(x=>v82NiceFocus(x).replace(/ \/ .*/,'')).filter(Boolean)).slice(0,4).join('、');
+    return `今日最值得留意：Janice 能處理${report?.growth?.worksheetLevel||'這份'}英文閱讀，${skills||'reading detail'} 都答得穩，顯示佢開始掌握題目重點。`;
+  }
+  if(/Math|數學|Addition|Multiplication/i.test(subject) || e.some(x=>/[+\-xX*×÷\/]/.test(x.question||''))){
+    const correct=e.filter(x=>x.status==='correct').length, wrong=e.filter(x=>x.status==='wrong').length;
+    if(wrong) return `今日最值得留意：Janice 有 ${correct} 題做得穩，但有 ${wrong} 個位值得覆核；今晚集中講一題代表性錯題就夠。`;
+    if(correct) return `今日最值得留意：Janice 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
+  }
+  if(review.length) return `今日最值得留意：AI 找到 ${review.length} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
+  if(strong.length) return `今日最值得留意：Janice 在 ${strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
+  return v82ParentInsight(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
+}
+function v84QAHTML(report, record={}){
+  const qa=v84ReportQA(report,record);
+  return `<details class="trialQABox">
+    <summary><h3 style="display:inline">🧪 Trial QA check</h3> <span class="trialStatusPill ${qa.cls}">${qa.label} · ${qa.score}/100</span></summary>
+    <div class="qaScoreRow">
+      <div class="qaTile"><b>${qa.score}</b><span>Trial quality /100</span></div>
+      <div class="qaTile"><b>${qa.evidenceCount}</b><span>Clean evidence</span></div>
+      <div class="qaTile"><b>${qa.readingCount}</b><span>Reading cards</span></div>
+      <div class="qaTile"><b>${qa.contradictions}</b><span>Contradictions</span></div>
+    </div>
+    <ul class="qaList">${qa.reasons.map(([type,msg])=>`<li class="${type==='pass'?'qaPass':type==='fail'?'qaFail':'qaWarn'}">${esc(msg)}</li>`).join('')}</ul>
+    <div class="debugPills">${(record?.model?[`model: ${record.model}`]:[]).concat(record?.route?[`route: ${record.route}`]:[],record?.imageCount?[`${record.imageCount} 張相`]:[],record?.error?[`error saved`]:[]).map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>
+  </details>`;
+}
+function v84TrialChecklistHTML(){
+  return `<div class="trialChecklist"><b>V84 Trial-ready checklist</b>
+    <details><summary>測試前建議用同一批相做 smoke test</summary>
+      1 張清晰數學｜1 張有錯數學｜1 張英文閱讀｜3 張多頁功課｜1 張反光/模糊相。<br>
+      合格目標：1 張成功率 90%+；3 張成功率 80%+；失敗時不可出 technical error；家長重點要一眼明。
+    </details>
+  </div>`;
+}
+
+function homeworkReportHTML(r, record={}){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
   // Rebuild clean engine view using V82 filters.
   if(r.engineV2){
@@ -3675,19 +3887,24 @@ function homeworkReportHTML(r){
   r.reportQuality.label=cleanScore>=88?'Parent-ready':cleanScore>=78?'Useful beta':cleanScore>=65?'Needs evidence clean-up':'Insufficient data';
   const q=r.reportQuality||{};
   const g=r.growth||{};
+  const trialQA=v84ReportQA(r,record);
+  q.score=trialQA.score;
+  q.label=trialQA.label;
   const reviewList=v82ReviewList(r);
   const reviewOk=reviewList.length===1 && /暫未見明確錯題/.test(reviewList[0]);
   const strongSkills=(g.skillsStrong||[]).filter(x=>x&&!v80IsGenericTag(x));
   const reviewSkills=reviewOk?[]:[...(g.skillsToReview||[]),...(g.errorTypes||[])].filter(x=>x&&!v80IsGenericTag(x));
   return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
 
-  <div class="parentHero">
-    <h2>👨‍👩‍👧 家長重點</h2>
-    <div class="bigInsight">${esc(v82ParentInsight(r))}</div>
+  <div class="wowHero">
+    <h2>✨ 今日最值得留意</h2>
+    <div class="wowSentence">${esc(v84WowSummary(r,record))}</div>
+    <div class="wowSub">${esc(v82ParentInsight(r))}</div>
     <div class="parentMiniGrid">
       <div class="parentMini"><b>今晚做一件事</b>${esc(v82NextStep(r))}</div>
-      <div class="parentMini"><b>Report confidence</b>${esc(g.confidence||r.confidence||'Medium')} · ${q.score}/100</div>
+      <div class="parentMini"><b>Trial readiness</b><span class="trialStatusPill ${trialQA.cls}">${esc(trialQA.label)} · ${trialQA.score}/100</span></div>
     </div>
+    ${trialQA.incomplete?'<div class="failSafeHero">Fail-safe：今次 AI 未完整分析，所以不會扮成完整 report。Upload 已保存，可稍後重試。</div>':''}
     ${String(g.confidence||r.confidence||'').toLowerCase()==='low'?'<div class="qualityCaution">Confidence Low：呢份 report 可作參考，但唔應該標為完全準確；建議補充更清晰/有答案嘅相。</div>':''}
   </div>
 
@@ -3706,8 +3923,8 @@ function homeworkReportHTML(r){
   </div>
 
   <div class="engineV2Card">
-    <h2>🧠 Parent-facing Homework Engine v2.2</h2>
-    <div class="v79Note">V82：家長先睇重點；Reading Intelligence 改成直向卡片；technical evidence 預設收起。</div>
+    <h2>🧠 Parent-facing Homework Engine v2.3</h2>
+    <div class="v79Note">V84：家長先睇 wow summary；QA / technical evidence 收起；未完整分析時顯示 fail-safe，不扮完整 report。</div>
     ${v80ReadingTableHTML(r.engineV2?.evidence||[])}
     <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
@@ -3720,6 +3937,7 @@ function homeworkReportHTML(r){
   <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(v82ParentInsight(r))}</div></div>
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v82NextStep(r))}</div></div>
 
+  ${v84QAHTML(r,record)}
   <details class="technicalDetails">
     <summary>Technical evidence（平時可不用看）</summary>
     <div class="technicalInner">

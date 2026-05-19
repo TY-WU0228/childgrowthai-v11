@@ -1,0 +1,15 @@
+{
+  "version": true,
+  "wow summary UI": true,
+  "trial QA panel": true,
+  "fail safe": true,
+  "trial checklist": true,
+  "report quality framework v2": true,
+  "runtime metadata": true,
+  "backend wow prompt": true,
+  "V83 retained": true,
+  "V82 retained": true,
+  "main js syntax": true,
+  "functions syntax": true,
+  "backend smoke": true
+}
