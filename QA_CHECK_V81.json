@@ -1,0 +1,14 @@
+{
+  "version": true,
+  "chunked frontend": true,
+  "adaptive compression": true,
+  "non-json message improved": true,
+  "backend early timeout": true,
+  "backend payload guard": true,
+  "fast default model": true,
+  "V80/V79 retained": true,
+  "6 photos retained": true,
+  "main js syntax": true,
+  "functions syntax": true,
+  "runtime smoke returns json": true
+}
