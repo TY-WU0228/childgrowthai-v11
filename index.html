@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v81 Homework AI JSON + Timeout Fix</title>
+  <title>ChildGrowth AI v82 Parent-facing Report Polish</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -928,6 +928,38 @@
     .readingTable td:first-child,.readingTable th:first-child{border-left:1px solid #e5e7eb;border-radius:12px 0 0 12px}
     .readingTable td:last-child,.readingTable th:last-child{border-right:1px solid #e5e7eb;border-radius:0 12px 12px 0}
     .v80CleanNote{background:#ecfeff;border:1px solid #a5f3fc;border-radius:16px;color:#155e75;padding:10px;font-weight:850;line-height:1.45;margin-top:10px}
+
+  
+    /* V82 Parent-facing Report Polish */
+    .parentHero{
+      background:linear-gradient(135deg,#eefcff,#f6f3ff);
+      border:1px solid #bfdbfe;border-radius:24px;padding:16px;margin:12px 0;
+    }
+    .parentHero h2{margin:0 0 8px;font-size:28px}
+    .parentHero .bigInsight{font-size:20px;line-height:1.55;font-weight:950;color:#0f172a}
+    .parentMiniGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .parentMini{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:12px}
+    .parentMini b{display:block;color:#2563eb;font-size:16px;margin-bottom:5px}
+    .readingCardList{display:grid;gap:10px;margin-top:10px}
+    .readingQCard{
+      background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:12px;
+      box-shadow:0 4px 12px rgba(15,23,42,.04)
+    }
+    .readingQTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .readingFocus{font-size:18px;font-weight:950;color:#0f172a}
+    .readingQuestion{margin-top:6px;color:#475569;font-weight:850;line-height:1.42}
+    .readingMeta{margin-top:8px;display:grid;grid-template-columns:1fr;gap:6px}
+    .readingMeta div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:8px;color:#334155;font-weight:850;line-height:1.35}
+    .parentReviewOk{background:#ecfdf5;border:1px solid #86efac;color:#166534;border-radius:16px;padding:12px;font-weight:950;line-height:1.45}
+    .technicalDetails{margin-top:12px;border:1px solid #e5e7eb;border-radius:18px;background:#fff;overflow:hidden}
+    .technicalDetails summary{cursor:pointer;padding:12px 14px;font-weight:950;color:#334155;list-style:none}
+    .technicalDetails summary::-webkit-details-marker{display:none}
+    .technicalDetails .technicalInner{padding:0 12px 12px}
+    .v82EvidenceCards{display:grid;gap:8px;margin-top:8px}
+    .v82EvidenceCard{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:10px}
+    .v82EvidenceCard b{display:block;color:#0f172a}
+    .v82EvidenceCard small{color:#64748b;font-weight:800}
+    .qualityCaution{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:14px;padding:9px;font-weight:900;margin-top:8px}
 
   </style>
 </head>
@@ -2324,7 +2356,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選最多 6 張相，例如第 1–6 頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V81：修復 Function did not return JSON。多張功課會分批送 AI，圖片壓縮更細，後端會在 timeout 前回傳 JSON 錯誤，避免 Netlify 回 HTML。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
+    <div class="hwActionNote">V82：Parent-facing Report Polish。家長先睇清楚結論，Reading Intelligence 改成直向卡片；technical evidence 預設收起；只把真正錯題/看不清放入覆核。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
     <label>Upload homework photos（最多 6 張）</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -3442,46 +3474,259 @@ function viewHomeworkReport(id, scroll=false){
   $('hwResult').innerHTML=homeworkReportHTML(record.report) + (record.error?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
   if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
+
+function v82StatusClass(status){
+  if(/Strong|Observed/i.test(status||'')) return 'statusStrong';
+  if(/Mixed/i.test(status||'')) return 'statusMixed';
+  if(/Needs Review/i.test(status||'')) return 'statusReview';
+  return 'statusInsufficient';
+}
+function v79StatusClass(status){
+  return v82StatusClass(status);
+}
+function v82CleanText(s){
+  return String(s||'').replace(/\s+/g,' ').trim();
+}
+function v82IsTrueQuestionEvidence(e){
+  if(!e||!e.question) return false;
+  const q=v82CleanText(e.question);
+  const ans=v82CleanText(e.studentAnswer);
+  const corr=v82CleanText(e.correctAnswer);
+  if(!q) return false;
+  if(typeof v80IsNoiseEvidenceLine==='function' && v80IsNoiseEvidenceLine(q)) return false;
+  if(/^(Reading comprehension overall|所有選擇題|四題選擇題|今次值得|值得肯定|能準確理解|Janice 有勇氣|暫未見|請家長確認|可能出錯原因)/i.test(q)) return false;
+  if(/(全部正確|理解得非常好|反映閱讀理解強|今天功課屬|Level 3|worksheet)/i.test(q) && !/[?？]|Q\d|第\s*\d+\s*題/.test(q)) return false;
+  const hasMath=/\d+\s*[+\-xX*×÷\/]\s*\d+/.test(q);
+  const hasChoice=/\b[A-D]\b/.test(ans+corr) || /What |Who |Why |How |Which |tone|purpose|recipient|instruction|\?|？/i.test(q);
+  const specific=!!(e.skill&&e.subSkill&&!v80IsGenericTag(e.skill)&&!v80IsGenericTag(e.subSkill));
+  return hasMath || hasChoice || specific;
+}
+function v82EvidenceSignature(e){
+  const q=v82CleanText(e.question).toLowerCase().replace(/^q\d+:\s*/,'');
+  const ans=v82CleanText(e.studentAnswer).toLowerCase();
+  const corr=v82CleanText(e.correctAnswer).toLowerCase();
+  const sub=v82CleanText(e.subSkill).toLowerCase();
+  // For reading, one card per real question / focus / answer.
+  if(e.skill==='Reading Comprehension'){
+    if(ans && ans!=='-' && corr && corr!=='-') return `reading|${sub}|${ans}|${corr}`;
+    return `reading|${sub}|${q.slice(0,80)}`;
+  }
+  return `${e.skill}|${sub}|${q}|${ans}|${corr}`;
+}
+function v82CleanEvidence(evidence){
+  const out=[]; const seen=new Set();
+  (v80FilterEvidence(evidence||[])||[]).forEach(e=>{
+    if(!v82IsTrueQuestionEvidence(e)) return;
+    const fixed={...e};
+    if(fixed.skill==='Reading Comprehension' && (!fixed.studentAnswer || fixed.studentAnswer==='all answered')){
+      // Keep only if it is a real question; otherwise skip summary rows.
+      if(!/[?？]|Q\d|第\s*\d+\s*題/i.test(fixed.question)) return;
+    }
+    const key=v82EvidenceSignature(fixed);
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push(fixed);
+  });
+  return out.slice(0,60);
+}
+function v79SkillTrend(evidence){
+  const map={};
+  v82CleanEvidence(evidence||[]).forEach(e=>{
+    const key=(e.skill||'General Learning')+'|'+(e.subSkill||'general');
+    if(!map[key]) map[key]={skill:e.skill||'General Learning',subSkill:e.subSkill||'general',correct:0,wrong:0,unclear:0,total:0,examples:[]};
+    const row=map[key];
+    row.total++;
+    if(e.status==='correct') row.correct++;
+    else if(e.status==='wrong') row.wrong++;
+    else row.unclear++;
+    if(row.examples.length<3) row.examples.push(e);
+  });
+  return Object.values(map).map(row=>{
+    const review=row.wrong+row.unclear;
+    let status='Insufficient Data';
+    if(row.correct>0 && review===0) status=row.total>=2?'Strong':'Observed Strong';
+    else if(row.wrong>=1 && row.wrong>=row.correct) status='Needs Review';
+    else if(row.correct>0 && review>0) status='Mixed';
+    row.status=status;
+    row.interpretation=v79SkillInterpretation(row);
+    return row;
+  }).sort((a,b)=> (b.wrong+b.unclear+b.correct)- (a.wrong+a.unclear+a.correct));
+}
+function v82ReadingRows(evidence){
+  return v82CleanEvidence(evidence||[]).filter(e=>e.skill==='Reading Comprehension').slice(0,8);
+}
+function v82NiceFocus(e){
+  const s=(e.subSkill||e.question||'Reading detail').toString();
+  if(/tone/i.test(s)) return 'Tone / 語氣';
+  if(/recipient/i.test(s)) return 'Recipients / 收信人';
+  if(/purpose/i.test(s)) return 'Purpose / 目的';
+  if(/instruction|detail/i.test(s)) return 'Details / Instructions';
+  if(/multiple choice/i.test(s)) return 'Multiple choice';
+  return s;
+}
+function v82AnswerLine(e){
+  const a=e.studentAnswer&&e.studentAnswer!=='-'?e.studentAnswer:'未能清楚抽取';
+  const c=e.correctAnswer&&e.correctAnswer!=='-'?e.correctAnswer:'未提供';
+  return `Janice：${a}${c&&c!=='未提供'?`｜正確：${c}`:''}`;
+}
+function v80ReadingTableHTML(evidence){
+  const rows=v82ReadingRows(evidence);
+  if(!rows.length) return '';
+  return `<div class="reportBlock"><b>Reading Intelligence</b>
+    <div class="muted">已改成家長易讀卡片；每題只保留一次，避免重複 tone / summary。</div>
+    <div class="readingCardList">${rows.map(e=>`<div class="readingQCard">
+      <div class="readingQTop">
+        <div class="readingFocus">${esc(v82NiceFocus(e))}</div>
+        <span class="statusPill ${e.status==='correct'?'correct':e.status==='wrong'?'wrong':'unclear'}">${e.status==='correct'?'Correct':e.status==='wrong'?'Review':'Unclear'}</span>
+      </div>
+      <div class="readingQuestion">${esc(e.question||'')}</div>
+      <div class="readingMeta">
+        <div>${esc(v82AnswerLine(e))}</div>
+      </div>
+    </div>`).join('')}</div>
+  </div>`;
+}
+function v82EvidenceCardsHTML(evidence){
+  const rows=v82CleanEvidence(evidence).slice(0,12);
+  if(!rows.length) return '<div class="muted">暫時未抽取到乾淨題目 evidence。</div>';
+  return `<div class="v82EvidenceCards">${rows.map(e=>`<div class="v82EvidenceCard">
+    <b>${esc(e.question||'')}</b>
+    <small>${esc(e.skill||'')} · ${esc(e.subSkill||'')}</small><br>
+    <small>Janice：${esc(e.studentAnswer||'-')}｜正確：${esc(e.correctAnswer||'-')}｜${esc(e.status||'')}</small>
+  </div>`).join('')}</div>`;
+}
+function v79EvidenceTableHTML(evidence){
+  return v82EvidenceCardsHTML(evidence);
+}
+function v82TrueReviewEvidence(report){
+  const ev=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  return ev.filter(e=>e.status==='wrong' || (e.status==='unclear' && (e.studentAnswer||e.correctAnswer)));
+}
+function v82ReviewList(report){
+  const trueReview=v82TrueReviewEvidence(report);
+  if(trueReview.length){
+    return trueReview.slice(0,6).map(e=>{
+      if(e.status==='wrong') return `【明確錯】${e.question}${e.studentAnswer?`，Janice：${e.studentAnswer}`:''}${e.correctAnswer?`，正確：${e.correctAnswer}`:''}`;
+      return `【需家長確認】${e.question}`;
+    });
+  }
+  const cps=(report.checkPoints||[]).filter(x=>{
+    const s=String(x||'');
+    if(/暫未見|未見明確|無需覆核|正確|全部答對|全部正確/.test(s)) return false;
+    if(/粗心|心急|做題狀態|可能出錯原因|閱讀題目|理解位|請家長確認/.test(s) && !(s.includes('明確錯')||s.includes('看不清')||s.includes('未完成'))) return false;
+    return /明確錯|看不清|未完成|漏做|需家長確認/.test(s);
+  });
+  return cps.length?cps.slice(0,4):['暫未見明確錯題。'];
+}
+function v82ParentInsight(report){
+  const interp=v82CleanText(report.parentInterpretation);
+  if(interp) return interp;
+  const rows=v82ReadingRows(report.engineV2?.evidence||[]);
+  if(rows.length && rows.every(e=>e.status==='correct')) return 'Janice 今次閱讀理解表現穩定，能分辨題目重點並選出正確答案。';
+  return report.shortSummary || '已完成功課分析。';
+}
+function v82NextStep(report){
+  const review=v82TrueReviewEvidence(report);
+  if(review.length) return report.nextStep || '今晚只揀一題錯題慢慢講解，先確認題目要求，再講解答案。';
+  if((v82ReadingRows(report.engineV2?.evidence||[]).length||0)>0) return '今晚可以請 Janice 口頭講一次：點解佢揀呢個答案，訓練用文章證據解釋。';
+  return report.nextStep || '今晚只揀一題最有代表性的題目慢慢講解。';
+}
+function v80QualityScore(report){
+  const e=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  const confidence=String(report?.growth?.confidence||report?.confidence||'').toLowerCase();
+  let score=60;
+  if(report?.summary) score+=8;
+  if(report?.parentInterpretation) score+=10;
+  if(report?.nextStep) score+=8;
+  if(e.length>=1) score+=8;
+  if(e.length>=3) score+=6;
+  if(e.some(x=>x.status==='wrong'||x.status==='correct')) score+=5;
+  if(v82ReadingRows(e).length>=3) score+=5;
+  if(/low/.test(confidence)) score=Math.min(score,78);
+  const noise=(report?.engineV2?.evidence||[]).length-e.length;
+  if(noise>3) score-=8;
+  if(v82TrueReviewEvidence(report).length===0 && (report.growth?.skillsToReview||[]).some(x=>/careless|rushing|handwriting|photo unclear|instruction reading/i.test(x))) score-=5;
+  return Math.max(50,Math.min(92,Math.round(score)));
+}
+function v82TagHTML(items,type='neutral'){
+  const filtered=[...new Set((items||[]).filter(x=>x&&!v80IsGenericTag(x)).filter(x=>!/none clearly|handwriting \/ photo unclear/i.test(String(x))))]
+    .slice(0,6);
+  if(!filtered.length) return type==='review'?'<span class="muted">暫未見明確 review skill</span>':'<span class="muted">暫時未有足夠資料</span>';
+  return filtered.map(x=>`<span class="growthTag ${type}">${esc(x)}</span>`).join('');
+}
+function v82ParentStrengths(report){
+  const rows=v82ReadingRows(report.engineV2?.evidence||[]);
+  if(rows.length && rows.every(e=>e.status==='correct')){
+    return ['閱讀理解答題穩定，能根據文章內容作答。','能分辨題目焦點，例如 tone、recipients、purpose 或 instructions。'];
+  }
+  return report.strengths||[];
+}
+
 function homeworkReportHTML(r){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  // Rebuild clean engine view using V82 filters.
+  if(r.engineV2){
+    r.engineV2.evidence=v82CleanEvidence(r.engineV2.evidence||[]);
+    r.engineV2.summary=v79SkillTrend(r.engineV2.evidence||[]);
+  }
+  const cleanScore=v80QualityScore(r);
+  r.reportQuality=r.reportQuality||{};
+  r.reportQuality.score=cleanScore;
+  r.reportQuality.label=cleanScore>=88?'Parent-ready':cleanScore>=78?'Useful beta':cleanScore>=65?'Needs evidence clean-up':'Insufficient data';
   const q=r.reportQuality||{};
   const g=r.growth||{};
-  const score=q.score||0;
+  const reviewList=v82ReviewList(r);
+  const reviewOk=reviewList.length===1 && /暫未見明確錯題/.test(reviewList[0]);
+  const strongSkills=(g.skillsStrong||[]).filter(x=>x&&!v80IsGenericTag(x));
+  const reviewSkills=reviewOk?[]:[...(g.skillsToReview||[]),...(g.errorTypes||[])].filter(x=>x&&!v80IsGenericTag(x));
   return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
+
+  <div class="parentHero">
+    <h2>👨‍👩‍👧 家長重點</h2>
+    <div class="bigInsight">${esc(v82ParentInsight(r))}</div>
+    <div class="parentMiniGrid">
+      <div class="parentMini"><b>今晚做一件事</b>${esc(v82NextStep(r))}</div>
+      <div class="parentMini"><b>Report confidence</b>${esc(g.confidence||r.confidence||'Medium')} · ${q.score}/100</div>
+    </div>
+    ${String(g.confidence||r.confidence||'').toLowerCase()==='low'?'<div class="qualityCaution">Confidence Low：呢份 report 可作參考，但唔應該標為完全準確；建議補充更清晰/有答案嘅相。</div>':''}
+  </div>
+
   <div class="engineCard">
     <h2>🧠 Growth Memory Tags</h2>
-    <div class="qualityMeter"><div class="qualityFill" style="width:${Math.max(5,score)}%"></div></div>
-    <div class="muted">Report Quality：<b>${score}/100</b> · ${esc(q.label||'')}</div>
+    <div class="qualityMeter"><div class="qualityFill" style="width:${Math.max(5,q.score||0)}%"></div></div>
+    <div class="muted">Report Quality：<b>${q.score||0}/100</b> · ${esc(q.label||'')}</div>
     <div class="growthTagWrap">
       <span class="growthTag neutral">Subject: ${esc(g.subject||'')}</span>
       <span class="growthTag neutral">Level: ${esc(g.worksheetLevel||'')}</span>
       <span class="growthTag neutral">Child: ${esc(g.childYear||'')}</span>
       <span class="growthTag neutral">Confidence: ${esc(g.confidence||'')}</span>
     </div>
-    <div class="reportBlock"><b>Strong skills</b><div class="growthTagWrap">${v74TagHTML(g.skillsStrong||[],'good') || '<span class="muted">未有足夠資料</span>'}</div></div>
-    <div class="reportBlock"><b>Review skills / Error type</b><div class="growthTagWrap">${v74TagHTML([...(g.skillsToReview||[]),...(g.errorTypes||[])].filter(x=>!v80IsGenericTag(x)),'review') || '<span class="muted">暫未見明確 review skill</span>'}</div></div>
+    <div class="reportBlock"><b>Strong skills</b><div class="growthTagWrap">${v82TagHTML(strongSkills,'good')}</div></div>
+    <div class="reportBlock"><b>Review skills / Error type</b><div class="growthTagWrap">${v82TagHTML(reviewSkills,'review')}</div></div>
   </div>
+
   <div class="engineV2Card">
-    <h2>🧠 Homework Engine v2.1</h2>
-    <div class="engineStepGrid">
-      <div class="engineStep">Extract<small>題目/答案</small></div>
-      <div class="engineStep">Mark<small>code 驗證</small></div>
-      <div class="engineStep">Report<small>家長解讀</small></div>
-      <div class="engineStep">Trend<small>Skill 狀態</small></div>
-    </div>
-    <div class="v79Note">V80 會清走 report 標題/原因句等雜訊；數學基礎題盡量由 code 驗證，英文閱讀會用 Reading Intelligence 顯示題目焦點。</div>
+    <h2>🧠 Parent-facing Homework Engine v2.2</h2>
+    <div class="v79Note">V82：家長先睇重點；Reading Intelligence 改成直向卡片；technical evidence 預設收起。</div>
     ${v80ReadingTableHTML(r.engineV2?.evidence||[])}
-    <div class="reportBlock"><b>Clean Evidence</b>${v79EvidenceTableHTML(r.engineV2?.evidence||[])}</div>
     <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
+
   <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b>${v78SummaryHTML(r.summary||'')}</div>
-  <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(r.strengths||[],'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>3. 需要覆核的位置（只放明確錯 / 看不清 / 未完成；正確題會自動移走）</b>${compactList(r.checkPoints||[],'未見明顯需要覆核')}</div>
-  <div class="reportBlock"><b>4. 可能出錯原因</b>${compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
-  ${r.parentInterpretation?`<div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(r.parentInterpretation)}</div></div>`:''}
-  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(r.nextStep||'揀一題最有代表性的題目慢慢講解。')}</div></div>
-  ${r.rawAnalysis?`<details class="rawToggleBox"><summary>展開完整 AI 原文（平時可不用看）</summary><div class="rawAnalysisBox full">${esc(r.rawAnalysis)}</div></details>`:''}
+  <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(v82ParentStrengths(r),'暫時未有足夠資料')}</div>
+  <div class="reportBlock"><b>3. 需要覆核的位置</b>${reviewOk?`<div class="parentReviewOk">${esc(reviewList[0])}</div>`:compactList(reviewList,'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>4. 可能出錯原因</b>${reviewOk?'<div class="muted">暫未見明確錯題，所以暫時不硬估出錯原因。</div>':compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
+  <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(v82ParentInsight(r))}</div></div>
+  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v82NextStep(r))}</div></div>
+
+  <details class="technicalDetails">
+    <summary>Technical evidence（平時可不用看）</summary>
+    <div class="technicalInner">
+      <div class="reportBlock"><b>Clean Evidence</b>${v82EvidenceCardsHTML(r.engineV2?.evidence||[])}</div>
+      ${r.rawAnalysis?`<details class="rawToggleBox"><summary>展開完整 AI 原文</summary><div class="rawAnalysisBox full">${esc(r.rawAnalysis)}</div></details>`:''}
+    </div>
+  </details>
 </div>`}
 
 function renderAnalytics(){

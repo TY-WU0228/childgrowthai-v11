@@ -1,0 +1,13 @@
+{
+  "version": true,
+  "parent hero": true,
+  "reading card layout": true,
+  "technical evidence collapsed": true,
+  "strict review": true,
+  "quality cap low confidence": true,
+  "backend prompt polish": true,
+  "V81 retained": true,
+  "6 photos retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}

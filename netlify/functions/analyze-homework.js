@@ -1,3 +1,4 @@
+// V81 JSON timeout fix - shorter AI timeout, smaller default model, always return JSON before platform timeout
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -9,6 +10,10 @@ exports.handler = async function(event) {
 
     const body = JSON.parse(event.body || '{}');
     const images = collectImages(body).slice(0, 6);
+    const approxKB = Math.round(JSON.stringify(images).length / 1024);
+    if (approxKB > 5200) {
+      return json(413, { error: `圖片傳送太大（約 ${approxKB}KB）。V81 建議先用「只分析第一張」或重新選圖讓 app 壓縮。` });
+    }
 
     if (!images.length) {
       return json(400, { error: '未收到有效圖片。請先用一張清晰 JPG/PNG 功課相測試。' });
@@ -16,7 +21,7 @@ exports.handler = async function(event) {
 
     const prompt = buildHKParentTonePrompt(body);
 
-    const model = process.env.OPENAI_MODEL || 'gpt-4.1';
+    const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
     const payload = {
       model,
       input: [{
@@ -26,14 +31,19 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'input_image', image_url: url }))
         ]
       }],
-      max_output_tokens: 2600
+      max_output_tokens: 1700
     };
 
-    const first = await callOpenAI('https://api.openai.com/v1/responses', apiKey, payload, 35000);
+    const first = await callOpenAI('https://api.openai.com/v1/responses', apiKey, payload, 8200);
     if (first.ok) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
       const analysis = cleanParentText(text);
       return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses', imageCount: images.length });
+    }
+
+    const firstErr = first.data?.error?.message || first.error || '';
+    if (/逾時|timeout|aborted|AbortError/i.test(firstErr)) {
+      return json(504, { error: 'AI 分析逾時，但 function 已正常回傳 JSON。請用「只分析第一張」或等圖片壓縮後再試。', debug: { responses:first.data?.error || first.error || null } });
     }
 
     // Fallback route
@@ -47,11 +57,11 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'image_url', image_url: { url } }))
         ]
       }],
-      max_tokens: 2600,
+      max_tokens: 1700,
       temperature: 0.15
     };
 
-    const second = await callOpenAI('https://api.openai.com/v1/chat/completions', apiKey, chatPayload, 35000);
+    const second = await callOpenAI('https://api.openai.com/v1/chat/completions', apiKey, chatPayload, 8200);
     if (second.ok) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
       const analysis = cleanParentText(text);
@@ -104,6 +114,14 @@ ${body.note || body.text || ''}
 
 Learning context：
 ${JSON.stringify(context, null, 2)}
+
+Parent-facing report rules:
+- 家長第一眼要清楚：做得好、真正要覆核、今晚做一件事。
+- 如果選擇題全部正確，不要硬寫 careless / rushing / instruction reading / handwriting unclear 做 review skills。
+- 「需要覆核的位置」只放：明確錯、看不清、未完成、無法判斷答案。不要放「可能出錯原因」「粗心/心急」「做題狀態」。
+- Reading comprehension 請逐題抽取：Question focus, Janice answer, Correct answer, Result, Evidence reason。
+- 如果未見學生答案，不要同時寫「全部正確」；要寫「需要家長補充答案相」。
+- Growth Memory tags 不要使用 general。要用 tone, identifying recipients, purpose, details/following instructions 等具體 tags。
 
 Homework Engine v2.1 流程：\nA. Extract：先逐頁讀出題目、學生答案、正確答案或可推算答案、confidence。\nB. Mark：數學基礎題要清楚標示 correct / wrong / unclear；不確定就寫【需家長確認】。\nC. Report：只根據 Extract/Mark 結果寫家長 report。\nD. Skill Trend：每個 evidence 都要盡量標 skill + sub-skill；不要輸出 general/general。
 E. Clean Evidence：不要把 section heading、可能出錯原因、給家長解讀、暫未見明確錯題當成 evidence。\n\n最高優先規則：
