@@ -8,7 +8,7 @@ exports.handler = async function(event) {
     }
 
     const body = JSON.parse(event.body || '{}');
-    const images = collectImages(body).slice(0, 3);
+    const images = collectImages(body).slice(0, 6);
 
     if (!images.length) {
       return json(400, { error: '未收到有效圖片。請先用一張清晰 JPG/PNG 功課相測試。' });
@@ -26,7 +26,7 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'input_image', image_url: url }))
         ]
       }],
-      max_output_tokens: 2200
+      max_output_tokens: 2600
     };
 
     const first = await callOpenAI('https://api.openai.com/v1/responses', apiKey, payload, 35000);
@@ -47,7 +47,7 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'image_url', image_url: { url } }))
         ]
       }],
-      max_tokens: 2200,
+      max_tokens: 2600,
       temperature: 0.15
     };
 
@@ -105,19 +105,24 @@ ${body.note || body.text || ''}
 Learning context：
 ${JSON.stringify(context, null, 2)}
 
-最高優先規則：
+Homework Engine v2 流程：\nA. Extract：先逐頁讀出題目、學生答案、正確答案或可推算答案、confidence。\nB. Mark：數學基礎題要清楚標示 correct / wrong / unclear；不確定就寫【需家長確認】。\nC. Report：只根據 Extract/Mark 結果寫家長 report。\nD. Skill Trend：每個 evidence 都要盡量標 skill + sub-skill。\n\n最高優先規則：
 1. 先看圖片上是否有 Year / Level / Grade / Term / worksheet 標題。看不到就講「相片上未見明確年級」。
 2. 比較 worksheet level 和小朋友目前年級，但不要講「資優 / 智力高 / 智力低」。
 3. 你不是正式批改老師；鉛筆字、陰影、角度可能令你誤讀。看不清就寫【需家長確認】。
 4. 「已做得好的地方」只放正確 / 做得好 / 成功推算 / 暫未見錯誤。不要把任何錯題放入這裡。
-5. 「需要覆核的位置」只放【明確錯】、【需家長確認】、未完成 / 漏做。正確題、暫無錯、答案正確不可放入這裡。
+5. 「需要覆核的位置」只放【明確錯】、【需家長確認】、未完成 / 漏做。正確題、暫無錯、答案正確、無需覆核、目前答案正確不可放入這裡；如果你寫了『其實是正確答案』，就絕對不可標為【明確錯】。
 6. 如果你在任何段落提到「18+13寫咗21」或「正確應該係31」，一定要在需要覆核列出【明確錯】18+13=21，正確應為31。
 7. 如果一句有「寫得正確 / 答對 / 成功推算 / 暫未見錯誤」，不可放入需要覆核。
 8. 每個判斷要有證據：我見到咩，所以推論咩。
 9. 不作醫療、心理、讀寫障礙、ADHD 或資優診斷。
 10. 最後一定要有「今晚只做一件事」，要非常具體。
 
-請按以下格式完整輸出，不要漏章節：
+請按以下格式完整輸出，不要漏章節；內容要短而準，不要把不同 section 混在同一段：
+
+🔎 Engine v2 Extracted Evidence
+- 每頁最多列 8 題，用格式：Page 1 | Q: 18+13 | Student: 21 | Correct: 31 | Status: wrong | Skill: Addition | Sub-skill: carrying addition | Confidence: high
+- 如果是英文 multiple choice，用格式：Page 1 | Q: purpose of letter | Student: A | Correct: A | Status: correct | Skill: Reading Comprehension | Sub-skill: purpose | Confidence: medium
+- 看不清就 Status: unclear，不要硬估。
 
 🌟 0. Learning level awareness
 - 圖片上是否見到 worksheet 年級 / 程度：
@@ -127,6 +132,7 @@ ${JSON.stringify(context, null, 2)}
 - 需要避免過度解讀的位置：
 
 📌 1. 我大約睇到嘅功課內容
+- 最多 3 點 bullet，不要寫長段落，不要混入「做得好 / 需要覆核」內容。
 - 請列出具體題型，例如 addition / multiplication / number patterns / reading comprehension / spelling 等。
 
 ✅ 2. 已做得好的地方
@@ -342,6 +348,72 @@ function sanitizeStructuredReportV70(report) {
 }
 
 
+
+
+function choiceStatusV78(line) {
+  const s = String(line || '').replace(/\s+/g, ' ');
+  const sel = (s.match(/(?:選擇|選|answer|chosen)\s*([A-D])/i) || [])[1];
+  const corr = (s.match(/(?:正確答案|答案|correct answer)\s*(?:應為|應該是|應該係|是|為|係|should be|is)?\s*([A-D])/i) || [])[1];
+  if (sel && corr) return sel.toUpperCase() === corr.toUpperCase() ? 'good' : 'review';
+  if (/其實.{0,12}正確答案|答案正確|目前答案正確|暫未見明確錯|暫未見錯|無需覆核|不用覆核/.test(s)) return 'good';
+  if (/選擇\s*[A-D].{0,100}正確|選\s*[A-D].{0,100}正確/.test(s) && !/正確答案\s*(?:應為|應該|是|為|係)\s*[A-D]/.test(s)) return 'good';
+  return 'unknown';
+}
+function clearlyCorrectReviewLineV78(line) {
+  const s = String(line || '');
+  if (!/明確錯|需要覆核|需家長確認/.test(s)) return false;
+  const choice = choiceStatusV78(s);
+  if (choice === 'good') return true;
+  if (choice === 'review') return false;
+  const ar = typeof arithmeticAllCorrectV77 === 'function' ? arithmeticAllCorrectV77(s) : null;
+  if (ar === true) return true;
+  if (ar === false) return false;
+  return /答案正確|目前答案正確|正確，?\s*無需覆核|正確，?\s*暫無錯|暫無錯|暫未見錯|暫未見明確錯|其實.{0,12}正確答案|無需覆核|不用覆核/.test(s) && !/正確應為|正確應該|應該係|應該是|應為|correct answer should be/i.test(s);
+}
+function cleanReviewPrefixV78(line) {
+  return String(line || '')
+    .replace(/^\s*請家長確認[:：]?\s*/, '')
+    .replace(/^\s*【明確錯】\s*/, '')
+    .replace(/^\s*【需家長確認】\s*/, '')
+    .replace(/^\s*【未完成】\s*/, '')
+    .trim();
+}
+
+function hasNoReviewPhraseV77(line) {
+  const s = String(line || '');
+  return /無需覆核|不用覆核|毋須覆核|目前答案正確|答案正確|正確，?\s*無需覆核|正確，?\s*暫無錯|暫無錯|暫時無錯|暫未見錯|暫未見明確錯|正確無誤/.test(s);
+}
+function arithmeticAllCorrectV77(line) {
+  const s = String(line || '').replace(/×/g, 'x');
+  const exprs = [];
+  const rx = /((?:\d+\s*[+xX*]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/g;
+  let m;
+  while ((m = rx.exec(s)) !== null) {
+    const correct = calcExpressionV76(m[1]);
+    const ans = parseInt(m[2], 10);
+    if (correct !== null) exprs.push({ correct, ans });
+  }
+  if (!exprs.length) return null;
+  return exprs.every(x => x.correct === x.ans);
+}
+function contradictoryPositiveLineV77(line) {
+  const s = String(line || '');
+  if (typeof clearlyCorrectReviewLineV78 === 'function' && clearlyCorrectReviewLineV78(s)) return true;
+  const noReview = hasNoReviewPhraseV77(s);
+  if (!noReview) return false;
+  const ar = arithmeticAllCorrectV77(s);
+  if (ar === false) return false;
+  return true;
+}
+function cleanGoodLineV77(line) {
+  return String(line || '')
+    .replace(/^\s*請家長確認[:：]?\s*/, '')
+    .replace(/^\s*【明確錯】\s*/, '')
+    .replace(/^\s*【需家長確認】\s*/, '')
+    .replace(/^\s*【未完成】\s*/, '')
+    .trim();
+}
+
 function calcExpressionV76(expr) {
   try {
     const cleaned = String(expr || '').replace(/×/g, '*').replace(/x/gi, '*').replace(/÷/g, '/').replace(/[^0-9+\-*/(). ]/g, '');
@@ -377,8 +449,14 @@ function extractArithmeticErrorsV76(text) {
 }
 function isPositiveOnlyLineV76(line) {
   const s = String(line || '');
-  const hasPositive = /正確|暫無錯|暫未見錯|暫時未見錯|暫時未見到錯|未見錯誤|答案正確|寫得正確|暫無錯誤|暫未見明確錯|答對|答啱|成功推算|掌握|順利/i.test(s);
+  if (contradictoryPositiveLineV77(s)) return true;
+  const hasPositive = /正確|暫無錯|暫未見錯|暫時未見錯|暫時未見到錯|未見錯誤|答案正確|寫得正確|目前答案正確|無需覆核|不用覆核|暫無錯誤|暫未見明確錯|答對|答啱|成功推算|掌握|順利/i.test(s);
   const hasError = /明確錯|正確應該|正確應為|應該係|應為|應是|錯誤|計錯|寫咗\s*\d+|寫了\s*\d+|寫\s*\d+.*正確應/i.test(s);
+  if (hasPositive && hasError) {
+    const ar = arithmeticAllCorrectV77(s);
+    if (ar === true) return true;
+    if (hasNoReviewPhraseV77(s) && ar !== false) return true;
+  }
   return hasPositive && !hasError;
 }
 function hardGuardReportV76(report) {
@@ -388,17 +466,23 @@ function hardGuardReportV76(report) {
   (Array.isArray(report.strengths) ? report.strengths : []).forEach(x => {
     const s = normalizeReportLine ? normalizeReportLine(x) : String(x || '').trim();
     if (!s) return;
-    const errs = extractArithmeticErrorsV76(s);
-    if (errs.length) review.push(...errs);
-    else good.push(s);
+    if (clearlyCorrectReviewLineV78(s)) good.push(cleanReviewPrefixV78(s));
+    else if (contradictoryPositiveLineV77(s)) good.push(cleanGoodLineV77(s));
+    else {
+      const errs = extractArithmeticErrorsV76(s);
+      if (errs.length) review.push(...errs);
+      else good.push(s);
+    }
   });
   (Array.isArray(report.checkPoints) ? report.checkPoints : []).forEach(x => {
     const s = normalizeReportLine ? normalizeReportLine(x) : String(x || '').trim();
     if (!s) return;
+    if (clearlyCorrectReviewLineV78(s)) { good.push(cleanReviewPrefixV78(s)); return; }
+    if (contradictoryPositiveLineV77(s)) { good.push(cleanGoodLineV77(s)); return; }
     const errs = extractArithmeticErrorsV76(s);
     if (errs.length) { review.push(...errs); return; }
     if (isPositiveOnlyLineV76(s)) {
-      good.push(s.replace(/^\s*請家長確認[:：]?\s*/, '').replace(/^\s*【明確錯】\s*/, '').replace(/^\s*【需家長確認】\s*/, ''));
+      good.push(cleanGoodLineV77(s));
       return;
     }
     review.push(s);
@@ -411,6 +495,131 @@ function hardGuardReportV76(report) {
   review.push(...extractArithmeticErrorsV76(scanText));
   report.strengths = uniqueLinesV70 ? uniqueLinesV70(good).slice(0, 6) : [...new Set(good)].slice(0, 6);
   report.checkPoints = uniqueLinesV70 ? uniqueLinesV70(review).slice(0, 6) : [...new Set(review)].slice(0, 6);
+  return report;
+}
+
+
+function normalizeExprV79(expr) {
+  return String(expr || '').replace(/×/g, 'x').replace(/\*/g, 'x').replace(/\s+/g, '').trim();
+}
+function skillForExprV79(expr) {
+  const s = String(expr || '').replace(/\s+/g, '').toLowerCase();
+  const nums = (s.match(/\d+/g) || []).map(Number);
+  if (/[x*×]/i.test(s)) return { skill: 'Multiplication', subSkill: 'multiplication facts' };
+  if (/[÷/]/.test(s)) return { skill: 'Division', subSkill: 'division facts' };
+  if (/-/.test(s)) return { skill: 'Subtraction', subSkill: nums.some(n => n >= 10) ? 'two-digit subtraction' : 'basic subtraction' };
+  if (/\+/.test(s)) {
+    const terms = s.split('+').map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+    const ones = terms.reduce((a, n) => a + (n % 10), 0);
+    if (terms.length >= 3) return { skill: 'Addition', subSkill: 'multi-step addition' };
+    if (terms.some(n => n >= 10) && ones >= 10) return { skill: 'Addition', subSkill: 'carrying addition' };
+    if (terms.some(n => n >= 10)) return { skill: 'Addition', subSkill: 'two-digit addition' };
+    return { skill: 'Addition', subSkill: 'basic addition' };
+  }
+  return { skill: 'Maths', subSkill: 'calculation' };
+}
+function skillForTextV79(line) {
+  const s = String(line || '').toLowerCase();
+  if (/number pattern|patterns|數列|規律/.test(s)) return { skill: 'Number Patterns', subSkill: /遞減|decreas/.test(s) ? 'decreasing pattern' : /alternat|交替/.test(s) ? 'alternating pattern' : 'missing number pattern' };
+  if (/reading comprehension|閱讀理解|purpose|tone|recipient|special instruction|multiple choice|邀請|信件/.test(s)) return { skill: 'Reading Comprehension', subSkill: /tone|語氣/.test(s) ? 'tone' : /purpose|目的/.test(s) ? 'purpose' : /recipient|收信|邀請/.test(s) ? 'details / recipients' : 'reading detail' };
+  if (/spelling|串字|拼字/.test(s)) return { skill: 'Spelling', subSkill: 'spelling accuracy' };
+  if (/grammar|文法/.test(s)) return { skill: 'Grammar', subSkill: 'grammar' };
+  if (/handwriting|書寫|字跡/.test(s)) return { skill: 'Handwriting', subSkill: 'handwriting clarity' };
+  if (/addition|加法|進位/.test(s)) return { skill: 'Addition', subSkill: /進位|carrying/.test(s) ? 'carrying addition' : 'addition' };
+  return { skill: 'General Learning', subSkill: 'general' };
+}
+function evidenceKeyV79(e) {
+  return [e.page || '', e.question || '', e.studentAnswer || '', e.correctAnswer || '', e.status || ''].join('|').toLowerCase();
+}
+function addEvidenceV79(arr, e) {
+  if (!e || !e.question) return;
+  const key = evidenceKeyV79(e);
+  if (arr.some(x => evidenceKeyV79(x) === key)) return;
+  arr.push(e);
+}
+function evidenceFromLineV79(line, source = 'raw') {
+  const s = String(line || '').replace(/\s+/g, ' ').trim();
+  const out = [];
+  if (!s) return out;
+  const rx = /((?:\d+\s*[+xX*×÷\/-]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/g;
+  let m;
+  while ((m = rx.exec(s)) !== null) {
+    const expr = m[1], ans = parseInt(m[2], 10);
+    const correct = calcExpressionV76(expr);
+    const sk = skillForExprV79(expr);
+    let status = 'unclear';
+    if (correct !== null) status = ans === correct ? 'correct' : 'wrong';
+    addEvidenceV79(out, { page: '', question: normalizeExprV79(expr), studentAnswer: String(ans), correctAnswer: correct !== null ? String(correct) : '', status, skill: sk.skill, subSkill: sk.subSkill, confidence: 'medium', source });
+  }
+  const selected = (s.match(/(?:選擇|選|student answer|Janice.*選|answer)\s*([A-D])/i) || [])[1];
+  const correctChoice = (s.match(/(?:正確答案|correct answer|答案)\s*(?:應為|應該是|應該係|是|為|係|should be|is)?\s*([A-D])/i) || [])[1];
+  if (selected || correctChoice) {
+    const sk = skillForTextV79(s);
+    const status = (selected && correctChoice) ? (selected.toUpperCase() === correctChoice.toUpperCase() ? 'correct' : 'wrong') : (/需家長確認|看不清|unclear/.test(s) ? 'unclear' : 'correct');
+    const q = (s.match(/第\s*\d+\s*題[^，。]*/) || s.match(/「([^」]{8,120})」/) || [])[0] || 'Multiple choice';
+    addEvidenceV79(out, { page: '', question: q, studentAnswer: selected || '', correctAnswer: correctChoice || '', status, skill: sk.skill, subSkill: sk.subSkill, confidence: 'medium', source });
+  }
+  if (!out.length && /(正確|答對|做得好|掌握|需要覆核|明確錯|需家長確認|看不清|未完成|無需覆核|目前答案正確)/.test(s)) {
+    const sk = skillForTextV79(s);
+    let status = 'unclear';
+    if (/正確|答對|做得好|掌握|無需覆核|目前答案正確|暫未見錯/.test(s)) status = 'correct';
+    if (/明確錯/.test(s) && !/正確|無需覆核|目前答案正確|暫未見錯/.test(s)) status = 'wrong';
+    if (/需家長確認|看不清|未完成|漏做/.test(s)) status = 'unclear';
+    addEvidenceV79(out, { page: '', question: s.slice(0, 120), studentAnswer: '', correctAnswer: '', status, skill: sk.skill, subSkill: sk.subSkill, confidence: 'low', source });
+  }
+  return out;
+}
+function skillTrendV79(evidence) {
+  const map = {};
+  (evidence || []).forEach(e => {
+    const key = (e.skill || 'General Learning') + '|' + (e.subSkill || 'general');
+    if (!map[key]) map[key] = { skill: e.skill || 'General Learning', subSkill: e.subSkill || 'general', correct: 0, wrong: 0, unclear: 0, total: 0, examples: [] };
+    const row = map[key];
+    row.total++;
+    if (e.status === 'correct') row.correct++;
+    else if (e.status === 'wrong') row.wrong++;
+    else row.unclear++;
+    if (row.examples.length < 3) row.examples.push(e);
+  });
+  return Object.values(map).map(row => {
+    const review = row.wrong + row.unclear;
+    let status = 'Insufficient Data';
+    if (row.total >= 2 && row.correct > 0 && review === 0) status = 'Strong';
+    else if (row.wrong >= 2 && row.wrong >= row.correct) status = 'Needs Review';
+    else if (row.correct >= 2 && row.correct >= review * 2) status = 'Generally Strong';
+    else if (row.correct > 0 && review > 0) status = 'Mixed';
+    row.status = status;
+    return row;
+  }).sort((a, b) => (b.wrong + b.unclear + b.correct) - (a.wrong + a.unclear + a.correct));
+}
+function buildEngineV2FromReportV79(report) {
+  const evidence = [];
+  [
+    ...(Array.isArray(report.strengths) ? report.strengths : []).map(x => ({ x, source: 'strength' })),
+    ...(Array.isArray(report.checkPoints) ? report.checkPoints : []).map(x => ({ x, source: 'review' })),
+    ...(Array.isArray(report.reasons) ? report.reasons : []).map(x => ({ x, source: 'reason' })),
+    { x: report.summary || '', source: 'summary' },
+    { x: report.parentInterpretation || '', source: 'parent' },
+    { x: report.rawAnalysis || '', source: 'raw' }
+  ].forEach(({ x, source }) => {
+    String(x || '').split(/\n|。|；/).forEach(line => evidenceFromLineV79(line, source).forEach(e => addEvidenceV79(evidence, e)));
+  });
+  return { version: 'v2', flow: 'Extract → Mark → Report → Skill Trend', evidence: evidence.slice(0, 60), summary: skillTrendV79(evidence) };
+}
+function addEvidenceLineV79(arr, line) {
+  const s = normalizeReportLine(line);
+  if (s && !arr.some(x => normalizeReportLine(x).toLowerCase() === s.toLowerCase())) arr.push(s);
+}
+function applyEngineV2ToReportV79(report) {
+  report.engineV2 = buildEngineV2FromReportV79(report);
+  const good = Array.isArray(report.strengths) ? [...report.strengths] : [];
+  const review = Array.isArray(report.checkPoints) ? [...report.checkPoints] : [];
+  (report.engineV2.evidence || []).forEach(e => {
+    if (e.status === 'wrong') addEvidenceLineV79(review, `【明確錯】${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''}${e.correctAnswer ? '，正確應為 ' + e.correctAnswer : ''}`);
+    if (e.status === 'correct' && e.source === 'review') addEvidenceLineV79(good, `${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''} 正確`);
+  });
+  report.strengths = uniqueLinesV70(good).slice(0, 6);
+  report.checkPoints = uniqueLinesV70(review).filter(x => !clearlyCorrectReviewLineV78(x)).slice(0, 6);
   return report;
 }
 
@@ -440,7 +649,7 @@ function buildStructuredHomeworkReport(raw) {
     confidence: 'medium',
     rawAnalysis: text
   };
-  return hardGuardReportV76(sanitizeStructuredReportV70(report));
+  return applyEngineV2ToReportV79(hardGuardReportV76(sanitizeStructuredReportV70(report)));
 }
 
 function friendlyError(msg) {

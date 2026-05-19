@@ -1,0 +1,13 @@
+{
+  "version": true,
+  "frontend contradiction guard": true,
+  "backend contradiction guard": true,
+  "no review phrases": true,
+  "V76 arithmetic retained": true,
+  "V75 reliability retained": true,
+  "V74 report retained": true,
+  "V72 calendar retained": true,
+  "official slogan retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}
