@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v79 Homework Engine v2</title>
+  <title>ChildGrowth AI v80 Homework Engine v2.1</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -919,6 +919,15 @@
     .statusReview{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
     .statusInsufficient{background:#f8fafc;color:#64748b;border:1px solid #e2e8f0}
     .v79Note{background:#f0f9ff;border:1px solid #bae6fd;border-radius:16px;color:#0c4a6e;padding:10px;font-weight:850;line-height:1.45;margin-top:10px}
+
+  
+    /* V80 Homework Engine v2.1 - Clean Evidence + Reading Intelligence */
+    .readingTable{width:100%;border-collapse:separate;border-spacing:0 8px;margin-top:8px}
+    .readingTable td,.readingTable th{background:#fff;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:8px;font-size:13px;font-weight:850;color:#334155;vertical-align:top;text-align:left}
+    .readingTable th{color:#1e3a8a;background:#eff6ff;font-size:12px}
+    .readingTable td:first-child,.readingTable th:first-child{border-left:1px solid #e5e7eb;border-radius:12px 0 0 12px}
+    .readingTable td:last-child,.readingTable th:last-child{border-right:1px solid #e5e7eb;border-radius:0 12px 12px 0}
+    .v80CleanNote{background:#ecfeff;border:1px solid #a5f3fc;border-radius:16px;color:#155e75;padding:10px;font-weight:850;line-height:1.45;margin-top:10px}
 
   </style>
 </head>
@@ -2315,7 +2324,7 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選最多 6 張相，例如第 1–6 頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V79：Homework Engine v2。以 Extract → Mark → Report → Skill Trend 流程分析功課：先抽取題目/答案，再由 code 驗證基礎數學，再生成 report 和 Skill Status。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
+    <div class="hwActionNote">V80：Homework Engine v2.1。清理 evidence 雜訊、英文閱讀改用 Reading Intelligence、移除 general tags，Report Quality 更誠實。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
     <label>Upload homework photos（最多 6 張）</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2592,6 +2601,124 @@ function v70SanitizeHomeworkReport(r){
 
 
 
+
+function v80Norm(s){return String(s||'').replace(/\s+/g,' ').trim();}
+function v80IsGenericTag(x){return /^(general|General Learning|general learning|general\s*learning|general learning \/ general|一般|綜合|unknown|unclear)$/i.test(String(x||'').trim());}
+function v80IsNoiseEvidenceLine(line){
+  const s=v80Norm(line);
+  if(!s) return true;
+  if(/^(✅|⚠️|🧠|💬|🌟|📌|🏷️|🔎)?\s*\d+\.?\s*(已做得好的地方|需要覆核的位置|可能出錯原因|給家長的簡短解讀|今晚只做一件事|我睇到|Learning level awareness|Growth Memory|Homework Engine|Extract \+ Mark|Skill Status)/i.test(s)) return true;
+  if(/^(已做得好的地方|需要覆核的位置|可能出錯原因|給家長的簡短解讀|今晚只做一件事|暫未見明確錯題|暫未見錯題|暫時未見明確錯題|暫未見明確錯誤|未見明顯需要覆核)$/i.test(s)) return true;
+  if(/請家長確認[:：]?\s*(🧠|\d+\.|可能出錯原因|粗心|心急|做題狀態|閱讀題目|理解位|暫未見|未見)/.test(s)) return true;
+  if(/^(粗心\s*\/\s*心急|理解位|閱讀題目|做題狀態)[:：]/.test(s) && !/[A-D]|\d+\s*[+xX*×÷\/\-]\s*\d+/.test(s)) return true;
+  if(/^(暫時|目前|今次).{0,8}(未見|沒有).{0,12}(明確|粗心|錯|誤選|混淆)/.test(s)) return true;
+  return false;
+}
+function v80SpecificSkillForText(line){
+  const s=String(line||'').toLowerCase();
+  if(/tone|語氣/.test(s)) return {skill:'Reading Comprehension',subSkill:'tone'};
+  if(/recipient|收信|invited|邀請.*朋友|朋友.*邀請/.test(s)) return {skill:'Reading Comprehension',subSkill:'details / recipients'};
+  if(/purpose|目的|invite friends|surprise birthday/.test(s)) return {skill:'Reading Comprehension',subSkill:'purpose'};
+  if(/special instruction|back gate|secret|特別指示|保密|後門/.test(s)) return {skill:'Reading Comprehension',subSkill:'special instructions'};
+  if(/multiple choice|選擇題/.test(s)) return {skill:'Reading Comprehension',subSkill:'multiple choice'};
+  if(/reading detail|細節|閱讀理解|comprehension/.test(s)) return {skill:'Reading Comprehension',subSkill:'reading detail'};
+  if(/number pattern|patterns|數列|規律/.test(s)) return {skill:'Number Patterns',subSkill:/遞減|decreas/.test(s)?'decreasing pattern':/交替|alternat/.test(s)?'alternating pattern':'missing number pattern'};
+  if(/spelling|串字|拼字/.test(s)) return {skill:'Spelling',subSkill:'spelling accuracy'};
+  if(/grammar|文法/.test(s)) return {skill:'Grammar',subSkill:'grammar'};
+  if(/handwriting|字跡|書寫/.test(s)) return {skill:'Handwriting',subSkill:'handwriting clarity'};
+  if(/addition|加法|進位/.test(s)) return {skill:'Addition',subSkill:/進位|carrying/.test(s)?'carrying addition':'addition'};
+  return null;
+}
+function v80FocusFromQuestion(q){
+  const s=String(q||'').toLowerCase();
+  if(/tone|語氣/.test(s)) return 'Tone';
+  if(/recipient|who are|收信|邀請/.test(s)) return 'Recipients';
+  if(/purpose|目的/.test(s)) return 'Purpose';
+  if(/special instruction|instructions|back gate|secret|特別指示/.test(s)) return 'Special instructions';
+  return 'Reading detail';
+}
+function v80ParseExtractedEvidenceLine(line){
+  const s=v80Norm(line);
+  if(!/\bQ\s*:/i.test(s) || !/(Student|Janice|Correct|Status|Skill)/i.test(s)) return null;
+  const get=(key)=>{ const m=s.match(new RegExp(key+'\\s*:\\s*([^|]+)','i')); return m?m[1].trim():''; };
+  const q=get('Q');
+  if(!q || v80IsNoiseEvidenceLine(q)) return null;
+  const student=get('Student') || get('Janice');
+  const correct=get('Correct');
+  let status=(get('Status')||'').toLowerCase();
+  if(/correct|right|啱|正確/.test(status)) status='correct';
+  else if(/wrong|incorrect|錯/.test(status)) status='wrong';
+  else status='unclear';
+  const skill=get('Skill');
+  const subSkill=get('Sub-skill') || get('SubSkill');
+  const infer=/[+\-xX*×÷\/]/.test(q)?v79SkillForExpr(q):(v80SpecificSkillForText(q)||v79SkillForText(q));
+  return {page:(s.match(/Page\s*\d+/i)||[''])[0],question:q,studentAnswer:student,correctAnswer:correct,status,skill:skill||infer.skill,subSkill:subSkill||infer.subSkill,confidence:get('Confidence')||'medium',source:'extract'};
+}
+function v80ReadingEvidenceFromLine(line){
+  const s=v80Norm(line);
+  if(v80IsNoiseEvidenceLine(s)) return [];
+  const out=[];
+  const patterns=[
+    /第\s*(\d+)\s*題[^「]*「([^」]{5,180})」[^。；\n]*?(?:選擇|選)\s*([A-D])(?:[^。；\n]*?(?:正確答案|答案)\s*(?:應為|應該是|應該係|是|為|係)?\s*([A-D]))?[^。；\n]*?(正確|答對|錯|不正確|incorrect|correct)?/gi,
+    /(?:Q|Question)\s*(\d+)[^:：]*[:：]\s*([^|。；\n]{5,180}).*?(?:Student|Janice|選擇|選)\s*([A-D])(?:.*?(?:Correct|正確答案|答案)\s*([A-D]))?/gi
+  ];
+  patterns.forEach(rx=>{
+    let m;
+    while((m=rx.exec(s))!==null){
+      const num=m[1], q=m[2], selected=m[3]?.toUpperCase(), corr=(m[4]||'')?.toUpperCase();
+      if(!q || v80IsNoiseEvidenceLine(q)) continue;
+      let status='unclear';
+      if(corr) status=(selected===corr?'correct':'wrong');
+      else if(/正確|答對|correct/i.test(m[5]||s)) status='correct';
+      else if(/錯|不正確|incorrect/i.test(m[5]||'')) status='wrong';
+      const sk=v80SpecificSkillForText(q)||{skill:'Reading Comprehension',subSkill:v80FocusFromQuestion(q).toLowerCase()};
+      v79AddEvidence(out,{page:'',question:`Q${num}: ${v80FocusFromQuestion(q)}`,studentAnswer:selected||'',correctAnswer:corr||selected||'',status,skill:sk.skill,subSkill:sk.subSkill,confidence:'medium',source:'reading'});
+    }
+  });
+  if(!out.length && /(四題|全部|所有).{0,12}(選擇題|multiple choice).{0,18}(正確|答對)/i.test(s)){
+    v79AddEvidence(out,{page:'',question:'Reading comprehension overall',studentAnswer:'all answered',correctAnswer:'all correct',status:'correct',skill:'Reading Comprehension',subSkill:'reading detail',confidence:'medium',source:'reading-summary'});
+  }
+  return out;
+}
+function v80ShouldKeepEvidence(e){
+  if(!e||!e.question) return false;
+  const q=v80Norm(e.question);
+  if(v80IsNoiseEvidenceLine(q)) return false;
+  if(v80IsGenericTag(e.skill) && v80IsGenericTag(e.subSkill)) return false;
+  if(v80IsGenericTag(e.subSkill) && !/[+\-xX*×÷\/]|Reading|Spelling|Grammar|Pattern/i.test(String(e.skill||''))) return false;
+  if(/暫未見明確錯|暫未見錯|未見明顯需要覆核|可能出錯原因|給家長|今晚只做/.test(q)) return false;
+  return true;
+}
+function v80FilterEvidence(evidence){
+  const out=[];
+  (evidence||[]).forEach(e=>{
+    if(!v80ShouldKeepEvidence(e)) return;
+    const fixed={...e};
+    const spec=v80SpecificSkillForText(fixed.question+' '+(fixed.subSkill||''));
+    if(spec && (v80IsGenericTag(fixed.skill)||fixed.skill==='General Learning')){fixed.skill=spec.skill;fixed.subSkill=spec.subSkill;}
+    v79AddEvidence(out,fixed);
+  });
+  return out;
+}
+function v80ReadingTableHTML(evidence){
+  const rows=(evidence||[]).filter(e=>e.skill==='Reading Comprehension').slice(0,8);
+  if(!rows.length) return '';
+  return `<div class="reportBlock"><b>Reading Intelligence</b><table class="readingTable"><tr><th>Focus</th><th>Janice</th><th>Result</th><th>Evidence</th></tr>${rows.map(e=>`<tr><td>${esc(e.subSkill||e.question)}</td><td>${esc(e.studentAnswer||'-')}</td><td><span class="statusPill ${e.status==='correct'?'correct':e.status==='wrong'?'wrong':'unclear'}">${e.status==='correct'?'Correct':e.status==='wrong'?'Review':'Unclear'}</span></td><td>${esc(e.question||'')}</td></tr>`).join('')}</table></div>`;
+}
+function v80QualityScore(report){
+  const e=report?.engineV2?.evidence||[];
+  const trends=report?.engineV2?.summary||[];
+  const rawScore=report?.reportQuality?.score||0;
+  let score=Math.min(rawScore,85);
+  if(e.length>=2) score+=5;
+  if(e.some(x=>x.status==='wrong') || e.some(x=>x.status==='correct')) score+=5;
+  if(trends.some(t=>!v80IsGenericTag(t.skill)&&!v80IsGenericTag(t.subSkill))) score+=5;
+  const noise=(e||[]).filter(x=>!v80ShouldKeepEvidence(x)).length;
+  if(noise) score-=Math.min(25,noise*5);
+  if((report?.growth?.skillsStrong||[]).some(v80IsGenericTag) || (report?.growth?.skillsToReview||[]).some(v80IsGenericTag)) score-=10;
+  return Math.max(45,Math.min(95,Math.round(score)));
+}
+
 function v79NormalizeExpr(expr){
   return String(expr||'').replace(/×/g,'x').replace(/\*/g,'x').replace(/\s+/g,'').trim();
 }
@@ -2629,10 +2756,13 @@ function v79AddEvidence(arr,e){
   arr.push(e);
 }
 function v79EvidenceFromLine(line, source='raw'){
-  const s=String(line||'').replace(/\s+/g,' ').trim();
+  const s=v80Norm(line);
   const out=[];
-  if(!s) return out;
-  const rx=/((?:\d+\s*[+xX*×÷\/-]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/g;
+  if(v80IsNoiseEvidenceLine(s)) return out;
+  const extracted=v80ParseExtractedEvidenceLine(s);
+  if(extracted){v79AddEvidence(out,extracted);return out;}
+  v80ReadingEvidenceFromLine(s).forEach(e=>v79AddEvidence(out,e));
+  const rx=/((?:\d+\s*[+xX*×÷\/\-]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/g;
   let m;
   while((m=rx.exec(s))!==null){
     const expr=m[1], ans=parseInt(m[2],10);
@@ -2642,23 +2772,17 @@ function v79EvidenceFromLine(line, source='raw'){
     if(correct!==null) status=(ans===correct?'correct':'wrong');
     v79AddEvidence(out,{page:'',question:v79NormalizeExpr(expr),studentAnswer:String(ans),correctAnswer:correct!==null?String(correct):'',status,skill:sk.skill,subSkill:sk.subSkill,confidence:'medium',source});
   }
-  const selected=(s.match(/(?:選擇|選|student answer|Janice.*選|answer)\s*([A-D])/i)||[])[1];
-  const correct=(s.match(/(?:正確答案|correct answer|答案)\s*(?:應為|應該是|應該係|是|為|係|should be|is)?\s*([A-D])/i)||[])[1];
-  if(selected || correct){
-    const sk=v79SkillForText(s);
-    const status=(selected&&correct)?(selected.toUpperCase()===correct.toUpperCase()?'correct':'wrong'):(/需家長確認|看不清|unclear/.test(s)?'unclear':'correct');
-    const q=(s.match(/第\s*\d+\s*題[^，。]*/)||s.match(/「([^」]{8,120})」/)||[])[0] || 'Multiple choice';
-    v79AddEvidence(out,{page:'',question:q,studentAnswer:selected||'',correctAnswer:correct||'',status,skill:sk.skill,subSkill:sk.subSkill,confidence:'medium',source});
+  // Only keep non-arithmetic/non-reading evidence when it has a specific skill and a real observation.
+  if(!out.length){
+    const spec=v80SpecificSkillForText(s);
+    if(spec && /(正確|答對|做得好|掌握|明確錯|錯誤|需要練|需覆核|看不清|未完成|漏做)/.test(s)){
+      let status='unclear';
+      if(/正確|答對|做得好|掌握|暫未見錯/.test(s)) status='correct';
+      if(/明確錯|錯誤/.test(s) && !/正確|無需覆核|目前答案正確|暫未見錯/.test(s)) status='wrong';
+      v79AddEvidence(out,{page:'',question:s.slice(0,120),studentAnswer:'',correctAnswer:'',status,skill:spec.skill,subSkill:spec.subSkill,confidence:'low',source});
+    }
   }
-  if(!out.length && /(正確|答對|做得好|掌握|需要覆核|明確錯|需家長確認|看不清|未完成|無需覆核|目前答案正確)/.test(s)){
-    const sk=v79SkillForText(s);
-    let status='unclear';
-    if(/正確|答對|做得好|掌握|無需覆核|目前答案正確|暫未見錯/.test(s)) status='correct';
-    if(/明確錯/.test(s) && !/正確|無需覆核|目前答案正確|暫未見錯/.test(s)) status='wrong';
-    if(/需家長確認|看不清|未完成|漏做/.test(s)) status='unclear';
-    v79AddEvidence(out,{page:'',question:s.slice(0,120),studentAnswer:'',correctAnswer:'',status,skill:sk.skill,subSkill:sk.subSkill,confidence:'low',source});
-  }
-  return out;
+  return v80FilterEvidence(out);
 }
 function v79BuildEngineFromReport(r){
   const evidence=[];
@@ -2686,7 +2810,8 @@ function v79BuildEngineFromReport(r){
       }
     }
   });
-  return {version:'v2',flow:'Extract → Mark → Report → Skill Trend',evidence:evidence.slice(0,60),summary:v79SkillTrend(evidence)};
+  const cleanEvidence=v80FilterEvidence(evidence).slice(0,60);
+  return {version:'v2.1',flow:'Extract → Mark → Report → Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence)};
 }
 function v79SkillTrend(evidence){
   const map={};
@@ -2758,8 +2883,8 @@ function v79SkillTrendDashboardHTML(){
   const trends=v79MergeSkillTrends(reports);
   const readiness=Math.min(100,Math.round(Math.min(45,(app.homeworkReports||[]).length*7)+Math.min(25,(trends||[]).length*5)+Math.min(15,(app.emotions||[]).length*3)+Math.min(15,(app.teacherComments||[]).length*4)));
   return `<div class="engineCard">
-    <h2>🧠 Homework Engine v2</h2>
-    <div class="muted">新流程：AI 先 Extract 題目/答案；code Mark 基礎數學；AI 再寫 Report；最後累積 Skill Trend。</div>
+    <h2>🧠 Homework Engine v2.1</h2>
+    <div class="muted">V80：只保留乾淨題目 evidence；英文閱讀用 Reading Intelligence；Skill Status 不再用 general tag。</div>
     <div class="engineStepGrid">
       <div class="engineStep">Extract<small>讀題目/答案</small></div>
       <div class="engineStep">Mark<small>code 驗證</small></div>
@@ -3038,10 +3163,10 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
   report.engineV2 = v79BuildEngineFromReport(report);
-  const v79Strong = (report.engineV2.evidence||[]).filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(Boolean);
-  const v79Review = (report.engineV2.evidence||[]).filter(e=>e.status==='wrong'||e.status==='unclear').map(e=>e.subSkill||e.skill).filter(Boolean);
+  const v79Strong = (report.engineV2.evidence||[]).filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const v79Review = (report.engineV2.evidence||[]).filter(e=>e.status==='wrong'||e.status==='unclear').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
   report.growth={
-    engineVersion:'v2',
+    engineVersion:'v2.1',
     subject:v74DetectSubject(allText),
     worksheetLevel:v74DetectWorksheetLevel(allText),
     childYear:app?.profile?.year || '',
@@ -3066,10 +3191,13 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
       confidence:!!confidence
     }
   };
+  const cleanScore=v80QualityScore(report);
+  report.reportQuality.score=cleanScore;
+  report.reportQuality.label=cleanScore>=90?'Wow-ready':cleanScore>=80?'Useful beta':cleanScore>=65?'Needs evidence clean-up':'Insufficient data';
   return report;
 }
 function v74TagHTML(items,type='neutral'){
-  return (items||[]).slice(0,8).map(x=>`<span class="growthTag ${type}">${esc(x)}</span>`).join('');
+  return [...new Set((items||[]).filter(x=>x&&!v80IsGenericTag(x)))].slice(0,8).map(x=>`<span class="growthTag ${type}">${esc(x)}</span>`).join('');
 }
 function v74Count(items){
   const map={};
@@ -3254,18 +3382,19 @@ function homeworkReportHTML(r){
       <span class="growthTag neutral">Confidence: ${esc(g.confidence||'')}</span>
     </div>
     <div class="reportBlock"><b>Strong skills</b><div class="growthTagWrap">${v74TagHTML(g.skillsStrong||[],'good') || '<span class="muted">未有足夠資料</span>'}</div></div>
-    <div class="reportBlock"><b>Review skills / Error type</b><div class="growthTagWrap">${v74TagHTML([...(g.skillsToReview||[]),...(g.errorTypes||[])],'review') || '<span class="muted">未有足夠資料</span>'}</div></div>
+    <div class="reportBlock"><b>Review skills / Error type</b><div class="growthTagWrap">${v74TagHTML([...(g.skillsToReview||[]),...(g.errorTypes||[])].filter(x=>!v80IsGenericTag(x)),'review') || '<span class="muted">暫未見明確 review skill</span>'}</div></div>
   </div>
   <div class="engineV2Card">
-    <h2>🧠 Homework Engine v2</h2>
+    <h2>🧠 Homework Engine v2.1</h2>
     <div class="engineStepGrid">
       <div class="engineStep">Extract<small>題目/答案</small></div>
       <div class="engineStep">Mark<small>code 驗證</small></div>
       <div class="engineStep">Report<small>家長解讀</small></div>
       <div class="engineStep">Trend<small>Skill 狀態</small></div>
     </div>
-    <div class="v79Note">數學基礎題會盡量由 code 驗證，避免 AI 將正確題放入錯題；英文/閱讀題仍以 AI 視覺抽取 + 家長確認為主。</div>
-    <div class="reportBlock"><b>Extract + Mark evidence</b>${v79EvidenceTableHTML(r.engineV2?.evidence||[])}</div>
+    <div class="v79Note">V80 會清走 report 標題/原因句等雜訊；數學基礎題盡量由 code 驗證，英文閱讀會用 Reading Intelligence 顯示題目焦點。</div>
+    ${v80ReadingTableHTML(r.engineV2?.evidence||[])}
+    <div class="reportBlock"><b>Clean Evidence</b>${v79EvidenceTableHTML(r.engineV2?.evidence||[])}</div>
     <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
   <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
@@ -3292,7 +3421,7 @@ function renderAnalytics(){
       <div class="metric"><b>${acts.length}</b><span>活動進度</span></div>
       <div class="metric"><b>${st.readiness}</b><span>Growth Memory /100</span></div>
     </div>
-    <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。Homework Engine v2 會把功課 evidence 轉成 skill / sub-skill 趨勢。</div>
+    <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。Homework Engine v2.1 會把乾淨 evidence 轉成 skill / sub-skill 趨勢。</div>
   </div>
   ${v74ReportEngineSnapshotHTML()}
   <div class="card">
@@ -3343,7 +3472,7 @@ function weeklyReportHTML(){
   <div class="reportBlock"><b>4. Emotion & Energy Pattern</b>${compactList(emotion)}</div>
   <div class="reportBlock"><b>5. School / Activity Comments</b>${compactList(comments)}</div>
   <div class="reportBlock"><b>6. Parent Action Plan</b>${compactList(actions)}</div>
-  <div class="notice">Homework Engine v2 仍是 beta：數學基礎題會由 code 協助驗證；資料越多，Skill Status 會越清楚。</div>`;
+  <div class="notice">Homework Engine v2.1 仍是 beta：數學基礎題會由 code 協助驗證；英文閱讀以題目焦點和答案 evidence 累積。</div>`;
 }
 
 function renderProfile(){

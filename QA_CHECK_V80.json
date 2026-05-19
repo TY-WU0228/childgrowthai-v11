@@ -1,0 +1,15 @@
+{
+  "version": true,
+  "clean evidence frontend": true,
+  "reading intelligence frontend": true,
+  "generic tag filter": true,
+  "quality adjusted": true,
+  "backend clean evidence": true,
+  "backend reading intelligence": true,
+  "V79 engine retained": true,
+  "V78 fixes retained": true,
+  "6 image backend": true,
+  "official slogan retained": true,
+  "main js syntax": true,
+  "functions syntax": true
+}
