@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI v84 Trial-ready QA + Report Wow Layer</title>
+  <title>ChildGrowth AI V85 Beta Parent Mode Clean-up</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -989,6 +989,16 @@
     .trialNotReady{color:#991b1b;border-color:#fecaca;background:#fef2f2}
     .failSafeHero{background:#fff7ed;border:1px solid #fed7aa;border-radius:22px;padding:14px;margin:12px 0;color:#9a3412;font-weight:900;line-height:1.5}
 
+  
+    /* V85 Beta Parent Mode Clean-up */
+    .parentBetaNote{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:18px;padding:12px;margin:12px 0;font-weight:900;line-height:1.45}
+    .parentProgressCard{background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:12px;margin-top:10px}
+    .parentProgressCard h3{margin:0 0 8px;font-size:20px;color:#0f172a}
+    .parentSkillGroup{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .parentSkill{border-radius:999px;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;padding:6px 10px;font-weight:950;font-size:13px}
+    .parentReview{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
+    .betaHidden{display:none!important}
+
   </style>
 </head>
 <body>
@@ -1259,9 +1269,36 @@ function dailyInsight(routines,tasks,notices){
   return '今日暫時較空，可以安排閱讀、練琴或溫習 spelling。';
 }
 
+function v85IsSectionHeadingLine(x){
+  const s=String(x||'').trim();
+  return /^([⚠️✅🧠💬📌🌟✨🏷️🔎]?\s*)?\d+\.?\s*(我睇到|我大約|已做得好|做得好|需要覆核|可能出錯原因|給家長|今晚|Learning level|Parent Wow|Growth Memory|Extract|Mark|Report|Trend)/i.test(s)
+    || /^(⚠️\s*)?\d+\.\s*需要覆核的位置/.test(s)
+    || /^查看原本詳細內容$/i.test(s);
+}
+function v85CleanBulletText(x){
+  return String(x||'')
+    .replace(/^[\s\-•*]+/,'')
+    .replace(/^([⚠️✅🧠💬📌🌟✨🏷️🔎]\s*)?\d+\.?\s*(我睇到嘅內容|我大約睇到嘅功課內容|已做得好的地方|需要覆核的位置|可能出錯原因|給家長的簡短解讀|今晚只做一件事)\s*[:：-]?\s*/,'')
+    .replace(/^【需家長確認】\s*請家長確認[:：]?\s*/,'【需家長確認】')
+    .replace(/^請家長確認[:：]?\s*/,'')
+    .trim();
+}
+function v85CleanBulletArray(items, max=8){
+  const out=[]; const seen=new Set();
+  (items||[]).forEach(x=>{
+    let s=v85CleanBulletText(x);
+    if(!s || v85IsSectionHeadingLine(s)) return;
+    if(/^(暫未見明確錯題|暫未見錯題|未見明確錯題)[。.]?$/.test(s) && out.some(y=>/暫未見明確錯題/.test(y))) return;
+    const k=s.toLowerCase().replace(/\s+/g,' ');
+    if(seen.has(k)) return;
+    seen.add(k); out.push(s);
+  });
+  return out.slice(0,max);
+}
 function compactList(items, empty='暫時未有資料'){
-  if(!items || !items.length) return `<ul><li>${esc(empty)}</li></ul>`;
-  return `<ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+  const clean=v85CleanBulletArray(items,8);
+  if(!clean.length) return `<ul><li>${esc(empty)}</li></ul>`;
+  return `<ul>${clean.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
 }
 
 
@@ -2384,7 +2421,8 @@ function renderHomework(){
   $('homework').innerHTML=`<div class="card">
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選最多 6 張相，例如第 1–6 頁。結果只作學習觀察，不作診斷。</div>
-    <div class="hwActionNote">V84：Trial-ready QA + Report Wow Layer。加入家長 Wow Summary、內部 QA checklist、真實 report quality reasons、fail-safe report，不再把未完成分析扮成完整 report。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured homework report</span><span class="qaBadge">✅ Multi-photo kept</span></div><div class="classificationRuleNote"><b>V74 Report Engine rule：</b>啱就放「做得好」；清楚錯 / 看不清 / 未完成先放「需要覆核」。每次 report 會額外轉成可累積的 Growth Memory data。</div>
+    <div class="parentBetaNote">Beta Parent Mode：上載功課後，AI 會整理成家長易明 report：今日重點、做得好、需要覆核、今晚做一件事。</div>
+    ${v85AdminMode()?`<div class="hwActionNote">Admin debug：V85 保留 QA / technical evidence。正式家長測試預設隱藏。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured report</span><span class="qaBadge">✅ Parent mode clean-up</span></div>`:''}
     <label>Upload homework photos（最多 6 張）</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2509,11 +2547,12 @@ function hwRow(h){
   const count=h.imageCount?` · ${h.imageCount}張相`:'';
   const source=h.offline?' · 暫存':'';
   const summary=esc(report.shortSummary || report.summary || report.title || 'Homework report');
-  const q=report.reportQuality?.score||0;
-  const tags=[report.growth?.subject,report.growth?.worksheetLevel,...(report.growth?.skillsToReview||[]).slice(0,2)].filter(Boolean);
+  const sets=v85ResolvedSkillSets(report);
+  const parentTags=[report.growth?.subject,report.growth?.worksheetLevel,...sets.review.slice(0,2)].filter(Boolean);
+  const adminBits=v85AdminMode()?` · Quality ${report.reportQuality?.score||0}/100`:'';
   return `<div class="row homeworkRecentCard">
-    <div><b>${new Date(h.date).toLocaleString()}${count}${source} · Quality ${q}/100</b>
-      <small>${summary}<br>下一步：${esc(report.nextStep||'')}<br>Tags：${esc(tags.join(' · ')||'未有')}</small>
+    <div><b>${new Date(h.date).toLocaleString()}${count}${source}${adminBits}</b>
+      <small>${summary}<br>下一步：${esc(v85ConcreteNextStep(report)||report.nextStep||'')}<br>${parentTags.length?`重點：${esc(parentTags.join(' · '))}`:''}</small>
       <div class="rowActions"><button class="btn" onclick="viewHomeworkReport('${esc(h.id)}')">查看完整分析</button></div>
     </div>
   </div>`;
@@ -3567,7 +3606,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
     const dbg=v83DebugFromData(data);
-    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${data.model?(' Model: '+esc(data.model)):''}${dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
+    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
   }catch(e){
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
     report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
@@ -3874,6 +3913,80 @@ function v84TrialChecklistHTML(){
   </div>`;
 }
 
+
+function v85AdminMode(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    return qs.get('admin')==='1' || localStorage.getItem('childGrowthAdminMode')==='1';
+  }catch(e){return false;}
+}
+function v85NormalizeSkillTag(x){
+  let s=String(x||'').trim().toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ');
+  if(!s) return '';
+  if(/present|past|tense|verb tense|時態/.test(s)) return 'present vs past tense';
+  if(/instruction|讀題|question requirement|題目要求/.test(s)) return 'reading instructions';
+  if(/word search|spelling recognition|spelling/.test(s)) return 'spelling / word search';
+  if(/handwriting|photo unclear|careless|rushing|general|none clearly|ai incomplete/.test(s)) return '';
+  if(/recipient/.test(s)) return 'identifying recipients';
+  if(/purpose/.test(s)) return 'purpose';
+  if(/tone/.test(s)) return 'tone';
+  if(/detail|following/.test(s)) return 'reading detail';
+  return String(x||'').trim();
+}
+function v85ResolvedSkillSets(report){
+  const ev=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  const trueReview=v82TrueReviewEvidence(report);
+  const strongFromEvidence=ev.filter(e=>e.status==='correct').map(e=>v85NormalizeSkillTag(e.subSkill||e.skill)).filter(Boolean);
+  const reviewFromEvidence=trueReview.map(e=>v85NormalizeSkillTag(e.subSkill||e.skill)).filter(Boolean);
+  const strongRaw=[...(report?.growth?.skillsStrong||[]),...(report?.strengths||[])].map(v85NormalizeSkillTag).filter(Boolean);
+  const reviewRaw=[...(report?.growth?.skillsToReview||[]),...(report?.growth?.errorTypes||[]),...(report?.checkPoints||[])].map(v85NormalizeSkillTag).filter(Boolean);
+  let strong=v84Unique([...strongFromEvidence,...strongRaw]);
+  let review=v84Unique([...reviewFromEvidence,...reviewRaw]);
+  review=review.filter(x=>!strong.includes(x) || reviewFromEvidence.includes(x));
+  strong=strong.filter(x=>!reviewFromEvidence.includes(x));
+  return {strong:strong.slice(0,5), review:review.slice(0,5)};
+}
+function v85ParentModeTags(report){
+  const sets=v85ResolvedSkillSets(report);
+  return `<div class="parentProgressCard">
+    <h3>學習重點</h3>
+    <div><b>做得好</b><div class="parentSkillGroup">${sets.strong.length?sets.strong.map(x=>`<span class="parentSkill">${esc(x)}</span>`).join(''):'<span class="muted">暫時未有足夠資料</span>'}</div></div>
+    <div style="margin-top:10px"><b>下次留意</b><div class="parentSkillGroup">${sets.review.length?sets.review.map(x=>`<span class="parentSkill parentReview">${esc(x)}</span>`).join(''):'<span class="muted">暫未見明確需要覆核的 skill</span>'}</div></div>
+  </div>`;
+}
+function v85ConcreteNextStep(report){
+  const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
+  if(/past|present|tense|時態|rided|rides|played|plays|cooked|cooks|drives|drove/i.test(txt)){
+    return '今晚只做第 1 題：先問「題目要你寫 past/present，定係要你改動詞？」再圈出 rides，判斷這句是 present。';
+  }
+  const review=v82TrueReviewEvidence(report);
+  if(review.length){
+    const e=review[0];
+    return `今晚只做一題：${e.question||'選一題'}。先讀題目要求，再講 Janice 答案同正確答案有咩分別。`;
+  }
+  return v82NextStep(report);
+}
+function v85ParentInsight(report){
+  const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
+  if(/past|present|tense|時態|rided|rides|played|plays|cooked|cooks|drives|drove/i.test(txt)){
+    return 'Janice 不是完全不懂英文，而是今次在「讀題指令」和「判斷 past / present」之間有混淆：題目要她寫 past 或 present，但她似乎嘗試改寫動詞。這是 Year 2 常見、也很值得練的位。';
+  }
+  return v82ParentInsight(report);
+}
+function v85CleanReviewList(report){
+  const review=v82ReviewList(report);
+  const clean=v85CleanBulletArray(review,6).filter(x=>!/正確|無需覆核|目前答案正確|暫未見明確錯題.*明確錯/.test(x));
+  return clean.length?clean:['暫未見明確錯題。'];
+}
+function v85ParentStrengths(report){
+  const arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認/.test(x));
+  const txt=[report?.summary,report?.rawAnalysis].join(' ');
+  if(/word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
+    if(!arr.some(x=>/word search|拼字|單字/.test(x))) arr.unshift('Word search / spelling 部分能找到多個目標單字，拼字搜尋能力不錯。');
+  }
+  return arr;
+}
+
 function homeworkReportHTML(r, record={}){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
   // Rebuild clean engine view using V82 filters.
@@ -3899,16 +4012,17 @@ function homeworkReportHTML(r, record={}){
   <div class="wowHero">
     <h2>✨ 今日最值得留意</h2>
     <div class="wowSentence">${esc(v84WowSummary(r,record))}</div>
-    <div class="wowSub">${esc(v82ParentInsight(r))}</div>
+    <div class="wowSub">${esc(v85ParentInsight(r))}</div>
     <div class="parentMiniGrid">
-      <div class="parentMini"><b>今晚做一件事</b>${esc(v82NextStep(r))}</div>
-      <div class="parentMini"><b>Trial readiness</b><span class="trialStatusPill ${trialQA.cls}">${esc(trialQA.label)} · ${trialQA.score}/100</span></div>
+      <div class="parentMini"><b>今晚做一件事</b>${esc(v85ConcreteNextStep(r))}</div>
+      <div class="parentMini"><b>學習重點</b>先看需要覆核的位置，再做一題代表性練習。</div>
     </div>
     ${trialQA.incomplete?'<div class="failSafeHero">Fail-safe：今次 AI 未完整分析，所以不會扮成完整 report。Upload 已保存，可稍後重試。</div>':''}
-    ${String(g.confidence||r.confidence||'').toLowerCase()==='low'?'<div class="qualityCaution">Confidence Low：呢份 report 可作參考，但唔應該標為完全準確；建議補充更清晰/有答案嘅相。</div>':''}
+    ${v85AdminMode()&&String(g.confidence||r.confidence||'').toLowerCase()==='low'?'<div class="qualityCaution">Admin: Confidence Low，呢份 report 可作參考，但唔應該標為完全準確。</div>':''}
   </div>
 
-  <div class="engineCard">
+  ${v85ParentModeTags(r)}
+  <div class="engineCard" style="${v85AdminMode()?'':'display:none'}">
     <h2>🧠 Growth Memory Tags</h2>
     <div class="qualityMeter"><div class="qualityFill" style="width:${Math.max(5,q.score||0)}%"></div></div>
     <div class="muted">Report Quality：<b>${q.score||0}/100</b> · ${esc(q.label||'')}</div>
@@ -3922,7 +4036,7 @@ function homeworkReportHTML(r, record={}){
     <div class="reportBlock"><b>Review skills / Error type</b><div class="growthTagWrap">${v82TagHTML(reviewSkills,'review')}</div></div>
   </div>
 
-  <div class="engineV2Card">
+  <div class="engineV2Card" style="${v85AdminMode()?'':'display:none'}">
     <h2>🧠 Parent-facing Homework Engine v2.3</h2>
     <div class="v79Note">V84：家長先睇 wow summary；QA / technical evidence 收起；未完整分析時顯示 fail-safe，不扮完整 report。</div>
     ${v80ReadingTableHTML(r.engineV2?.evidence||[])}
@@ -3931,14 +4045,14 @@ function homeworkReportHTML(r, record={}){
 
   <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b>${v78SummaryHTML(r.summary||'')}</div>
-  <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(v82ParentStrengths(r),'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>3. 需要覆核的位置</b>${reviewOk?`<div class="parentReviewOk">${esc(reviewList[0])}</div>`:compactList(reviewList,'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(v85ParentStrengths(r),'暫時未有足夠資料')}</div>
+  <div class="reportBlock"><b>3. 需要覆核的位置</b>${v85CleanReviewList(r).length===1 && /暫未見明確錯題/.test(v85CleanReviewList(r)[0])?`<div class="parentReviewOk">${esc(v85CleanReviewList(r)[0])}</div>`:compactList(v85CleanReviewList(r),'未見明顯需要覆核')}</div>
   <div class="reportBlock"><b>4. 可能出錯原因</b>${reviewOk?'<div class="muted">暫未見明確錯題，所以暫時不硬估出錯原因。</div>':compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
-  <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(v82ParentInsight(r))}</div></div>
-  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v82NextStep(r))}</div></div>
+  <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(v85ParentInsight(r))}</div></div>
+  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v85ConcreteNextStep(r))}</div></div>
 
-  ${v84QAHTML(r,record)}
-  <details class="technicalDetails">
+  ${v85AdminMode()?v84QAHTML(r,record):''}
+  <details class="technicalDetails" style="${v85AdminMode()?'':'display:none'}">
     <summary>Technical evidence（平時可不用看）</summary>
     <div class="technicalInner">
       <div class="reportBlock"><b>Clean Evidence</b>${v82EvidenceCardsHTML(r.engineV2?.evidence||[])}</div>

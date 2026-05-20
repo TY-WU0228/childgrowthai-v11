@@ -122,6 +122,15 @@ ${body.note || body.text || ''}
 Learning context：
 ${JSON.stringify(context, null, 2)}
 
+V85 Beta Parent Mode rules:
+- Parent report must not mention model, QA score, trial readiness, debug, JSON, technical evidence, or version number.
+- Do not put section headings such as "3. 需要覆核的位置" inside "已做得好的地方".
+- Strong skills and review skills must not repeat the same skill unless there is real question-level evidence.
+- If worksheet instruction says "write past or present", evaluate whether the child wrote the required label (past/present), not whether they changed the verb.
+- If child changes the verb instead of writing past/present, identify this as "reading instruction / task requirement misunderstanding" plus "present vs past tense".
+- "今晚只做一件事" must name one concrete question or action the parent can do in 5 minutes.
+- For word search/spelling pages: word search success can be a strength; tense/past-present errors should be review.
+
 Trial-ready / Wow report rules:
 - 第一屏要能產生「家長 wow 感」：一句說明孩子今日最值得留意的能力或覆核點。
 - 如果 AI 未能看到學生答案，不能寫「全部正確」。
