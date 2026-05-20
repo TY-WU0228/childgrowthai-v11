@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI V85 Beta Parent Mode Clean-up</title>
+  <title>ChildGrowth AI V86 Beta Tester Onboarding + Parent Report Polish</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -990,7 +990,7 @@
     .failSafeHero{background:#fff7ed;border:1px solid #fed7aa;border-radius:22px;padding:14px;margin:12px 0;color:#9a3412;font-weight:900;line-height:1.5}
 
   
-    /* V85 Beta Parent Mode Clean-up */
+    /* V86 Beta Tester Onboarding Clean-up */
     .parentBetaNote{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:18px;padding:12px;margin:12px 0;font-weight:900;line-height:1.45}
     .parentProgressCard{background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:12px;margin-top:10px}
     .parentProgressCard h3{margin:0 0 8px;font-size:20px;color:#0f172a}
@@ -998,6 +998,25 @@
     .parentSkill{border-radius:999px;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;padding:6px 10px;font-weight:950;font-size:13px}
     .parentReview{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
     .betaHidden{display:none!important}
+
+  
+    /* V86 Beta Tester Onboarding + Parent Report Polish */
+    .betaOnboardWrap{max-width:820px;margin:0 auto}
+    .betaHero{background:linear-gradient(135deg,#eef2ff,#f0fdfa);border:1px solid #c7d2fe;border-radius:28px;padding:20px;margin-bottom:14px}
+    .betaHero h1{margin:0 0 8px;font-size:34px;color:#0f172a}
+    .betaSteps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0}
+    .betaStep{background:white;border:1px solid #e2e8f0;border-radius:16px;padding:10px;font-weight:1000;text-align:center;color:#475569;font-size:13px}
+    .betaStep.active{background:#eef2ff;color:#3730a3;border-color:#a5b4fc}
+    .betaFormCard{background:white;border:1px solid #dbeafe;border-radius:24px;padding:16px;margin:12px 0;box-shadow:0 8px 24px rgba(15,23,42,.04)}
+    .betaFormCard h2{margin:0 0 10px;font-size:24px}
+    .betaOptionGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .betaChoice{display:flex;align-items:flex-start;gap:8px;border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#f8fafc;font-weight:900;color:#334155}
+    .betaChoice input{margin-top:4px}
+    .betaPrivacy{background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:12px;color:#9a3412;font-weight:850;line-height:1.45}
+    .betaStartRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .betaDanger{background:#fff!important;color:#b91c1c!important;border:1px solid #fecaca!important}
+    .betaSmall{font-size:13px;color:#64748b;font-weight:850;line-height:1.4}
+    @media(max-width:700px){.betaSteps{grid-template-columns:1fr 1fr}.betaOptionGrid{grid-template-columns:1fr}}
 
   </style>
 </head>
@@ -1018,7 +1037,7 @@
   <header class="top">
     <div class="brand">🌸 ChildGrowth AI</div>
     <div class="sub" id="headerProfile">Your child · Learning + Emotion + Routine</div>
-    <div class="version">v63 Homework AI restore · Real error</div>
+    <div class="version">Beta Parent Preview</div>
   </header>
 
   <main>
@@ -1287,7 +1306,7 @@ function v85CleanBulletArray(items, max=8){
   const out=[]; const seen=new Set();
   (items||[]).forEach(x=>{
     let s=v85CleanBulletText(x);
-    if(!s || v85IsSectionHeadingLine(s)) return;
+    if(!s || v85IsSectionHeadingLine(s) || (/需要覆核的位置|已做得好的地方|可能出錯原因|給家長的簡短解讀|今晚只做一件事/.test(s) && s.length<28)) return;
     if(/^(暫未見明確錯題|暫未見錯題|未見明確錯題)[。.]?$/.test(s) && out.some(y=>/暫未見明確錯題/.test(y))) return;
     const k=s.toLowerCase().replace(/\s+/g,' ');
     if(seen.has(k)) return;
@@ -1804,6 +1823,157 @@ function v60BindActivityClicks(){
     }
   }, true);
 }
+
+
+function v86BetaMode(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    return qs.get('beta')==='1' || qs.get('newfamily')==='1';
+  }catch(e){return false;}
+}
+function v86NeedsOnboarding(){
+  return v86BetaMode() && !(app.settings&&app.settings.betaOnboardingDone);
+}
+function v86BlankForBeta(v){
+  if(v86BetaMode() && !(app.settings&&app.settings.betaOnboardingDone) && /janice/i.test(String(app.profile?.childName||''))) return '';
+  return v||'';
+}
+function v86Selected(arr,val){ return (arr||[]).includes(val) ? 'checked' : ''; }
+function v86ScheduleLines(){
+  return (app.routines||[]).slice(0,8).map(r=>`${r.day||''} ${r.name||''} ${r.start||''}${r.end?`-${r.end}`:''}`).join('\n');
+}
+function renderBetaOnboarding(){
+  currentTab='home';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('home').classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-tab="home"]')?.classList.add('active');
+  const p=app.profile||{};
+  const goals=app.settings?.betaGoals||[];
+  const prefs=app.settings?.reportPreference||{};
+  if($('headerProfile')) $('headerProfile').textContent='Beta setup · New family';
+  $('home').innerHTML=`<div class="card betaOnboardWrap">
+    <div class="betaHero">
+      <h1>👋 Welcome to ChildGrowth AI Beta</h1>
+      <div class="muted">先建立小朋友資料，AI 先可以用年級、家長目標和日常 schedule 去整理功課 report、reminder 同成長觀察。</div>
+      <div class="betaSteps"><div class="betaStep active">1 小朋友</div><div class="betaStep active">2 目標</div><div class="betaStep active">3 Schedule</div><div class="betaStep active">4 Report</div><div class="betaStep active">5 Privacy</div></div>
+      <div class="betaSmall">Beta 版只作家長學習觀察，不作正式診斷、評分或老師評估。</div>
+    </div>
+    <div class="betaFormCard">
+      <h2>1. 小朋友基本資料</h2>
+      <div class="grid">
+        <div><label>小朋友名字 / Nickname</label><input id="obName" placeholder="例如 Chloe" value="${esc(v86BlankForBeta(p.childName))}"></div>
+        <div><label>年齡</label><input id="obAge" placeholder="例如 7 歲" value="${esc(v86BlankForBeta(p.age))}"></div>
+        <div><label>目前年級</label><input id="obYear" placeholder="例如 Year 2" value="${esc(v86BlankForBeta(p.year))}"></div>
+        <div><label>主要語言</label><select id="obLang">
+          ${['English','Cantonese / English mix','Mandarin / English mix','Traditional Chinese / English mix'].map(x=>`<option ${String(p.language||'').includes(x.split(' ')[0])?'selected':''}>${x}</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="grid">
+        <div><label>學校 / 補習中心（可選）</label><input id="obSchool" placeholder="例如 public school / QS school" value="${esc(v86BlankForBeta(p.school))}"></div>
+        <div><label>學校類型</label><select id="obSchoolType"><option>Public school</option><option>Private school</option><option>Tutoring / enrichment</option><option>Homeschool</option><option>Other</option></select></div>
+      </div>
+    </div>
+    <div class="betaFormCard">
+      <h2>2. 你最想 ChildGrowth AI 幫咩？</h2>
+      <div class="betaOptionGrid">
+        ${[
+          ['homework','功課分析：睇到強弱和下一步'],
+          ['notice','School notice / reminder'],
+          ['teacher','老師 comment 記錄'],
+          ['activity','課外活動 progress'],
+          ['emotion','情緒 / 學習狀態'],
+          ['weekly','Weekly growth report']
+        ].map(([v,t])=>`<label class="betaChoice"><input type="checkbox" name="obGoal" value="${v}" ${v86Selected(goals,v)}> <span>${t}</span></label>`).join('')}
+      </div>
+      <label>家長特別想留意（可選）</label>
+      <textarea id="obWatch" placeholder="例如：reading comprehension、數學粗心、信心、功課拖拉...">${esc((p.watchAreas||[]).join('、'))}</textarea>
+    </div>
+    <div class="betaFormCard">
+      <h2>3. 固定 schedule / reminder</h2>
+      <div class="grid">
+        <div><label>School days</label><select id="obSchoolDays"><option>Monday-Friday</option><option>Monday-Thursday</option><option>Custom / not sure</option></select></div>
+        <div><label>School time</label><input id="obSchoolTime" placeholder="例如 8:45 AM - 3:30 PM" value="8:45 AM - 3:30 PM"></div>
+      </div>
+      <label>課外活動 / weekend class（每行一項，可選）</label>
+      <textarea id="obActivities" placeholder="例如：Thursday swimming 6:00 PM&#10;Friday chess 3:30 PM&#10;Sunday Chinese school 9:00 AM">${esc(v86ScheduleLines())}</textarea>
+    </div>
+    <div class="betaFormCard">
+      <h2>4. AI report 偏好</h2>
+      <div class="betaOptionGrid">
+        ${[
+          ['simple','Short and simple'],['detailed','More detailed'],['encourage','多鼓勵，少壓力'],['mistakes','清楚指出錯位'],['bilingual','中英混合'],['action','每次都要有今晚做一件事']
+        ].map(([v,t])=>`<label class="betaChoice"><input type="checkbox" name="obPref" value="${v}" ${v86Selected(prefs.items||[],v)}> <span>${t}</span></label>`).join('')}
+      </div>
+    </div>
+    <div class="betaFormCard">
+      <h2>5. Beta notice / Privacy</h2>
+      <div class="betaPrivacy">This beta is a learning support tool for parent observation only. AI reports may be incomplete or need parent confirmation. Please do not upload sensitive medical, legal or highly private documents.</div>
+      <label class="betaChoice" style="margin-top:10px"><input type="checkbox" id="obAgree"> <span>I understand this is a beta learning support tool.</span></label>
+      <div class="betaStartRow">
+        <button class="btn primary" onclick="v86SaveOnboarding()">Start ChildGrowth AI</button>
+        <button class="btn" onclick="v86SkipOnboarding()">Use existing data on this device</button>
+        <button class="btn betaDanger" onclick="v86StartNewFamily()">Start as new family / clear this device</button>
+      </div>
+      <div class="betaSmall">「Start as new family」只會清除此手機 / 此 browser 入面嘅資料；不會影響其他人的資料。</div>
+    </div>
+  </div>`;
+}
+function v86DaysFromChoice(choice){
+  if(choice==='Monday-Thursday') return ['Monday','Tuesday','Wednesday','Thursday'];
+  if(choice==='Custom / not sure') return [];
+  return ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+}
+function v86ParseTimeRange(s){
+  const parts=String(s||'').split(/\s*[-–—]\s*/);
+  return {start:(parts[0]||'8:45 AM').trim(), end:(parts[1]||'3:30 PM').trim()};
+}
+function v86DayFromLine(line){
+  const s=String(line||'').toLowerCase();
+  const map={monday:'Monday',mon:'Monday','星期一':'Monday',tuesday:'Tuesday',tue:'Tuesday','星期二':'Tuesday',wednesday:'Wednesday',wed:'Wednesday','星期三':'Wednesday',thursday:'Thursday',thu:'Thursday','星期四':'Thursday',friday:'Friday',fri:'Friday','星期五':'Friday',saturday:'Saturday',sat:'Saturday','星期六':'Saturday',sunday:'Sunday',sun:'Sunday','星期日':'Sunday','星期天':'Sunday'};
+  const key=Object.keys(map).find(k=>s.includes(k));
+  return key?map[key]:'';
+}
+function v86AddRoutine(day,name,start='',end='',prep=''){
+  if(!day||!name) return;
+  const existing=(app.routines||[]).some(r=>r.day===day && norm(r.name)===norm(name) && (r.start||'')===start);
+  if(existing) return;
+  app.routines.push({id:'r'+Date.now()+Math.random().toString(16).slice(2),day,name,start,end,prep,source:'beta-onboarding'});
+}
+function v86SaveOnboarding(){
+  if(!$('obAgree')?.checked){alert('請先確認 beta notice。'); return;}
+  const name=$('obName').value.trim();
+  if(!name){alert('請輸入小朋友名字 / nickname。'); return;}
+  const important=(app.homeworkReports||[]).length+(app.teacherComments||[]).length+(app.schoolNotices||[]).length+(app.activityReports||[]).length+(app.captureHistory||[]).length+(app.emotions||[]).length;
+  if(v86BetaMode() && !(app.settings&&app.settings.betaOnboardingDone) && important===0){ app.routines=[]; }
+  app.profile.childName=name; app.profile.age=$('obAge').value.trim(); app.profile.year=$('obYear').value.trim()||'Year level not set';
+  app.profile.language=$('obLang').value; app.profile.school=$('obSchool').value.trim(); app.profile.region=$('obSchoolType').value; app.profile.focus='Beta parent goals';
+  app.profile.watchAreas=$('obWatch').value.split(/[、,，\n]/).map(x=>x.trim()).filter(Boolean);
+  app.profile.parentGoals=[...document.querySelectorAll('input[name="obGoal"]:checked')].map(x=>x.value);
+  app.settings=app.settings||{}; app.settings.betaMode=true; app.settings.betaOnboardingDone=true; app.settings.betaGoals=app.profile.parentGoals;
+  app.settings.reportPreference={items:[...document.querySelectorAll('input[name="obPref"]:checked')].map(x=>x.value)};
+  const tr=v86ParseTimeRange($('obSchoolTime').value);
+  v86DaysFromChoice($('obSchoolDays').value).forEach(day=>v86AddRoutine(day,'School',tr.start,tr.end,'school bag / water bottle / reader bag'));
+  $('obActivities').value.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>{
+    const day=v86DayFromLine(line); const tm=line.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i); const start=tm?tm[0]:'';
+    const name=line.replace(/monday|mon|tuesday|tue|wednesday|wed|thursday|thu|friday|fri|saturday|sat|sunday|sun|星期[一二三四五六日天]/ig,'').replace(start,'').trim() || 'Activity';
+    if(day) v86AddRoutine(day,name,start,'','');
+  });
+  save(); updateHeader(); currentTab='home'; renderHome();
+}
+function v86SkipOnboarding(){ app.settings=app.settings||{}; app.settings.betaOnboardingDone=true; app.settings.betaMode=true; save(); renderCurrent(); }
+function v86StartNewFamily(){
+  if(!confirm('This will clear ChildGrowth AI data only on this device/browser. Continue?')) return;
+  if(!confirm('請再次確認：只會清除此裝置資料，不會影響其他人。')) return;
+  localStorage.removeItem(DATA_KEY);
+  app=JSON.parse(JSON.stringify(DEFAULT_DATA));
+  app.profile.childName=''; app.profile.age=''; app.profile.year=''; app.profile.school=''; app.profile.strengths=[]; app.profile.watchAreas=[]; app.profile.parentGoals=[];
+  app.routines=[]; app.todayTasks=[]; app.schoolNotices=[]; app.emotions=[]; app.teacherComments=[]; app.homeworkReports=[]; app.activityReports=[]; app.captureHistory=[];
+  app.settings={weekExpanded:false,onboardingDone:false,betaMode:true,betaOnboardingDone:false};
+  save(); renderBetaOnboarding();
+}
+window.v86SaveOnboarding=v86SaveOnboarding; window.v86SkipOnboarding=v86SkipOnboarding; window.v86StartNewFamily=v86StartNewFamily;
+
 
 function renderHome(){
   const today=dayName(0), tomorrow=dayName(1);
@@ -3921,8 +4091,9 @@ function v85AdminMode(){
   }catch(e){return false;}
 }
 function v85NormalizeSkillTag(x){
+  if(v85IsSectionHeadingLine && v85IsSectionHeadingLine(x)) return '';
   let s=String(x||'').trim().toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ');
-  if(!s) return '';
+  if(!s || /需要覆核的位置|已做得好的地方|可能出錯原因|給家長的簡短解讀|今晚只做一件事/.test(s)) return '';
   if(/present|past|tense|verb tense|時態/.test(s)) return 'present vs past tense';
   if(/instruction|讀題|question requirement|題目要求/.test(s)) return 'reading instructions';
   if(/word search|spelling recognition|spelling/.test(s)) return 'spelling / word search';
@@ -4043,7 +4214,7 @@ function homeworkReportHTML(r, record={}){
     <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
 
-  <div class="reportBlock highlight"><b>0. Learning level awareness</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
+  <div class="reportBlock highlight"><b>程度觀察</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b>${v78SummaryHTML(r.summary||'')}</div>
   <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(v85ParentStrengths(r),'暫時未有足夠資料')}</div>
   <div class="reportBlock"><b>3. 需要覆核的位置</b>${v85CleanReviewList(r).length===1 && /暫未見明確錯題/.test(v85CleanReviewList(r)[0])?`<div class="parentReviewOk">${esc(v85CleanReviewList(r)[0])}</div>`:compactList(v85CleanReviewList(r),'未見明顯需要覆核')}</div>
@@ -4355,7 +4526,7 @@ window.addEventListener('error', function(e){
   const s=document.getElementById('splashScreen'); if(s) s.classList.add('hide');
 });
 
-function renderCurrent(){updateHeader();({home:renderHome,record:renderRecord,homework:renderHomework,analytics:renderAnalytics,profile:renderProfile}[currentTab]||renderHome)()}
+function renderCurrent(){updateHeader(); if(typeof v86NeedsOnboarding==='function' && v86NeedsOnboarding()){renderBetaOnboarding(); return;} ({home:renderHome,record:renderRecord,homework:renderHomework,analytics:renderAnalytics,profile:renderProfile}[currentTab]||renderHome)()}
 window.renderCurrent=renderCurrent;
 function v78BootReady(){
   try{

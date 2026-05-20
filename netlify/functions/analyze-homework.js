@@ -122,6 +122,15 @@ ${body.note || body.text || ''}
 Learning context：
 ${JSON.stringify(context, null, 2)}
 
+V86 Parent Report Polish rules:
+- "Learning level awareness" should be parent-facing as "程度觀察"; keep wording short.
+- Remove section-heading leakage: never output "3. 需要覆核的位置" inside "已做得好的地方".
+- For parent beta, the report must feel helpful within the first 10 seconds.
+- When answers are not visible, say "需要家長確認"; do not guess.
+- For past/present worksheets, focus on task requirement misunderstanding: child may be changing verbs instead of writing the label "past/present".
+- Strong area should describe what the child actually did well. Review area should only include real mistakes/unclear/incomplete items.
+- No debug, model names, QA score, JSON, function wording or version wording in parent report.
+
 V85 Beta Parent Mode rules:
 - Parent report must not mention model, QA score, trial readiness, debug, JSON, technical evidence, or version number.
 - Do not put section headings such as "3. 需要覆核的位置" inside "已做得好的地方".
