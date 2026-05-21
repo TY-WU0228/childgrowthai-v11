@@ -1,0 +1,10 @@
+{
+  "version_label": true,
+  "css_overflow_fix": true,
+  "activity_cards": true,
+  "textarea_removed": true,
+  "quick_chips": true,
+  "data_safety_readme": true,
+  "main_js_syntax": true,
+  "functions_syntax": true
+}
