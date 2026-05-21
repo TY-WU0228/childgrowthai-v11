@@ -1,7 +1,7 @@
 {
-  "name": "ChildGrowth AI",
-  "short_name": "ChildGrowth AI",
-  "start_url": "/",
+  "name": "ChildGrowth AI Beta",
+  "short_name": "ChildGrowth",
+  "start_url": "/?v=90&beta=1&homescreen=1",
   "display": "standalone",
   "background_color": "#f4f8ff",
   "theme_color": "#eff6ff",
@@ -16,5 +16,7 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "scope": "/",
+  "id": "/childgrowth-ai-beta-v90"
 }

@@ -1,0 +1,11 @@
+{
+  "version_label": true,
+  "install_guidance": true,
+  "standalone_detection": true,
+  "storage_check": true,
+  "beta_mode_remembered": true,
+  "manifest_start_url_beta": true,
+  "no_auto_delete_readme": true,
+  "main_js_syntax": true,
+  "functions_syntax": true
+}

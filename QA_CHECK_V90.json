@@ -1,0 +1,11 @@
+{
+  "source": "ChildGrowthAI_V89_Home_Screen_Beta_Storage_Guard.zip",
+  "version_label": true,
+  "force_onboarding_function": true,
+  "render_current_patched": true,
+  "beta_mode_homescreen": true,
+  "manifest_start_url_v90": true,
+  "clean_notice": true,
+  "main_js_syntax": true,
+  "functions_syntax": true
+}

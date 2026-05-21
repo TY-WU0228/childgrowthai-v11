@@ -6,7 +6,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI V88 Dynamic Child + School Routine Fix</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ChildGrowth AI" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>ChildGrowth AI V90 Force Beta Onboarding Clean Install</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -1000,7 +1003,7 @@
     .betaHidden{display:none!important}
 
   
-    /* V88 Dynamic Child + School Routine Fix */
+    /* V90 Force Beta Onboarding Clean Install */
     .betaOnboardWrap{max-width:820px;margin:0 auto}
     .betaHero{background:linear-gradient(135deg,#eef2ff,#f0fdfa);border:1px solid #c7d2fe;border-radius:28px;padding:20px;margin-bottom:14px}
     .betaHero h1{margin:0 0 8px;font-size:34px;color:#0f172a}
@@ -1852,7 +1855,7 @@ function v60BindActivityClicks(){
 function v86BetaMode(){
   try{
     const qs=new URLSearchParams(location.search);
-    return qs.get('beta')==='1' || qs.get('newfamily')==='1';
+    return qs.get('beta')==='1' || qs.get('newfamily')==='1' || qs.get('homescreen')==='1' || localStorage.getItem('cg_beta_mode')==='1';
   }catch(e){return false;}
 }
 function v86NeedsOnboarding(){
@@ -1924,6 +1927,48 @@ function v87ReadActivityRows(){
 window.v87AddActivityRow=v87AddActivityRow;
 window.v87RemoveActivityRow=v87RemoveActivityRow;
 
+
+/* V89 Home Screen / iPhone storage guard */
+function v89IsStandalone(){
+  try{
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }catch(e){return false;}
+}
+function v89StorageAvailable(){
+  try{
+    localStorage.setItem('__cg_storage_test','1');
+    localStorage.removeItem('__cg_storage_test');
+    return true;
+  }catch(e){return false;}
+}
+function v89InstallGuidanceHTML(){
+  if(!v86BetaMode()) return '';
+  const ok=v89StorageAvailable();
+  const standalone=v89IsStandalone();
+  if(!ok){
+    return `<div class="installGuard"><b>⚠️ Storage 未開啟</b>呢個 browser 可能係 Private / restricted mode，資料未必可以保存。請用 Safari normal mode 打開 beta link。</div>`;
+  }
+  if(standalone){
+    return `<div class="installGuard good"><b>✅ Home Screen App mode</b>你而家係從主畫面 icon 打開。喺呢度填 onboarding，資料會保存喺呢個 app icon 入面。</div>`;
+  }
+  return `<div class="installGuard"><b>📱 iPhone 測試提示</b>如果你想把 ChildGrowth AI 加到主畫面當 app 用，請先加到主畫面，再從主畫面 icon 打開後先填 onboarding。<ol class="installSteps"><li>在 Safari 打開 beta link。</li><li>按 Share → Add to Home Screen。</li><li>由主畫面 ChildGrowth AI icon 打開。</li><li>在 Home Screen App 入面填小朋友資料。</li></ol><div style="margin-top:6px">原因：iPhone 可能會把 Safari / WhatsApp browser 和主畫面 app 視為不同儲存空間，所以先填再加 icon，有機會要重填。</div></div>`;
+}
+
+
+/* V90: force clean beta testers into onboarding instead of demo Janice */
+function v90ForceBetaOnboardingIfNeeded(){
+  if(!v86BetaMode()) return false;
+  app.settings=app.settings||{};
+  if(app.settings.betaOnboardingDone===true) return false;
+  app.settings.betaMode=true;
+  try{ localStorage.setItem('cg_beta_mode','1'); }catch(e){}
+  return true;
+}
+function v90BetaCleanInstallNoticeHTML(){
+  if(!v86BetaMode()) return '';
+  return `<div class="betaCleanInstallNotice"><b>Beta setup</b>請先完成小朋友資料設定。完成後，資料會保存在這部手機 / 這個 Home Screen app 入面。</div>`;
+}
+
 function renderBetaOnboarding(){
   currentTab='home';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1940,6 +1985,7 @@ function renderBetaOnboarding(){
       <div class="muted">先建立小朋友資料，AI 先可以用年級、家長目標和日常 schedule 去整理功課 report、reminder 同成長觀察。</div>
       <div class="betaSteps"><div class="betaStep active">1 小朋友</div><div class="betaStep active">2 目標</div><div class="betaStep active">3 Schedule</div><div class="betaStep active">4 Report</div><div class="betaStep active">5 Privacy</div></div>
       <div class="betaSmall">Beta 版只作家長學習觀察，不作正式診斷、評分或老師評估。</div>
+      ${v89InstallGuidanceHTML()}
     </div>
     <div class="betaFormCard">
       <h2>1. 小朋友基本資料</h2>
@@ -2041,7 +2087,7 @@ function v86SaveOnboarding(){
   app.profile.language=$('obLang').value; app.profile.school=$('obSchool').value.trim(); app.profile.region=$('obSchoolType').value; app.profile.focus='Beta parent goals';
   app.profile.watchAreas=$('obWatch').value.split(/[、,，\n]/).map(x=>x.trim()).filter(Boolean);
   app.profile.parentGoals=[...document.querySelectorAll('input[name="obGoal"]:checked')].map(x=>x.value);
-  app.settings=app.settings||{}; app.settings.betaMode=true; app.settings.betaOnboardingDone=true; app.settings.betaGoals=app.profile.parentGoals;
+  app.settings=app.settings||{}; app.settings.betaMode=true; app.settings.betaOnboardingDone=true; app.settings.betaGoals=app.profile.parentGoals; try{localStorage.setItem('cg_beta_mode','1');localStorage.setItem('cg_last_onboarding_saved_at',new Date().toISOString());}catch(e){}
   app.settings.reportPreference={items:[...document.querySelectorAll('input[name="obPref"]:checked')].map(x=>x.value)};
   const tr=v86ParseTimeRange($('obSchoolTime').value);
   v86DaysFromChoice($('obSchoolDays').value).forEach(day=>v86AddRoutine(day,v88SchoolRoutineName(),tr.start,tr.end,'school bag / water bottle / reader bag'));
@@ -2050,11 +2096,13 @@ function v86SaveOnboarding(){
   });
   save(); updateHeader(); currentTab='home'; renderHome();
 }
-function v86SkipOnboarding(){ app.settings=app.settings||{}; app.settings.betaOnboardingDone=true; app.settings.betaMode=true; save(); renderCurrent(); }
+function v86SkipOnboarding(){ app.settings=app.settings||{}; app.settings.betaOnboardingDone=true; app.settings.betaMode=true; try{localStorage.setItem('cg_beta_mode','1');}catch(e){} save(); renderCurrent(); }
 function v86StartNewFamily(){
   if(!confirm('This will clear ChildGrowth AI data only on this device/browser. Continue?')) return;
   if(!confirm('請再次確認：只會清除此裝置資料，不會影響其他人。')) return;
+  const keepBeta=v86BetaMode();
   localStorage.removeItem(DATA_KEY);
+  if(keepBeta) localStorage.setItem('cg_beta_mode','1');
   app=JSON.parse(JSON.stringify(DEFAULT_DATA));
   app.profile.childName=''; app.profile.age=''; app.profile.year=''; app.profile.school=''; app.profile.strengths=[]; app.profile.watchAreas=[]; app.profile.parentGoals=[];
   app.routines=[]; app.todayTasks=[]; app.schoolNotices=[]; app.emotions=[]; app.teacherComments=[]; app.homeworkReports=[]; app.activityReports=[]; app.captureHistory=[];
@@ -4670,7 +4718,8 @@ window.addEventListener('error', function(e){
   const s=document.getElementById('splashScreen'); if(s) s.classList.add('hide');
 });
 
-function renderCurrent(){updateHeader(); if(typeof v86NeedsOnboarding==='function' && v86NeedsOnboarding()){renderBetaOnboarding(); return;} ({home:renderHome,record:renderRecord,homework:renderHomework,analytics:renderAnalytics,profile:renderProfile}[currentTab]||renderHome)()}
+function renderCurrent(){
+  if(v90ForceBetaOnboardingIfNeeded()) return renderBetaOnboarding();updateHeader(); if(typeof v86NeedsOnboarding==='function' && v86NeedsOnboarding()){renderBetaOnboarding(); return;} ({home:renderHome,record:renderRecord,homework:renderHomework,analytics:renderAnalytics,profile:renderProfile}[currentTab]||renderHome)()}
 window.renderCurrent=renderCurrent;
 function v78BootReady(){
   try{
