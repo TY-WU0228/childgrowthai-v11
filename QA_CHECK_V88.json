@@ -1,0 +1,10 @@
+{
+  "version_label": true,
+  "dynamic_child_button": true,
+  "school_routine_name": true,
+  "normalise_existing_school": true,
+  "janice_extras_guarded": true,
+  "no_auto_delete_readme": true,
+  "main_js_syntax": true,
+  "functions_syntax": true
+}

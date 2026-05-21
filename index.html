@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#eff6ff" />
-  <title>ChildGrowth AI V87 Beta Onboarding Layout + Schedule Fix</title>
+  <title>ChildGrowth AI V88 Dynamic Child + School Routine Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -1000,7 +1000,7 @@
     .betaHidden{display:none!important}
 
   
-    /* V87 Beta Onboarding Layout + Schedule Fix */
+    /* V88 Dynamic Child + School Routine Fix */
     .betaOnboardWrap{max-width:820px;margin:0 auto}
     .betaHero{background:linear-gradient(135deg,#eef2ff,#f0fdfa);border:1px solid #c7d2fe;border-radius:28px;padding:20px;margin-bottom:14px}
     .betaHero h1{margin:0 0 8px;font-size:34px;color:#0f172a}
@@ -2044,7 +2044,7 @@ function v86SaveOnboarding(){
   app.settings=app.settings||{}; app.settings.betaMode=true; app.settings.betaOnboardingDone=true; app.settings.betaGoals=app.profile.parentGoals;
   app.settings.reportPreference={items:[...document.querySelectorAll('input[name="obPref"]:checked')].map(x=>x.value)};
   const tr=v86ParseTimeRange($('obSchoolTime').value);
-  v86DaysFromChoice($('obSchoolDays').value).forEach(day=>v86AddRoutine(day,'School',tr.start,tr.end,'school bag / water bottle / reader bag'));
+  v86DaysFromChoice($('obSchoolDays').value).forEach(day=>v86AddRoutine(day,v88SchoolRoutineName(),tr.start,tr.end,'school bag / water bottle / reader bag'));
   v87ReadActivityRows().forEach(a=>{
     if(a.day && a.name) v86AddRoutine(a.day,a.name,a.start,a.end,a.prep);
   });
@@ -4389,7 +4389,49 @@ function weeklyReportHTML(){
   <div class="notice">Homework Engine v2.1 仍是 beta：數學基礎題會由 code 協助驗證；英文閱讀以題目焦點和答案 evidence 累積。</div>`;
 }
 
+
+/* V88 Dynamic child + school routine labels */
+function v88ChildName(){
+  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+}
+function v88SchoolName(){
+  return String(app?.profile?.school||'').trim();
+}
+function v88SchoolRoutineName(){
+  const school=v88SchoolName();
+  return school ? `🏫 ${school}` : '🏫 School';
+}
+function v88IsGenericSchoolName(name){
+  const s=String(name||'').replace(/^🏫\s*/,'').trim().toLowerCase();
+  return s==='school' || s==='oakleigh south primary school' || s==='mon–fri school' || s==='mon-fri school';
+}
+function v88NormaliseSchoolRoutines(){
+  const school=v88SchoolName();
+  if(!school || !Array.isArray(app.routines)) return 0;
+  let changed=0;
+  app.routines.forEach(r=>{
+    if(v88IsGenericSchoolName(r.name)){
+      r.name=v88SchoolRoutineName();
+      changed++;
+    }
+  });
+  if(changed) save();
+  return changed;
+}
+function v88BuildSchoolRoutines(){
+  return DAYS.slice(0,5).map(day=>({
+    day,
+    name:v88SchoolRoutineName(),
+    start:'8:45 AM',
+    end:'3:30 PM',
+    prep:'school bag / water bottle / reader bag',
+    reminder:'前一晚 8:00 PM',
+    impact:'正常'
+  }));
+}
+
 function renderProfile(){
+  v88NormaliseSchoolRoutines();
   const p=app.profile;
   $('profile').innerHTML=`<div class="card">
     <h2>👤 ${esc(p.childName)} Profile</h2>
@@ -4406,7 +4448,7 @@ function renderProfile(){
   <div class="card">
     <h2>🗓️ 固定行程摘要</h2>
     <div class="grid"><div class="metric"><b>${app.routines.filter(r=>!r.oneOffDate).length}</b><span>固定活動</span></div><div class="metric"><b>${routinesForDay(dayName(1)).length}</b><span>明日準備</span></div></div>
-    <div class="actions"><button class="btn primary" onclick="quickWeekdaySchool()">Mon–Fri School</button><button class="btn" onclick="syncJanice()">同步 Janice 常用行程</button></div>
+    <div class="actions"><button class="btn primary" onclick="quickWeekdaySchool()">Mon–Fri School</button><button class="btn" onclick="syncJanice()">同步 ${esc(v88ChildName())} 常用行程</button></div>
   </div>
   <div class="card">
     <h2>📅 一週固定行程總覽</h2>
@@ -4574,13 +4616,26 @@ window.editRoutine=(id)=>{routineEditId=id;renderRoutineSheet();$('rName').scrol
 window.cancelRoutineEdit=()=>{routineEditId=null;renderRoutineSheet()}
 window.deleteRoutine=(id)=>{if(confirm('刪除這個固定行程？')){app.routines=app.routines.filter(r=>r.id!==id);save();renderRoutineSheet();renderProfile();renderHome()}}
 function addRoutines(items){const keys=new Set(app.routines.map(routineKey));let added=0;items.forEach(item=>{if(!keys.has(routineKey(item))){app.routines.push({id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),createdAt:new Date().toISOString(),...item});keys.add(routineKey(item));added++}});save();return added}
-window.quickWeekdaySchool=()=>{const added=addRoutines(DAYS.slice(0,5).map(day=>({day,name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'})));alert(`已加入 ${added} 個返學行程，已存在的不會重複。`);renderProfile();renderHome()}
-window.syncJanice=()=>{const added=addRoutines([
-  ...DAYS.slice(0,5).map(day=>({day,name:'🏫 Oakleigh South Primary School',start:'8:45 AM',end:'3:30 PM',prep:'書包、lunch box、水樽、帽、reader bag',reminder:'前一晚 8:00 PM',impact:'正常'})),
-  {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋、外套',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
-  {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'6:45 PM',prep:'泳衣、毛巾、goggles、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
-  {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'}
-]);alert(`已同步 Janice 常用行程：新增 ${added} 項，已存在不重複。`);renderProfile();renderHome()}
+window.quickWeekdaySchool=()=>{
+  const added=addRoutines(v88BuildSchoolRoutines());
+  v88NormaliseSchoolRoutines();
+  alert(`已加入 ${added} 個 ${v88SchoolName()||'School'} 返學行程，已存在的不會重複。`);
+  renderProfile();renderHome();
+}
+window.syncJanice=()=>{
+  const child=v88ChildName();
+  const base=v88BuildSchoolRoutines();
+  const isJanice=/janice/i.test(child);
+  const extras=isJanice?[
+    {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋、外套',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'6:45 PM',prep:'泳衣、毛巾、goggles、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'}
+  ]:[];
+  const added=addRoutines([...base,...extras]);
+  v88NormaliseSchoolRoutines();
+  alert(`已同步 ${child} 常用行程：新增 ${added} 項，已存在不重複。`);
+  renderProfile();renderHome();
+}
 
 function openSetup(){
   const p=app.profile;
