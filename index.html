@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="ChildGrowth AI" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>ChildGrowth AI V90 Force Beta Onboarding Clean Install</title>
+  <title>ChildGrowth AI V92 Parent Beta Stable UI + Report Detail</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -1003,7 +1003,7 @@
     .betaHidden{display:none!important}
 
   
-    /* V90 Force Beta Onboarding Clean Install */
+    /* V92 Parent Beta Stable UI + Report Detail */
     .betaOnboardWrap{max-width:820px;margin:0 auto}
     .betaHero{background:linear-gradient(135deg,#eef2ff,#f0fdfa);border:1px solid #c7d2fe;border-radius:28px;padding:20px;margin-bottom:14px}
     .betaHero h1{margin:0 0 8px;font-size:34px;color:#0f172a}
@@ -1886,10 +1886,10 @@ function v87DayOptions(selected=''){
 function v87ActivityRowHTML(row={},i=0){
   return `<div class="activityRow" data-ob-act-row>
     <select class="obActDay" aria-label="Activity day">${v87DayOptions(row.day||'')}</select>
-    <input class="obActName actName" placeholder="Activity e.g. Swimming" value="${esc(row.name||'')}">
-    <input class="obActStart" placeholder="Start e.g. 6:00 PM" value="${esc(row.start||'')}">
-    <input class="obActEnd" placeholder="End e.g. 7:00 PM" value="${esc(row.end||'')}">
-    <input class="obActPrep actPrep" placeholder="Prepare e.g. water bottle, towel" value="${esc(row.prep||'')}">
+    <input class="obActName actName" placeholder="活動名稱，例如 Swimming" value="${esc(row.name||'')}">
+    <input class="obActStart" type="time" aria-label="開始時間" value="${esc(timeInputValue(row.start||''))}">
+    <input class="obActEnd" type="time" aria-label="結束時間" value="${esc(timeInputValue(row.end||''))}">
+    <input class="obActPrep actPrep" placeholder="準備物品，例如水樽、毛巾" value="${esc(row.prep||'')}">
     <button type="button" class="btn actRemove" onclick="v87RemoveActivityRow(this)">Remove</button>
   </div>`;
 }
@@ -1916,13 +1916,17 @@ function v87RemoveActivityRow(btn){
   else if(row){ row.querySelectorAll('input').forEach(i=>i.value=''); row.querySelectorAll('select').forEach(s=>s.value=''); }
 }
 function v87ReadActivityRows(){
-  return [...document.querySelectorAll('[data-ob-act-row]')].map(row=>({
-    day:row.querySelector('.obActDay')?.value||'',
-    name:row.querySelector('.obActName')?.value.trim()||'',
-    start:row.querySelector('.obActStart')?.value.trim()||'',
-    end:row.querySelector('.obActEnd')?.value.trim()||'',
-    prep:row.querySelector('.obActPrep')?.value.trim()||''
-  })).filter(x=>x.day||x.name||x.start||x.end||x.prep);
+  return [...document.querySelectorAll('[data-ob-act-row]')].map(row=>{
+    const sv=row.querySelector('.obActStart')?.value||'';
+    const ev=row.querySelector('.obActEnd')?.value||'';
+    return {
+      day:row.querySelector('.obActDay')?.value||'',
+      name:row.querySelector('.obActName')?.value.trim()||'',
+      start:timeInputDisplay(sv)||sv,
+      end:timeInputDisplay(ev)||ev,
+      prep:row.querySelector('.obActPrep')?.value.trim()||''
+    };
+  }).filter(x=>x.day||x.name||x.start||x.end||x.prep);
 }
 window.v87AddActivityRow=v87AddActivityRow;
 window.v87RemoveActivityRow=v87RemoveActivityRow;
@@ -1984,7 +1988,7 @@ function renderBetaOnboarding(){
       <h1>👋 Welcome to ChildGrowth AI Beta</h1>
       <div class="muted">先建立小朋友資料，AI 先可以用年級、家長目標和日常 schedule 去整理功課 report、reminder 同成長觀察。</div>
       <div class="betaSteps"><div class="betaStep active">1 小朋友</div><div class="betaStep active">2 目標</div><div class="betaStep active">3 Schedule</div><div class="betaStep active">4 Report</div><div class="betaStep active">5 Privacy</div></div>
-      <div class="betaSmall">Beta 版只作家長學習觀察，不作正式診斷、評分或老師評估。</div>
+      <div class="betaSmall">Beta 版只作家長學習觀察，不作正式診斷、評分或老師評估。</div><div class="v92UILanguageNote">香港版語言：以中文為主，保留少量家長常用英文詞，例如 report、reminder、homework。</div>
       ${v89InstallGuidanceHTML()}
     </div>
     <div class="betaFormCard">
@@ -1994,12 +1998,12 @@ function renderBetaOnboarding(){
         <div><label>年齡</label><input id="obAge" placeholder="例如 7 歲" value="${esc(v86BlankForBeta(p.age))}"></div>
         <div><label>目前年級</label><input id="obYear" placeholder="例如 Year 2" value="${esc(v86BlankForBeta(p.year))}"></div>
         <div><label>主要語言</label><select id="obLang">
-          ${['English','Cantonese / English mix','Mandarin / English mix','Traditional Chinese / English mix'].map(x=>`<option ${String(p.language||'').includes(x.split(' ')[0])?'selected':''}>${x}</option>`).join('')}
+          ${['English','Cantonese + English','Mandarin + English','Traditional Chinese + English'].map(x=>`<option ${String(p.language||'').includes(x.split(' ')[0])?'selected':''}>${x}</option>`).join('')}
         </select></div>
       </div>
       <div class="grid">
         <div><label>學校 / 補習中心（可選）</label><input id="obSchool" placeholder="例如 public school / QS school" value="${esc(v86BlankForBeta(p.school))}"></div>
-        <div><label>學校類型</label><select id="obSchoolType"><option>Public school</option><option>Private school</option><option>Tutoring / enrichment</option><option>Homeschool</option><option>Other</option></select></div>
+        <div><label>學校類型</label><select id="obSchoolType"><option>Public school</option><option>Private school</option><option>International school</option><option>Tutoring / enrichment</option><option>Homeschool</option><option>Other</option></select></div>
       </div>
     </div>
     <div class="betaFormCard">
@@ -2007,50 +2011,50 @@ function renderBetaOnboarding(){
       <div class="betaOptionGrid">
         ${[
           ['homework','功課分析：睇到強弱和下一步'],
-          ['notice','School notice / reminder'],
-          ['teacher','老師 comment 記錄'],
-          ['activity','課外活動 progress'],
+          ['notice','學校通告 / 提醒'],
+          ['teacher','老師評語記錄'],
+          ['activity','課外活動進度'],
           ['emotion','情緒 / 學習狀態'],
-          ['weekly','Weekly growth report']
+          ['weekly','每週成長報告']
         ].map(([v,t])=>`<label class="betaChoice"><input type="checkbox" name="obGoal" value="${v}" ${v86Selected(goals,v)}> <span>${t}</span></label>`).join('')}
       </div>
       <label>家長特別想留意（可選）</label>
       <textarea id="obWatch" placeholder="例如：reading comprehension、數學粗心、信心、功課拖拉...">${esc((p.watchAreas||[]).join('、'))}</textarea>
     </div>
     <div class="betaFormCard">
-      <h2>3. 固定 schedule / reminder</h2>
+      <h2>3. 固定行程 / 提醒</h2>
       <div class="grid">
-        <div><label>School days</label><select id="obSchoolDays"><option>Monday-Friday</option><option>Monday-Thursday</option><option>Custom / not sure</option></select></div>
-        <div><label>School time</label><input id="obSchoolTime" placeholder="例如 8:45 AM - 3:30 PM" value="8:45 AM - 3:30 PM"></div>
+        <div><label>上課日子</label><select id="obSchoolDays"><option>Monday-Friday</option><option>Monday-Thursday</option><option>Custom / not sure</option></select></div>
+        <div><label>上課時間</label><input id="obSchoolTime" placeholder="例如 8:45 AM - 3:30 PM" value="8:45 AM - 3:30 PM"></div>
       </div>
       <label>課外活動 / weekend class（可跳過）</label>
       <div class="betaScheduleHelp">建議用「一個活動一張卡」：揀星期、活動名稱、開始/結束時間，再加準備物品。比一大段文字更清楚，之後亦方便做 reminder。</div>
       <div class="activityQuickChips">
-        <button type="button" onclick="v87AddActivityRow('swimming')">+ Swimming</button>
-        <button type="button" onclick="v87AddActivityRow('soccer')">+ Soccer</button>
-        <button type="button" onclick="v87AddActivityRow('chinese')">+ Chinese</button>
-        <button type="button" onclick="v87AddActivityRow('piano')">+ Piano</button>
-        <button type="button" onclick="v87AddActivityRow('chess')">+ Chess</button>
+        <button type="button" onclick="v87AddActivityRow('swimming')">+ 游泳</button>
+        <button type="button" onclick="v87AddActivityRow('soccer')">+ 足球</button>
+        <button type="button" onclick="v87AddActivityRow('chinese')">+ 中文班</button>
+        <button type="button" onclick="v87AddActivityRow('piano')">+ 鋼琴</button>
+        <button type="button" onclick="v87AddActivityRow('chess')">+ 棋</button>
       </div>
       <div id="obActivityRows" class="activityBuilder">${v87ActivityRowsHTML()}</div>
-      <button type="button" class="btn" style="margin-top:10px" onclick="v87AddActivityRow()">+ Add another activity</button>
+      <button type="button" class="btn" style="margin-top:10px" onclick="v87AddActivityRow()">+ 新增另一個活動</button>
     </div>
     <div class="betaFormCard">
       <h2>4. AI report 偏好</h2>
       <div class="betaOptionGrid">
         ${[
-          ['simple','Short and simple'],['detailed','More detailed'],['encourage','多鼓勵，少壓力'],['mistakes','清楚指出錯位'],['bilingual','中英混合'],['action','每次都要有今晚做一件事']
+          ['simple','簡短直接'],['detailed','詳細一點'],['encourage','多鼓勵，少壓力'],['mistakes','清楚指出錯位'],['bilingual','中文為主，可中英混合'],['action','每次都要有今晚做一件事']
         ].map(([v,t])=>`<label class="betaChoice"><input type="checkbox" name="obPref" value="${v}" ${v86Selected(prefs.items||[],v)}> <span>${t}</span></label>`).join('')}
       </div>
     </div>
     <div class="betaFormCard">
-      <h2>5. Beta notice / Privacy</h2>
+      <h2>5. Beta notice / 私隱</h2>
       <div class="betaPrivacy">This beta is a learning support tool for parent observation only. AI reports may be incomplete or need parent confirmation. Please do not upload sensitive medical, legal or highly private documents.</div>
       <label class="betaChoice" style="margin-top:10px"><input type="checkbox" id="obAgree"> <span>I understand this is a beta learning support tool.</span></label>
       <div class="betaStartRow">
-        <button class="btn primary" onclick="v86SaveOnboarding()">Start ChildGrowth AI</button>
-        <button class="btn" onclick="v86SkipOnboarding()">Use existing data on this device</button>
-        <button class="btn betaDanger" onclick="v86StartNewFamily()">Start as new family / clear this device</button>
+        <button class="btn primary" onclick="v86SaveOnboarding()">開始使用 ChildGrowth AI</button>
+        <button class="btn" onclick="v86SkipOnboarding()">使用此裝置現有資料</button>
+        <button class="btn betaDanger" onclick="v86StartNewFamily()">新家庭開始 / 清除此裝置資料</button>
       </div>
       <div class="betaSmall">「Start as new family」只會清除此手機 / 此 browser 入面嘅資料；不會影響其他人的資料。</div>
     </div>
@@ -4295,6 +4299,106 @@ function v85ParentStrengths(report){
   return arr;
 }
 
+
+/* V92 Review Detail Drilldown */
+function v92ChildLabel(){
+  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+}
+function v92ReviewStatusLabel(status){
+  if(status==='wrong') return '明確錯';
+  if(status==='missing') return '未完成';
+  return '需家長確認';
+}
+function v92ReviewStatusClass(status){
+  if(status==='wrong') return 'v92Wrong';
+  if(status==='missing') return 'v92Missing';
+  return 'v92Unclear';
+}
+function v92CleanReviewQuestion(q){
+  return String(q||'')
+    .replace(/^[-•\s]+/,'')
+    .replace(/^【[^】]+】\s*/,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function v92LineLooksPositive(s){
+  return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|明確錯/.test(String(s||''));
+}
+function v92ParseReviewLine(line){
+  const raw=String(line||'').trim();
+  if(!raw || v92LineLooksPositive(raw)) return null;
+  if(!/明確錯|需家長確認|需要覆核|看不清|不清楚|未完成|漏做|空白|應為|應是|正確應為|正確應該|正確是/.test(raw)) return null;
+  let status=/明確錯|正確應為|正確應該|正確是|應為|應是/.test(raw)?'wrong':(/未完成|漏做|空白/.test(raw)?'missing':'unclear');
+  let q=v92CleanReviewQuestion(raw);
+  let ans='', corr='';
+  const m1=raw.match(/(?:Janice|學生|小朋友)[：:\s]*(?:寫|答)?[：:\s]*([^，,。；;]+)/i);
+  if(m1) ans=m1[1].trim();
+  const m2=raw.match(/(?:正確|correct)[^0-9A-Da-d]{0,12}(?:應為|應該係|應該是|是|為|係)?[：:\s]*([^，,。；;]+)/i);
+  if(m2) corr=m2[1].trim();
+  const expr=raw.match(/((?:\d+\s*[+xX*×÷\/\-]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/);
+  if(expr){
+    q=q || expr[1];
+    if(!ans) ans=expr[2];
+    if(!corr && typeof calcExpressionV76==='function'){
+      const c=calcExpressionV76(expr[1]); if(c!==null) corr=String(c);
+    }
+  }
+  return {status, question:q, studentAnswer:ans, correctAnswer:corr, skill:'', subSkill:'', confidence:'low', source:'checkpoint'};
+}
+function v92ReviewEvidence(report){
+  const ev=(typeof v82TrueReviewEvidence==='function'?v82TrueReviewEvidence(report):[])
+    .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
+    .map(e=>({
+      status:e.status==='wrong'?'wrong':(/未完成|漏做|missing/i.test(String(e.status+' '+e.question))?'missing':'unclear'),
+      question:v92CleanReviewQuestion(e.question),
+      studentAnswer:e.studentAnswer||'',
+      correctAnswer:e.correctAnswer||'',
+      skill:e.skill||'',
+      subSkill:e.subSkill||'',
+      confidence:e.confidence||'',
+      source:e.source||'evidence'
+    }));
+  const parsed=(report?.checkPoints||[]).map(v92ParseReviewLine).filter(Boolean);
+  const all=[...ev,...parsed].filter(x=>x.question && !v92LineLooksPositive([x.question,x.studentAnswer,x.correctAnswer].join(' ')));
+  const seen=new Set(), out=[];
+  all.forEach(x=>{
+    const key=[x.status,x.question,x.studentAnswer,x.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push(x);
+  });
+  return out.slice(0,40);
+}
+function v92ReviewItemHTML(e, i){
+  const child=v92ChildLabel();
+  const skill=[e.skill,e.subSkill].filter(Boolean).join(' · ');
+  return `<div class="v92ReviewCard">
+    <div class="v92ReviewTop"><span class="v92ReviewStatus ${v92ReviewStatusClass(e.status)}">${v92ReviewStatusLabel(e.status)}</span><span class="miniPill">#${i+1}</span>${e.confidence?`<span class="miniPill">confidence: ${esc(e.confidence)}</span>`:''}</div>
+    <div class="v92ReviewQ">${esc(e.question||'需要查看原圖')}</div>
+    ${(e.studentAnswer||e.correctAnswer)?`<div class="v92AnswerGrid">
+      <div class="v92AnswerBox"><b>${esc(child)} 答案</b>${esc(e.studentAnswer||'未能清楚看到')}</div>
+      <div class="v92AnswerBox"><b>正確 / 期望答案</b>${esc(e.correctAnswer||'需家長確認')}</div>
+    </div>`:''}
+    ${skill?`<div class="v92SkillLine">學習位：${esc(skill)}</div>`:''}
+  </div>`;
+}
+function v92ReviewDetailHTML(report){
+  const rows=v92ReviewEvidence(report);
+  if(!rows.length) return `<div class="v92ReviewEmpty">暫未見明確錯題。若圖片角度、陰影或手寫不清，建議家長對照原圖再確認。</div>`;
+  const wrong=rows.filter(x=>x.status==='wrong').length;
+  const unclear=rows.filter(x=>x.status==='unclear').length;
+  const missing=rows.filter(x=>x.status==='missing').length;
+  const first=rows.slice(0,5).map(v92ReviewItemHTML).join('');
+  const rest=rows.slice(5).map((x,i)=>v92ReviewItemHTML(x,i+5)).join('');
+  return `<div class="v92ReviewSummary">
+      <div class="v92CountCard"><b>${wrong}</b>明確錯</div>
+      <div class="v92CountCard"><b>${unclear}</b>需家長確認</div>
+      <div class="v92CountCard"><b>${missing}</b>未完成 / 漏做</div>
+    </div>
+    ${first}
+    ${rest?`<details class="v92Details"><summary>查看全部 ${rows.length} 個覆核位置</summary><div class="v92DetailsBody">${rest}</div></details>`:''}`;
+}
+
 function homeworkReportHTML(r, record={}){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
   // Rebuild clean engine view using V82 filters.
@@ -4354,7 +4458,7 @@ function homeworkReportHTML(r, record={}){
   <div class="reportBlock highlight"><b>程度觀察</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
   <div class="reportBlock"><b>1. 我睇到嘅內容</b>${v78SummaryHTML(r.summary||'')}</div>
   <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(v85ParentStrengths(r),'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>3. 需要覆核的位置</b>${v85CleanReviewList(r).length===1 && /暫未見明確錯題/.test(v85CleanReviewList(r)[0])?`<div class="parentReviewOk">${esc(v85CleanReviewList(r)[0])}</div>`:compactList(v85CleanReviewList(r),'未見明顯需要覆核')}</div>
+  <div class="reportBlock"><b>3. 需要覆核的位置</b><div class="muted" style="margin:6px 0 8px">只列明確錯、看不清、未完成；正確題會自動移走。</div>${v92ReviewDetailHTML(r)}</div>
   <div class="reportBlock"><b>4. 可能出錯原因</b>${reviewOk?'<div class="muted">暫未見明確錯題，所以暫時不硬估出錯原因。</div>':compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
   <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(v85ParentInsight(r))}</div></div>
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v85ConcreteNextStep(r))}</div></div>

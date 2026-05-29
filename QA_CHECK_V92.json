@@ -1,0 +1,13 @@
+{
+  "version_label": true,
+  "report_detail_function": true,
+  "review_section_replaced": true,
+  "international_school_option": true,
+  "short_language_labels": true,
+  "localized_goal_labels": true,
+  "activity_time_picker": true,
+  "manifest_start_url_v92": true,
+  "function_prompt_v92_rules": true,
+  "main_js_syntax": true,
+  "functions_syntax": true
+}
