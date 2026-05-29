@@ -1,4 +1,4 @@
-// V92 Parent Beta Stable - review detail list, UI language polish, school type support
+// V93 Report Integrity - parent fail-safe and clean review evidence
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -12,7 +12,7 @@ exports.handler = async function(event) {
     const images = collectImages(body).slice(0, 6);
     const approxKB = Math.round(JSON.stringify(images).length / 1024);
     if (approxKB > 5200) {
-      return json(413, { error: `圖片傳送太大（約 ${approxKB}KB）。V83 建議先用「只分析第一張」；app 亦會嘗試超壓縮 retry。`, debug:{approxKB} });
+      return json(413, { error: `圖片傳送太大（約 ${approxKB}KB）。請先用「只分析第一張」，或重新拍攝較清晰、較少反光的相片。`, debug:{approxKB} });
     }
 
     if (!images.length) {
@@ -50,7 +50,7 @@ exports.handler = async function(event) {
 
     const firstErr = first.data?.error?.message || first.error || '';
     if (/逾時|timeout|aborted|AbortError/i.test(firstErr)) {
-      return json(504, { error: 'AI 分析逾時，但 function 已正常回傳 JSON。V83 會在前端自動 retry 超壓縮圖片；如仍失敗，請只分析第一張或重拍更清晰。', debug: { responses:first.data?.error || first.error || null, timeoutMs, approxKB, model, aiMode, reliabilityMode } });
+      return json(504, { error: 'AI 暫時未能完成分析。請先用「只分析第一張」，或重新拍攝較清晰、較少反光的相片。', debug: { responses:first.data?.error || first.error || null, timeoutMs, approxKB, model, aiMode, reliabilityMode } });
     }
 
     // Fallback route
@@ -148,7 +148,15 @@ Trial-ready / Wow report rules:
 - 每份 report 最後的 next step 要像補習老師 WhatsApp：細、具體、今晚能做到。
 
 
-V92 Review Detail rules:
+V93 Report Integrity rules:
+- Parent report must never mention JSON, function, API, OpenAI, model, route, debug, timeout, retry, V83/V92/V93, schema or technical evidence.
+- If any image is not fully analysed, say clearly that this is a partial / incomplete observation and do not pretend it is a complete report.
+- Parent-facing report should be short: Wow summary 1-2 sentences, parent interpretation 2-4 sentences, next step one concrete action.
+- Section 3 must only contain exact review items. Do not put general summaries, causes, learning observations, or confidence statements in Section 3.
+- A review item must include at least a question/position, student answer if visible, correct/expected answer if determinable, and status wrong/unclear/missing.
+- Do not write “有 X 個位置值得覆核” unless X items are actually listed in Section 3.
+
+V93 Review Detail rules:
 - 如果你寫「X 個位置值得覆核」，必須逐條列出 X 個位置；不能只寫原因。
 - 「需要覆核的位置」每一行必須是具體題目 / 位置，不可以是泛泛原因。
 - 格式必須盡量用：Page ? | Q: ... | Student: ... | Correct: ... | Status: wrong/unclear/missing | Skill: ... | Sub-skill: ...
@@ -257,7 +265,7 @@ async function callOpenAI(url, apiKey, payload, timeoutMs) {
     const data = await resp.json().catch(() => ({}));
     return { ok: resp.ok, status: resp.status, data };
   } catch (e) {
-    return { ok: false, status: 500, data: { error: { message: e.name === 'AbortError' ? 'AI 分析逾時，請先用一張清晰相片再試；V83 前端會嘗試自動 retry。' : e.message } } };
+    return { ok: false, status: 500, data: { error: { message: e.name === 'AbortError' ? 'AI 暫時未能完成分析。請先用一張清晰相片再試。' : e.message } } };
   } finally {
     clearTimeout(timer);
   }
@@ -275,6 +283,9 @@ function extractResponsesText(data) {
 
 function cleanParentText(text) {
   return String(text || '')
+    .split(/\n+/)
+    .filter(line => !/(JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|maxTokens|responses|chat-fallback|V\d+|technical evidence)/i.test(line))
+    .join('\n')
     .replace(/confidence_signal/gi, '答題狀態')
     .replace(/fatigue_signal/gi, '精神狀態')
     .replace(/concept gap/gi, '理解位')
@@ -766,14 +777,14 @@ function applyEngineV2ToReportV79(report) {
 function buildStructuredHomeworkReport(raw) {
   const text = cleanParentText(raw || '');
   const wow = sectionBetween(text, ['✨ Parent Wow Summary','Parent Wow Summary'], ['🔎 Engine v2','🌟 0.']);
-  const level = sectionBetween(text, ['🌟 0. Learning level awareness', '0. Learning level awareness', 'Learning level awareness'], ['📌 1.', '1. 我大約', '⚠️ 2.']);
-  const content = sectionBetween(text, ['📌 1. 我大約睇到嘅功課內容', '1. 我大約睇到嘅功課內容', '我大約睇到嘅功課內容'], ['⚠️ 2.', '✅ 2b.', '🧠 3.']);
-  const check = sectionBetween(text, ['⚠️ 2. 需要覆核的位置', '2. 需要覆核的位置', '需要覆核的位置'], ['✅ 2b.', '🧠 3.', '💬 4.']);
-  const good = sectionBetween(text, ['✅ 2b. 已做得好的地方', '2b. 已做得好的地方', '已做得好的地方'], ['🧠 3.', '💬 4.', '📈 5.']);
-  const reason = sectionBetween(text, ['🧠 3. 可能出錯原因', '3. 可能出錯原因', '可能出錯原因'], ['💬 4.', '📈 5.', '✅ 6.']);
-  const parent = sectionBetween(text, ['💬 4. 給家長的簡短解讀', '4. 給家長的簡短解讀', '給家長的簡短解讀'], ['📈 5.', '✅ 6.']);
-  const longTerm = sectionBetween(text, ['📈 5. 長期觀察重點', '5. 長期觀察重點', '長期觀察重點'], ['✅ 6.']);
-  const tips = sectionBetween(text, ['✅ 6. 下次做題小貼士', '6. 下次做題小貼士', '下次做題小貼士'], []);
+  const level = sectionBetween(text, ['🌟 0. Learning level awareness', '0. Learning level awareness', 'Learning level awareness'], ['📌 1.', '1. 我大約', '✅ 2.']);
+  const content = sectionBetween(text, ['📌 1. 我大約睇到嘅功課內容', '1. 我大約睇到嘅功課內容', '我大約睇到嘅功課內容'], ['✅ 2.', '2. 已做得好', '⚠️ 3.']);
+  const good = sectionBetween(text, ['✅ 2. 已做得好的地方', '2. 已做得好的地方', '已做得好的地方'], ['⚠️ 3.', '3. 需要覆核', '🧠 4.']);
+  const check = sectionBetween(text, ['⚠️ 3. 需要覆核的位置', '3. 需要覆核的位置', '需要覆核的位置'], ['🧠 4.', '4. 可能出錯原因', '💬 5.']);
+  const reason = sectionBetween(text, ['🧠 4. 可能出錯原因', '4. 可能出錯原因', '可能出錯原因'], ['💬 5.', '5. 給家長', '✅ 6.']);
+  const parent = sectionBetween(text, ['💬 5. 給家長的簡短解讀', '5. 給家長的簡短解讀', '給家長的簡短解讀'], ['✅ 6.', '6. 今晚']);
+  const longTerm = sectionBetween(text, ['📈 5. 長期觀察重點', '長期觀察重點'], ['✅ 6.']);
+  const tips = sectionBetween(text, ['✅ 6. 今晚只做一件事', '6. 今晚只做一件事', '今晚只做一件事', '✅ 6. 下次做題小貼士', '下次做題小貼士'], []);
   const rawStrengths = bulletsFrom(good, 4);
   const cleanedReview = cleanReviewPoints(bulletsFrom(check, 30));
   const report = {
@@ -795,11 +806,11 @@ function buildStructuredHomeworkReport(raw) {
 }
 
 function friendlyError(msg) {
-  if (!msg) return '未知 AI 錯誤。';
-  if (/credit|quota|billing|insufficient/i.test(msg)) return 'OpenAI credit / billing 可能不足，請檢查 API credit。';
-  if (/Incorrect API key|invalid api key|Unauthorized|401/i.test(msg)) return 'OpenAI API key 無效，請重新建立 secret key 後 redeploy。';
-  if (/pattern/i.test(msg)) return '圖片格式或 API 格式問題。請先用一張清晰 JPG 相片測試。';
-  return msg;
+  if (!msg) return 'AI 暫時未能完成分析。';
+  if (/credit|quota|billing|insufficient|Incorrect API key|invalid api key|Unauthorized|401/i.test(msg)) return 'AI 連線設定暫時未能使用，請稍後再試。';
+  if (/pattern|format/i.test(msg)) return '圖片格式未能讀取。請先用一張清晰 JPG 相片測試。';
+  if (/timeout|逾時|AbortError|aborted/i.test(msg)) return 'AI 暫時未能完成分析。請先用「只分析第一張」再試。';
+  return String(msg).replace(/(JSON|function|OpenAI|API|model|route|debug|V\d+)/gi,'AI');
 }
 
 function json(statusCode, obj) {

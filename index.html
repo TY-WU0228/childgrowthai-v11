@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="ChildGrowth AI" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>ChildGrowth AI V92 Parent Beta Stable UI + Report Detail</title>
+  <title>ChildGrowth AI V93 Report Integrity + Parent Fail-safe Fix</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root{
@@ -1003,7 +1003,7 @@
     .betaHidden{display:none!important}
 
   
-    /* V92 Parent Beta Stable UI + Report Detail */
+    /* V93 Report Integrity + Parent Fail-safe Fix */
     .betaOnboardWrap{max-width:820px;margin:0 auto}
     .betaHero{background:linear-gradient(135deg,#eef2ff,#f0fdfa);border:1px solid #c7d2fe;border-radius:28px;padding:20px;margin-bottom:14px}
     .betaHero h1{margin:0 0 8px;font-size:34px;color:#0f172a}
@@ -2875,11 +2875,11 @@ function homeworkFallbackReport(text, imageCount, errorMsg=''){
     summary:imageCount?`已收到 ${imageCount} 張功課圖片。AI 暫時未能完成分析，但這次 upload 已保存到最近功課分析。`:'已收到家長補充文字。',
     levelAwareness:'按目前年級和題目難度作觀察；如果圖片顯示 Year 3 / extension，應同時肯定孩子正在挑戰較高水平。',
     strengths:['已完成一次功課記錄，這對長期 weekly report 有幫助。'],
-    checkPoints:[errorMsg || 'AI function 回傳錯誤；請看下面真實錯誤訊息。'],
-    nextStep:'如果 3 張相未成功，請按「只分析第一張」先確認 AI 連線，成功後再試 2–3 張。',
+    checkPoints:['AI 暫時未能完成完整分析，建議稍後重試或先分析第一張。'],
+    nextStep:'請按「只分析第一張」先確認圖片清晰度；成功後再試 2–3 張。',
     confidence:'low',
     reportQuality:{score:35,label:'Upload saved / AI incomplete',checks:{analysisComplete:false}},
-    growth:{subject:'General Learning',worksheetLevel:'Unknown',childYear:app?.profile?.year||'',skillsStrong:[],skillsToReview:['AI incomplete'],errorTypes:['AI timeout / incomplete'],confidence:'Low',imageCount},
+    growth:{subject:'General Learning',worksheetLevel:'Unknown',childYear:app?.profile?.year||'',skillsStrong:[],skillsToReview:['AI incomplete'],errorTypes:['analysis incomplete'],confidence:'Low',imageCount},
     rawAnalysis:''
   };
 }
@@ -3837,7 +3837,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     const chunk=imagesToSend.slice(i,i+maxPerCall);
     const batchNo=Math.floor(i/maxPerCall)+1;
     const kb=Math.round(JSON.stringify(chunk).length/1024);
-    if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">V83 正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。若逾時會自動 retry 超壓縮版本。</div>`;
+    if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。</div>`;
     try{
       const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
       const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
@@ -3855,8 +3855,9 @@ async function sendHomeworkToAIChunked(imagesToSend){
   }
   const merged=v81MergeHomeworkReports(all, imagesToSend.length);
   if(errors.length){
-    merged.parentInterpretation=(merged.parentInterpretation||'')+` 部分圖片暫時未能完成分析：${errors.join('；')}`;
-    merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片 AI 未完成，建議稍後重試或用「只分析第一張」。'];
+    merged.parentInterpretation=(merged.parentInterpretation||'')+' 部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。';
+    merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。'];
+    merged.reportQuality=merged.reportQuality||{}; merged.reportQuality.checks={...(merged.reportQuality.checks||{}),analysisComplete:false};
   }
   return {
     analysis:analyses.filter(Boolean).join('\n\n--- V83 逐張分批分析 ---\n\n'),
@@ -3864,7 +3865,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     model,
     route:'v83-one-by-one-'+route,
     imageCount:imagesToSend.length,
-    debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
+    partial:errors.length>0, debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
   };
 }
 
@@ -3906,18 +3907,19 @@ async function sendHomeworkToAI(imagesToSend, options={}){
 async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const text=$('hwText').value.trim();
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。${imagesToSend.length>1?' V83 會逐張處理避免 timeout。':''}</div>`;
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
     const report=normalizeHomeworkReport(data,text,imagesToSend.length);
-    report.runtime={success:true,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
+    const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
+    report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
     const dbg=v83DebugFromData(data);
-    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
+    $('hwStatus').innerHTML= partial ? `<div class="notice">圖片已保存，但今次 AI 未能完整完成所有分析。請看下面提示，或先用「只分析第一張」再試。${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>` : `<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
   }catch(e){
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
     report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
@@ -3925,7 +3927,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
-    $('hwStatus').innerHTML=`<div class="notice">AI 分析未成功，但這次 upload 已保存。錯誤：${esc(e.message||String(e))}<div class="reliabilityWarn">V83 建議：先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。</div></div>`;
+    $('hwStatus').innerHTML=`<div class="notice">AI 暫時未能完成分析，但圖片已保存。請先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`;
   }
 }
 window.analyzeHomework=async()=>{
@@ -3943,7 +3945,7 @@ window.analyzeHomeworkFirstOnly=async()=>{
 function viewHomeworkReport(id, scroll=false){
   const record=app.homeworkReports.find(h=>String(h.id)===String(id));
   if(!record || !$('hwResult')) return;
-  $('hwResult').innerHTML=homeworkReportHTML(record.report, record) + (record.error?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
+  $('hwResult').innerHTML=homeworkReportHTML(record.report, record) + (record.error&&v85AdminMode()?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
   if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
 
@@ -4399,8 +4401,175 @@ function v92ReviewDetailHTML(report){
     ${rest?`<details class="v92Details"><summary>查看全部 ${rows.length} 個覆核位置</summary><div class="v92DetailsBody">${rest}</div></details>`:''}`;
 }
 
+
+/* V93: parent fail-safe + clean report integrity */
+function v93TechRegex(){
+  return /(V\d+|JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|timeout|retry|responses|chat-fallback|maxTokens|frontend|HTTP|function 已正常|回傳 JSON)/i;
+}
+function v93ParentCleanText(input, max=0){
+  let s=String(input||'');
+  s=s.replace(/第\s*\d+\s*張[：:][^。！？\n]*(JSON|function|V\d+|retry|timeout|逾時|API|OpenAI)[^。！？\n]*[。！？]?/gi,'部分圖片未能清楚完成分析。');
+  s=s.replace(/AI\s*function[^。！？\n]*[。！？]?/gi,'AI 暫時未能完成完整分析。');
+  s=s.replace(/function\s*已正常回傳\s*JSON/gi,'AI 連線已回應，但分析未完整');
+  s=s.replace(/V\d+\s*會[^。！？\n]*[。！？]?/gi,'');
+  s=s.replace(/(JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|responses|chat-fallback|maxTokens|frontend)/gi,'');
+  s=s.replace(/\s+/g,' ').trim();
+  if(max && s.length>max) s=s.slice(0,max).replace(/[，,][^，,]*$/,'')+'…';
+  return s;
+}
+function v93CleanArray(arr, max=6){
+  return (arr||[]).map(x=>v93ParentCleanText(x,260)).filter(x=>x && !v93TechRegex().test(x)).slice(0,max);
+}
+function v93IsIncompleteReport(report, record={}){
+  const dbg=report?.runtime?.debug || record?.debug || {};
+  const errCount=Array.isArray(dbg.errors)?dbg.errors.length:0;
+  const text=[report?.summary,report?.shortSummary,report?.parentInterpretation,report?.levelAwareness,report?.runtime?.error,record?.error].join(' ');
+  return !!(
+    record?.offline ||
+    report?.runtime?.success===false ||
+    report?.runtime?.partial===true ||
+    report?.runtime?.incomplete===true ||
+    errCount>0 ||
+    /AI 暫時未能完成|等待 AI|分析未成功|逾時|timeout|upload 已保存|未完成分析|未完整分析|所有圖片分析都/.test(text)
+  );
+}
+function v93IncompleteReportHTML(report, record={}){
+  const n=record?.imageCount || report?.runtime?.imageCount || report?.growth?.imageCount || 0;
+  return `<div class="card" style="box-shadow:none">
+    <h2>📚 功課圖片已保存</h2>
+    <div class="v93FailSafeCard">
+      <h2>⚠️ AI 今次未能完整分析</h2>
+      <div>${n?`已收到 ${n} 張功課圖片，`:''}但今次 AI 未能完成完整 report。為避免誤導，這次不會當成正式功課分析。</div>
+      <div class="v93FailGrid">
+        <div class="v93FailTile"><b>建議下一步</b>先按「只分析第一張」確認連線和圖片清晰度；成功後再試 2–3 張。</div>
+        <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
+      </div>
+    </div>
+    <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最不肯定的題目，慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
+    ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
+  </div>`;
+}
+function v93SanitizeReport(report){
+  const r=report||{};
+  ['summary','shortSummary','levelAwareness','parentInterpretation','nextStep','wowSummary','longTermFocus'].forEach(k=>{
+    if(typeof r[k]==='string') r[k]=v93ParentCleanText(r[k], k==='wowSummary'?220:0);
+  });
+  ['strengths','checkPoints','reasons'].forEach(k=>{ if(Array.isArray(r[k])) r[k]=v93CleanArray(r[k], k==='checkPoints'?30:8); });
+  if(r.growth){
+    ['skillsStrong','skillsToReview','errorTypes'].forEach(k=>{ if(Array.isArray(r.growth[k])) r.growth[k]=v93CleanArray(r.growth[k],8); });
+  }
+  return r;
+}
+function v93IsPositiveReviewText(s){
+  return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確|做得好|值得肯定|成功/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|明確錯/.test(String(s||''));
+}
+function v93QuestionLooksSpecific(q, e={}){
+  const s=String(q||'').trim();
+  const all=[s,e.studentAnswer,e.correctAnswer,e.skill,e.subSkill].join(' ');
+  if(!s) return false;
+  if(v93TechRegex().test(all)) return false;
+  if(v93IsPositiveReviewText(all)) return false;
+  if(/^(Janice\s*(在|對|基本|有|能|答案|今次)|已收到|部分圖片|今日|AI|學習位|理解位|粗心|心急|做題狀態|可能出錯原因|給家長|程度觀察|我睇到)/i.test(s) && s.length>60) return false;
+  if(/(大多數答對|大部分|今天最值得|基礎|表現|不錯|良好|掌握|穩定)/.test(s) && !/[?？]|\bQ\d|第\s*\d+\s*題|\d+\s*[+\-xX*×÷\/]\s*\d+/.test(s)) return false;
+  const hasMath=/\d+\s*[+\-xX*×÷\/]\s*\d+/.test(all);
+  const hasQ=/\bQ\d|Question\s*\d|第\s*\d+\s*題|Page\s*\d|題目|problem|age problem|temperature|perimeter|clock|time|kg|g\b|min|sec|hour|day|°|shape|circle|worded/i.test(all);
+  const hasAnswer=String(e.studentAnswer||'').trim() || String(e.correctAnswer||'').trim();
+  if(s.length>170 && !hasMath && !hasQ) return false;
+  return !!(hasMath || hasQ || hasAnswer);
+}
+function v93NormalizeReviewEvidence(e){
+  const status=e.status==='wrong'?'wrong':(/missing|未完成|漏做|空白/i.test(String(e.status+' '+e.question))?'missing':'unclear');
+  return {
+    status,
+    question:v93ParentCleanText(e.question||'需要查看原圖',160),
+    studentAnswer:v93ParentCleanText(e.studentAnswer||'',90),
+    correctAnswer:v93ParentCleanText(e.correctAnswer||'',100),
+    skill:v93ParentCleanText(e.skill||'',70),
+    subSkill:v93ParentCleanText(e.subSkill||'',70),
+    confidence:e.confidence||'',
+    source:e.source||'evidence'
+  };
+}
+function v93ParseReviewLine(line){
+  const raw=String(line||'').trim();
+  if(!raw || v93TechRegex().test(raw) || v93IsPositiveReviewText(raw)) return null;
+  if(!/(明確錯|需家長確認|需要覆核|看不清|不清楚|未完成|漏做|空白|應為|應是|正確應為|正確應該|正確是|Student|Correct|Janice)/i.test(raw)) return null;
+  let status=/(明確錯|正確應為|正確應該|正確是|應為|應是|Status:\s*wrong)/i.test(raw)?'wrong':(/未完成|漏做|空白|Status:\s*missing/i.test(raw)?'missing':'unclear');
+  const qMatch=raw.match(/Q[:：]\s*([^|；;\n]+)/i) || raw.match(/(?:題目|位置)[:：]\s*([^|；;\n]+)/i);
+  const qExpr=raw.match(/((?:\d+\s*[+xX*×÷\/\-]\s*)+\d+)(?:\s*=|，|,|\s)/);
+  let question=(qMatch&&qMatch[1]) || (qExpr&&qExpr[1]) || raw;
+  const sm=raw.match(/(?:Student|Janice|學生|小朋友)[：:\s]*(?:答案|寫|答)?[：:\s]*([^|，,。；;\n]+)/i);
+  const cm=raw.match(/(?:Correct|正確|期望答案)[^|，,。；;\n]{0,16}[：:\s]*([^|，,。；;\n]+)/i);
+  const ans=sm?sm[1].trim():'';
+  let corr=cm?cm[1].trim():'';
+  if(!corr && qExpr && typeof calcExpressionV76==='function'){
+    const c=calcExpressionV76(qExpr[1]); if(c!==null) corr=String(c);
+  }
+  const item={status,question,studentAnswer:ans,correctAnswer:corr,skill:'',subSkill:'',confidence:'',source:'checkpoint'};
+  return v93QuestionLooksSpecific(question,item)?item:null;
+}
+function v93ReviewEvidence(report){
+  const ev=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
+    .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
+    .map(v93NormalizeReviewEvidence)
+    .filter(e=>v93QuestionLooksSpecific(e.question,e));
+  const parsed=(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
+  const out=[]; const seen=new Set();
+  [...ev,...parsed].forEach(e=>{
+    if(!v93QuestionLooksSpecific(e.question,e)) return;
+    const key=[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
+    if(seen.has(key)) return;
+    seen.add(key); out.push(e);
+  });
+  return out.slice(0,30);
+}
+function v93StatusLabel(status){
+  if(status==='wrong') return '明確錯';
+  if(status==='missing') return '未完成 / 漏做';
+  return '需家長確認';
+}
+function v93StatusClass(status){
+  if(status==='wrong') return 'v93Wrong';
+  if(status==='missing') return 'v93Missing';
+  return 'v93Unclear';
+}
+function v93ReviewItemHTML(e,i){
+  const child=v93ChildName();
+  const skill=[e.skill,e.subSkill].filter(Boolean).join(' · ');
+  return `<div class="v93ReviewItem">
+    <div class="v93ReviewHead"><span class="v93Pill ${v93StatusClass(e.status)}">${v93StatusLabel(e.status)}</span><span class="v93Pill">#${i+1}</span>${e.confidence?`<span class="v93Pill">confidence: ${esc(e.confidence)}</span>`:''}</div>
+    <div class="v93Question">${esc(e.question||'需要查看原圖')}</div>
+    ${(e.studentAnswer||e.correctAnswer)?`<div class="v93AnswerPair">
+      <div class="v93Answer"><b>${esc(child)} 答案</b>${esc(e.studentAnswer||'未能清楚看到')}</div>
+      <div class="v93Answer"><b>正確 / 期望答案</b>${esc(e.correctAnswer||'需家長確認')}</div>
+    </div>`:''}
+    ${skill?`<div class="v93Skill">學習位：${esc(skill)}</div>`:''}
+  </div>`;
+}
+function v93ChildName(){
+  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+}
+function v93ReviewDetailHTML(report){
+  const rows=v93ReviewEvidence(report);
+  if(!rows.length) return `<div class="v93GoodEmpty">暫未見明確錯題。若圖片有陰影、反光或手寫不清，建議家長對照原圖再確認。</div>`;
+  const wrong=rows.filter(x=>x.status==='wrong').length;
+  const unclear=rows.filter(x=>x.status==='unclear').length;
+  const missing=rows.filter(x=>x.status==='missing').length;
+  const first=rows.slice(0,5).map(v93ReviewItemHTML).join('');
+  const rest=rows.slice(5).map((x,i)=>v93ReviewItemHTML(x,i+5)).join('');
+  return `<div class="v93ReviewSummaryGrid">
+      <div class="v93ReviewCount"><b>${wrong}</b>明確錯</div>
+      <div class="v93ReviewCount"><b>${unclear}</b>需家長確認</div>
+      <div class="v93ReviewCount"><b>${missing}</b>未完成 / 漏做</div>
+    </div>
+    ${first}
+    ${rest?`<details class="v93Details"><summary>查看全部 ${rows.length} 個覆核位置</summary><div class="v93DetailsBody">${rest}</div></details>`:''}`;
+}
+
 function homeworkReportHTML(r, record={}){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  r=v93SanitizeReport(r);
+  if(v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
   // Rebuild clean engine view using V82 filters.
   if(r.engineV2){
     r.engineV2.evidence=v82CleanEvidence(r.engineV2.evidence||[]);
@@ -4423,17 +4592,17 @@ function homeworkReportHTML(r, record={}){
 
   <div class="wowHero">
     <h2>✨ 今日最值得留意</h2>
-    <div class="wowSentence">${esc(v84WowSummary(r,record))}</div>
-    <div class="wowSub">${esc(v85ParentInsight(r))}</div>
+    <div class="wowSentence">${esc(v93ParentCleanText(v84WowSummary(r,record),240))}</div>
+    <div class="wowSub">${esc(v93ParentCleanText(v85ParentInsight(r),360))}</div>
     <div class="parentMiniGrid">
-      <div class="parentMini"><b>今晚做一件事</b>${esc(v85ConcreteNextStep(r))}</div>
+      <div class="parentMini"><b>今晚做一件事</b>${esc(v93ParentCleanText(v85ConcreteNextStep(r),180))}</div>
       <div class="parentMini"><b>學習重點</b>先看需要覆核的位置，再做一題代表性練習。</div>
     </div>
     ${trialQA.incomplete?'<div class="failSafeHero">Fail-safe：今次 AI 未完整分析，所以不會扮成完整 report。Upload 已保存，可稍後重試。</div>':''}
     ${v85AdminMode()&&String(g.confidence||r.confidence||'').toLowerCase()==='low'?'<div class="qualityCaution">Admin: Confidence Low，呢份 report 可作參考，但唔應該標為完全準確。</div>':''}
   </div>
 
-  ${v85ParentModeTags(r)}
+  ${v93IsIncompleteReport(r,record)?"":v85ParentModeTags(r)}
   <div class="engineCard" style="${v85AdminMode()?'':'display:none'}">
     <h2>🧠 Growth Memory Tags</h2>
     <div class="qualityMeter"><div class="qualityFill" style="width:${Math.max(5,q.score||0)}%"></div></div>
@@ -4455,13 +4624,13 @@ function homeworkReportHTML(r, record={}){
     <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
 
-  <div class="reportBlock highlight"><b>程度觀察</b><div class="muted">${esc(r.levelAwareness||'按目前年級和題目難度作觀察。')}</div></div>
-  <div class="reportBlock"><b>1. 我睇到嘅內容</b>${v78SummaryHTML(r.summary||'')}</div>
+  <div class="reportBlock highlight"><b>程度觀察</b><div class="muted">${esc(v93ParentCleanText(r.levelAwareness||'按目前年級和題目難度作觀察。',520))}</div></div>
+  <div class="reportBlock"><b>1. 我睇到嘅內容</b>${v78SummaryHTML(v93ParentCleanText(r.summary||'',420))}</div>
   <div class="reportBlock"><b>2. 已做得好的地方</b>${compactList(v85ParentStrengths(r),'暫時未有足夠資料')}</div>
-  <div class="reportBlock"><b>3. 需要覆核的位置</b><div class="muted" style="margin:6px 0 8px">只列明確錯、看不清、未完成；正確題會自動移走。</div>${v92ReviewDetailHTML(r)}</div>
-  <div class="reportBlock"><b>4. 可能出錯原因</b>${reviewOk?'<div class="muted">暫未見明確錯題，所以暫時不硬估出錯原因。</div>':compactList(r.reasons||[],'暫時未有足夠資料判斷原因。')}</div>
-  <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted">${esc(v85ParentInsight(r))}</div></div>
-  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v85ConcreteNextStep(r))}</div></div>
+  <div class="reportBlock"><b>3. 需要覆核的位置</b><div class="muted" style="margin:6px 0 8px">只列明確錯、看不清、未完成；正確題不會放在這裡。</div>${v93ReviewDetailHTML(r)}</div>
+  <div class="reportBlock"><b>4. 可能出錯原因</b>${reviewOk?'<div class="muted">暫未見明確錯題，所以暫時不硬估出錯原因。</div>':compactList(v93CleanArray(r.reasons||[],4),'暫時未有足夠資料判斷原因。')}</div>
+  <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted v93ShortParentText">${esc(v93ParentCleanText(v85ParentInsight(r),420))}</div></div>
+  <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v93ParentCleanText(v85ConcreteNextStep(r),220))}</div></div>
 
   ${v85AdminMode()?v84QAHTML(r,record):''}
   <details class="technicalDetails" style="${v85AdminMode()?'':'display:none'}">

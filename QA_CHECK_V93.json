@@ -1,0 +1,14 @@
+{
+  "version_label": true,
+  "fail_safe_function": true,
+  "early_incomplete_return": true,
+  "parent_technical_filter": true,
+  "review_detail_function": true,
+  "review_section_uses_v93": true,
+  "partial_status_guard": true,
+  "manifest_start_url_v93": true,
+  "function_v93_rules": true,
+  "function_section_parser_updated": true,
+  "main_js_syntax": true,
+  "functions_syntax": true
+}
