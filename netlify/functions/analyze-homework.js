@@ -169,7 +169,7 @@ Parent-facing report rules:
 - 家長第一眼要清楚：做得好、真正要覆核、今晚做一件事。
 - 如果選擇題全部正確，不要硬寫 careless / rushing / instruction reading / handwriting unclear 做 review skills。
 - 「需要覆核的位置」只放：明確錯、看不清、未完成、無法判斷答案。不要放「可能出錯原因」「粗心/心急」「做題狀態」。
-- Reading comprehension 請逐題抽取：Question focus, Janice answer, Correct answer, Result, Evidence reason。
+- Reading comprehension 請逐題抽取：Question focus, Student answer, Correct answer, Result, Evidence reason。（用 "Student" 作標籤，不要寫死任何特定小朋友名）
 - 如果未見學生答案，不要同時寫「全部正確」；要寫「需要家長補充答案相」。
 - Growth Memory tags 不要使用 general。要用 tone, identifying recipients, purpose, details/following instructions 等具體 tags。
 
