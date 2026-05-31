@@ -1151,6 +1151,7 @@ const DEFAULT_DATA={
   emotions:[],
   teacherComments:[],
   homeworkReports:[],
+  homeworkReportCache:{},
   activityReports:[],
   captureHistory:[],
   settings:{weekExpanded:false, onboardingDone:true}
@@ -3967,11 +3968,100 @@ async function sendHomeworkToAI(imagesToSend, options={}){
 /* V96: message shown when AI analysis fails after the user left the app /
    backgrounded the tab (iOS Safari can suspend in-flight requests). */
 const V96_BACKGROUND_MSG='AI 分析期間請保持此頁開啟；如離開 App，iPhone 可能會中斷分析。圖片已保留，可重新按分析。';
+/* V96.7: deterministic fingerprint of an uploaded photo set. Same image bytes →
+   same fingerprint, even when uploaded again later. Uses a stable 53-bit string
+   hash (two 32-bit FNV-1a passes) over the raw image data plus the child name,
+   so the same photos for the same child reuse the same normalized report. */
+function v967HashString(str){
+  let h1=0x811c9dc5, h2=0x01000193;
+  for(let i=0;i<str.length;i++){
+    const c=str.charCodeAt(i);
+    h1^=c; h1=Math.imul(h1,0x01000193);
+    h2^=c; h2=Math.imul(h2,0x85ebca6b);
+  }
+  h1>>>=0; h2>>>=0;
+  return (h1.toString(16).padStart(8,'0'))+(h2.toString(16).padStart(8,'0'));
+}
+function v967Fingerprint(images, childName){
+  const imgs=(images||[]).map(x=>String(x||''));
+  // length-prefix each image so concatenation can't collide across boundaries
+  const joined=imgs.map(s=>s.length+':'+s).join('\u0001');
+  return v967HashString((childName||'')+'\u0002'+imgs.length+'\u0002'+joined);
+}
+/* V96.7: per-browser cache of fully-analysed photo sets, keyed by fingerprint.
+   Lives inside `app` so it persists via save() / localStorage. Capped so it can't
+   grow without bound. Only COMPLETE (non-partial, non-error) reports are stored. */
+function v967CacheGet(fp){
+  try{ return (app.homeworkReportCache && app.homeworkReportCache[fp]) || null; }catch(e){ return null; }
+}
+function v967CachePut(fp, report){
+  try{
+    if(!app.homeworkReportCache) app.homeworkReportCache={};
+    app.homeworkReportCache[fp]={ report:JSON.parse(JSON.stringify(report)), at:new Date().toISOString() };
+    // cap to the 12 most recent entries
+    const keys=Object.keys(app.homeworkReportCache);
+    if(keys.length>12){
+      keys.map(k=>({k,at:app.homeworkReportCache[k].at||''}))
+          .sort((a,b)=>a.at<b.at?-1:1)
+          .slice(0,keys.length-12)
+          .forEach(o=>{ delete app.homeworkReportCache[o.k]; });
+    }
+  }catch(e){ /* never let caching break analysis */ }
+}
+/* V96.7: internal regression harness (manual; not auto-run). Returns a results
+   object so it can be checked from the console: window.v967SelfTest(). Confirms
+   repeated-run + shuffled-order count/card determinism and the V96.5 fixes. */
+window.v967SelfTest=function(){
+  const mk=ev=>({engineV2:{evidence:ev},checkPoints:[],growth:{subject:'Math'}});
+  const base=[
+    {status:'correct',question:'Page 1 | 12 + 7 = 19',studentAnswer:'19',correctAnswer:'19',confidence:'high'},
+    {status:'correct',question:'Page 1 | 8 x 3 = 24',studentAnswer:'24',correctAnswer:'24',confidence:'high'},
+    {status:'wrong',question:'Page 1 | 17 + 15 = 30',studentAnswer:'30',correctAnswer:'32',confidence:'high'},
+    {status:'wrong',question:'Page 1 | 17 + 15 = 30',studentAnswer:'30',correctAnswer:'32',confidence:'high'},
+    {status:'unclear',question:'Page 2 | Circle the equation with the greatest value: 2 x 9 or 4 x 6',studentAnswer:'2 x 9',correctAnswer:'',confidence:'low'},
+    {status:'missing',question:'Page 2 | 2 days = ? hours',studentAnswer:'未寫',correctAnswer:'48',confidence:'low'},
+    {status:'wrong',question:'Page 2 | 4:20 + 30 minutes',studentAnswer:'4:40',correctAnswer:'0',confidence:'low'}
+  ];
+  const shuffle=(a,seed)=>{a=a.slice();for(let i=a.length-1;i>0;i--){seed=(seed*9301+49297)%233280;const j=Math.floor(seed/233280*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const snap=rep=>{const c=v96ReviewCounts(rep);return {stable:c.stable,wrong:c.definiteWrong,review:c.needsReview,missing:c.missing,total:c.total,
+    firstCards:c.rows.slice(0,5).map(e=>v96CleanParentQuestion(String(e.question||'')))};};
+  const a=snap(mk(base)), b=snap(mk(base)), c=snap(mk(shuffle(base,7))), d=snap(mk(shuffle(base,99)));
+  const eq=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+  const fpEq=v967Fingerprint(['imgA','imgB'],'Janice')===v967Fingerprint(['imgA','imgB'],'Janice');
+  const fpDiff=v967Fingerprint(['imgA','imgB'],'Janice')!==v967Fingerprint(['imgB','imgA'],'Janice');
+  const timeCard=q=>{const h=v93ReviewItemHTML({status:'wrong',confidence:'high',question:q,studentAnswer:'x:xx',correctAnswer:'0'},0);const m=h.match(/參考答案<\/span><span class="v96Val">([^<]*)/);return m?m[1]:'(none)';};
+  const results={
+    sameInput:eq(a,b), shuffledC:eq(a,c), shuffledD:eq(a,d), counts:a,
+    fingerprintStable:fpEq, fingerprintOrderSensitive:fpDiff,
+    time_420_30:timeCard('4:20 + 30 minutes'), time_835_30:timeCard('8:35 + 30 minutes')
+  };
+  results.pass = results.sameInput && results.shuffledC && results.shuffledD && results.fingerprintStable && results.time_420_30==='4:50' && results.time_835_30==='9:05';
+  return results;
+};
+/* V96.7: expose cache helpers for console debugging and the E2E regression test. */
+window.v967Fingerprint=v967Fingerprint;
+window.v967CacheGet=v967CacheGet;
+window.v967CachePut=v967CachePut;
 async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const text=$('hwText').value.trim();
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。請保持此頁開啟，離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
+  // V96.7: if this exact photo set was already fully analysed, reuse that report so
+  // identical uploads can never produce a different parent report.
+  const fp=v967Fingerprint(imagesToSend, app.profile&&app.profile.childName);
+  const cached=v967CacheGet(fp);
+  if(cached && cached.report){
+    const report=JSON.parse(JSON.stringify(cached.report));
+    report.v967Fingerprint=fp;
+    if(report.runtime){ report.runtime.reusedFromCache=true; report.runtime.completedAt=new Date().toISOString(); }
+    app.homeworkReports.push({...baseRecord,report,offline:false,reusedFromCache:true});
+    save();
+    renderHomework();
+    setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
+    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()?'<div class="debugPills"><span class="debugPill">V96.7 reused identical photo set</span></div>':''}</div>`;
+    return;
+  }
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。請保持此頁開啟，離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   // Track whether the page was hidden (user left the app) while analysis was running.
   let wentHidden=false;
   const onVis=()=>{ if(document.hidden) wentHidden=true; };
@@ -3981,6 +4071,9 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     const report=normalizeHomeworkReport(data,text,imagesToSend.length);
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
+    report.v967Fingerprint=fp;
+    // V96.7: only cache COMPLETE analyses, so partial/failed runs never poison reuse.
+    if(!partial) v967CachePut(fp, report);
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
     save();
     renderHomework();
