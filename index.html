@@ -1381,9 +1381,9 @@ function v85IsSectionHeadingLine(x){
     || /^(⚠️\s*)?\d+\.\s*需要覆核的位置/.test(s)
     || /^查看原本詳細內容$/i.test(s);
 }
-function v85CleanBulletText(x){
-  return String(x||'')
-    .replace(/^[\s\-•*]+/,'')
+  function v85CleanBulletText(x){
+  return v96StripEvidenceDebris(String(x||'')) // V96.4: strip raw debug evidence rows from bullets
+  .replace(/^[\s\-•*]+/,'')
     .replace(/^([⚠️✅🧠💬📌🌟✨🏷️🔎]\s*)?\d+\.?\s*(我睇到嘅內容|我大約睇到嘅功課內容|已做得好的地方|需要覆核的位置|可能出錯原因|給家長的簡短解讀|今晚只做一件事)\s*[:：-]?\s*/,'')
     .replace(/^【需家長確認】\s*請家長確認[:：]?\s*/,'【需家長確認】')
     .replace(/^請家長確認[:：]?\s*/,'')
@@ -4495,11 +4495,12 @@ function v92ReviewDetailHTML(report){
 
 
 /* V93: parent fail-safe + clean report integrity */
-function v93TechRegex(){
-  return /(V\d+|JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|timeout|retry|responses|chat-fallback|maxTokens|frontend|HTTP|function 已正常|回傳 JSON)/i;
-}
-function v93ParentCleanText(input, max=0){
+  function v93TechRegex(){
+  return /(V\d+|JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|timeout|retry|responses|chat-fallback|maxTokens|frontend|HTTP|function 已正常|回傳 JSON|Status\s*[:：]|Correct\s*Answer|Sub-?skill\s*[:：])/i;
+  }
+  function v93ParentCleanText(input, max=0){
   let s=String(input||'');
+  s=v96StripEvidenceDebris(s); // V96.4: remove raw "Page|Q|Student|Correct|Status|Skill" debug rows
   s=s.replace(/第\s*\d+\s*張[：:][^。！？\n]*(JSON|function|V\d+|retry|timeout|逾時|API|OpenAI)[^。！？\n]*[。！？]?/gi,'部分圖片未能清楚完成分析。');
   s=s.replace(/AI\s*function[^。！？\n]*[。！？]?/gi,'AI 暫時未能完成完整分析。');
   s=s.replace(/function\s*已正常回傳\s*JSON/gi,'AI 連線已回應，但分析未完整');
@@ -4693,9 +4694,10 @@ function v96QType(e){
   // can't cause false positives (e.g. "Page" contains "age", "Q1: 23" looks like a time).
   const q=v96CleanParentQuestion(String(e&&e.question||''));
   const t=[q,e&&e.skill,e&&e.subSkill].join(' ').toLowerCase();
-  // pure arithmetic first: the question is essentially one "a op b" (optionally "= answer").
+  // pure arithmetic first: the question is essentially a number/operator chain
+  // (single "a op b" OR multi-step like "7 + 5 - 3"), optionally with "= answer".
   const core=String(q).replace(/\s+/g,'').replace(/=.*$/,'');
-  if(/^\d+[+\-xX*×÷\/]\d+$/.test(core)) return 'arith';
+  if(/^\d+([+\-xX*×÷\/]\d+)+$/.test(core)) return 'arith';
   if(/greatest value|circle the equation|circle the|圈選|圈出|圈/.test(t)) return 'circle';
   if(/temperature|degrees?|°|cooler|warmer|溫度|度數|taylah|james/.test(t)) return 'temperature';
   if(/clock|clockface|o'clock|\btime\b|minutes after|past the hour|to the hour|分鐘|時鐘|時間/.test(t) || /\b\d{1,2}\s*[:：]\s*\d{2}\b/.test(t)) return 'time';
@@ -4728,6 +4730,39 @@ function v96EvalExpr(expr){
   if(op==='÷'||op==='/') return b===0?null:a/b;
   return a*b; // x X * ×
 }
+/* V96.4: evaluate a multi-step arithmetic chain like "7 + 5 - 3" with correct
+   operator precedence (× ÷ before + −), left to right. Returns null if it is
+   not a clean number/operator chain (so we never guess on messy input). */
+function v96EvalChain(expr){
+  let s=String(expr||'').replace(/=.*$/,'').trim();
+  s=s.replace(/[xX×]/g,'*').replace(/÷/g,'/').replace(/[–—−]/g,'-');
+  if(!s || !/^\s*\d/.test(s)) return null;
+  // tokenise; only digits, spaces and + - * / allowed
+  if(/[^0-9+\-*/.\s]/.test(s)) return null;
+  const tokens=s.match(/\d+(?:\.\d+)?|[+\-*/]/g);
+  if(!tokens || tokens.length<3 || tokens.length%2===0) return null;
+  // first pass: * and /
+  const pass1=[tokens[0]];
+  for(let i=1;i<tokens.length;i+=2){
+    const op=tokens[i], n=parseFloat(tokens[i+1]);
+    if(isNaN(n)) return null;
+    if(op==='*'){ pass1[pass1.length-1]=parseFloat(pass1[pass1.length-1])*n; }
+    else if(op==='/'){ if(n===0) return null; pass1[pass1.length-1]=parseFloat(pass1[pass1.length-1])/n; }
+    else { pass1.push(op, n); }
+  }
+  // second pass: + and -
+  let acc=parseFloat(pass1[0]);
+  for(let i=1;i<pass1.length;i+=2){
+    const op=pass1[i], n=parseFloat(pass1[i+1]);
+    if(op==='+') acc+=n; else if(op==='-') acc-=n; else return null;
+  }
+  return isFinite(acc)?acc:null;
+}
+/* V96.4: the reference answer as a number (from correctAnswer), if available. */
+function v96RefNumber(e){
+  const m=String(e&&e.correctAnswer||'').match(/-?\d+(?:\.\d+)?/);
+  return m?parseFloat(m[0]):null;
+}
 /* V96.2: for "circle the equation with the greatest value" questions, compute
    every option locally and return the genuinely greatest value (+ which option),
    so the parent never sees a wrong reference answer from the AI. */
@@ -4742,26 +4777,70 @@ function v96GreatestValue(e){
   });
   return best;
 }
-/* V96.3: numeric value the child wrote — from studentAnswer, else after "=". */
+/* V96.4: the child's FINAL numeric answer. Priority:
+   1. number after "=" in the student answer (e.g. "7 + 5 - 3 = 9" → 9)
+   2. evaluate the student's own expression chain if they wrote working only
+   3. the last standalone number in the student answer
+   4. number after "=" in the question.
+   This avoids the old bug of grabbing the first operand (e.g. 7) as the answer. */
 function v96StudentNumber(e){
   const s=String(e&&e.studentAnswer||'').trim();
-  let m=s.match(/-?\d+(?:\.\d+)?/);
-  if(m) return parseFloat(m[0]);
+  if(s){
+    const eq=s.match(/=\s*(-?\d+(?:\.\d+)?)\s*$/) || s.match(/=\s*(-?\d+(?:\.\d+)?)/);
+    if(eq) return parseFloat(eq[1]);
+    const chain=v96EvalChain(s);
+    if(chain!==null) return chain;
+    const all=s.match(/-?\d+(?:\.\d+)?/g);
+    if(all && all.length) return parseFloat(all[all.length-1]);
+  }
   const q=String(e&&e.question||'');
-  const eq=q.match(/=\s*(-?\d+(?:\.\d+)?)/);
-  if(eq) return parseFloat(eq[1]);
+  const qeq=q.match(/=\s*(-?\d+(?:\.\d+)?)/);
+  if(qeq) return parseFloat(qeq[1]);
   return null;
 }
-/* V96.3: locally computed expected value of a pure "a op b" question. */
+/* V96.4: locally computed expected value of the question's expression — supports
+   multi-step chains ("7 + 5 - 3") as well as single "a op b". */
 function v96ArithExpected(e){
   const q=String(e&&e.question||'').replace(/=.*$/,'');
+  const chain=v96EvalChain(q);
+  if(chain!==null) return chain;
   return v96EvalExpr(q);
+}
+/* V96.4: a raw AI evidence/debug row (e.g. "Page 1 | Q: ... | Student: ... |
+   Correct: ... | Status: ... | Skill: ...") that must never reach parents.
+   Two or more "Label:" tokens = a structured debug row, not parent prose. */
+function v96IsEvidenceRow(s){
+  const labels=(String(s||'').match(/\b(Page\s*\d+|Q(?:uestion)?|Student|Correct|Status|Skill|Sub-?skill|Confidence)\s*[:：]/gi)||[]).length;
+  return labels>=2;
+}
+/* V96.4: strip raw AI evidence/debug fragments from ANY parent-facing text.
+   Central cleaner shared by the question cleaner, the bullet cleaner and the
+   parent-text cleaner so debug rows never leak into any report section. */
+function v96StripEvidenceDebris(input){
+  let s=String(input||'');
+  if(v96IsEvidenceRow(s)){
+    // Confirmed debug row: remove every "Label: value" chunk up to the next pipe,
+    // including the student-answer label (Student or the child's own name).
+    s=s.replace(/\b(?:Page\s*\d+|Q(?:uestion)?|Student|Correct(?:\s*Answer)?|Status|Skill|Sub-?skill|Confidence)\s*[:：][^|｜\n]*/gi,'');
+    try{
+      const cn=(window.app&&app.profile&&app.profile.childName)||'';
+      if(cn && cn.length>=2 && cn.length<=12){
+        s=s.replace(new RegExp('\\b'+cn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[:：][^|｜\\n]*','g'),'');
+      }
+    }catch(_){}
+    s=s.replace(/[|｜]+/g,' ');
+  }
+  // Always remove stray standalone evidence markers.
+  s=s.replace(/\bPage\s*\d+\b/gi,'').replace(/\bQ\s*\d+\s*[:：]/gi,'');
+  s=s.replace(/\s{2,}/g,' ').replace(/^[\s,，。:：;；、\-–—|｜]+/,'').replace(/[\s|｜]+$/,'').trim();
+  return s;
 }
 /* V96.2: strip raw/debug wording from any parent-facing question text.
    Removes evidence markers (Page 1 Q3), Status:/Skill:/Sub-skill:/confidence:
    labels and English debug fragments. Data keeps them; parents see clean text. */
 function v96CleanParentQuestion(q){
   let s=String(q||'');
+  s=v96StripEvidenceDebris(s); // V96.4: drop full pipe-delimited debug rows first
   s=s.replace(/\bPage\s*\d+\b/gi,'');
   s=s.replace(/\bQ\s*\d+\b/gi,'');
   s=s.replace(/\b(Status|狀態)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
@@ -4813,23 +4892,35 @@ function v96CleanSkillTags(e){
 function v96DisplayStatus(e){
   if(e.status==='missing') return 'missing';
   const type=v96QType(e);
+  const stu=v96StudentNumber(e);
+  const ref=v96RefNumber(e);
+  const exp=v96ArithExpected(e); // locally computed answer, when the question is arithmetic
+  // V96.4 universal guard: if the child's FINAL numeric answer matches either the
+  // reference answer or our locally computed answer, it is correct — NEVER 明確錯.
+  if(stu!==null){
+    if(exp!==null && Math.abs(stu-exp)<1e-9) return 'ok';
+    if(ref!==null && Math.abs(stu-ref)<1e-9) return 'ok';
+  }
   // Pure arithmetic: trust local computation over the AI.
   if(type==='arith'){
-    const exp=v96ArithExpected(e), stu=v96StudentNumber(e);
-    if(exp!==null && stu!==null){
-      if(stu===exp) return 'ok';   // genuinely correct → drop from review list
-      return 'wrong';              // math is certain → definite error
-    }
+    // definite error only when we have a trusted target AND the child's final
+    // number clearly differs from it.
+    const target = (exp!==null)?exp:ref;
+    if(stu!==null && target!==null && Math.abs(stu-target)>=1e-9) return 'wrong';
     return 'review';
   }
   // Questions that need human interpretation are never auto-marked 明確錯.
   if(type==='circle'||type==='money'||type==='time'||type==='temperature'||type==='unit'||type==='word') return 'review';
-  // Generic: definite error only when AI is highly confident AND we have both
-  // the child's answer and a reference answer to compare.
+  // Generic: definite error only when AI is highly confident, we have both the
+  // child's answer and a reference answer, AND (when both are numeric) the final
+  // numbers genuinely differ.
   const conf=String(e.confidence||'').toLowerCase();
   const hasStudent=String(e.studentAnswer||'').trim()!=='';
   const hasCorrect=String(e.correctAnswer||'').trim()!=='';
-  if(e.status==='wrong' && conf==='high' && hasStudent && hasCorrect) return 'wrong';
+  if(e.status==='wrong' && conf==='high' && hasStudent && hasCorrect){
+    if(stu!==null && ref!==null && Math.abs(stu-ref)<1e-9) return 'review'; // numbers actually match → not a definite error
+    return 'wrong';
+  }
   return 'review';
 }
 function v96StatusLabelFromDisplay(d){
@@ -4878,8 +4969,10 @@ function v93ReviewItemHTML(e,i){
   let cor=corRaw?(isTime?v96FormatTimeAnswer(corRaw):corRaw):'';
   let corLbl='參考答案';
   if(type==='circle'){
+    // V96.4: only show a circle "greatest" answer we computed locally; never fall
+    // back to the AI's possibly-wrong reference answer.
     const gv=v96GreatestValue(e);
-    cor = gv ? `${gv.value}（${gv.expr}）` : cor; corLbl='最大值';
+    cor = gv ? `${gv.value}（${gv.expr}）` : ''; corLbl='最大值';
   } else if(type==='arith'){
     const exp=v96ArithExpected(e);
     if(exp!==null && isFinite(exp)) cor=String(exp);
