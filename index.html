@@ -1045,6 +1045,39 @@
       .betaFormCard h2{font-size:24px!important;line-height:1.15}
     }
 
+  
+    /* V96.1 Parent-friendly review cards + cleaner report */
+    .v96CountRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+    .v96Count{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:10px;text-align:center;font-weight:900;color:#475569;font-size:13px;line-height:1.3}
+    .v96Count b{display:block;font-size:22px;color:#0f172a}
+    .v96Count.v93Wrong b{color:#b91c1c}
+    .v96Count.v93Unclear b{color:#b45309}
+    .v96Count.v93Missing b{color:#475569}
+    .v96ReviewList{display:grid;gap:10px;margin-top:6px}
+    .v96ReviewCard{background:#fff;border:1px solid #e5e7eb;border-left:5px solid #cbd5e1;border-radius:16px;padding:12px;box-shadow:0 4px 12px rgba(15,23,42,.04)}
+    .v96ReviewCard.v93Wrong{border-left-color:#ef4444}
+    .v96ReviewCard.v93Unclear{border-left-color:#f59e0b}
+    .v96ReviewCard.v93Missing{border-left-color:#94a3b8}
+    .v96CardHead{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .v96StatusTag{border-radius:999px;padding:4px 10px;font-weight:950;font-size:12px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569}
+    .v96StatusTag.v93Wrong{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .v96StatusTag.v93Unclear{background:#fffbeb;border-color:#fde68a;color:#b45309}
+    .v96StatusTag.v93Missing{background:#f8fafc;border-color:#e2e8f0;color:#475569}
+    .v96NumTag{font-weight:900;color:#94a3b8;font-size:12px}
+    .v96Field{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;padding:5px 0;align-items:start}
+    .v96Lbl{color:#2563eb;font-weight:950;font-size:13px}
+    .v96Val{color:#0f172a;font-weight:850;line-height:1.4;overflow-wrap:anywhere}
+    .v96Suggest{margin-top:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:9px 11px;color:#0c4a6e;font-weight:850;line-height:1.45}
+    .v96SuggestLbl{display:inline-block;color:#0369a1;font-weight:950;margin-right:6px}
+    .v96SkillTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .v96SkillTag{border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;padding:3px 9px;font-weight:850;font-size:11px}
+    .v96RawDetails{margin-top:10px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden}
+    .v96RawDetails summary{cursor:pointer;padding:11px 13px;font-weight:950;color:#334155;list-style:none}
+    .v96RawDetails summary::-webkit-details-marker{display:none}
+    .v96RawDetails .v96ReviewList{padding:0 12px 12px}
+    .v93GoodEmpty{background:#ecfdf5;border:1px solid #86efac;color:#166534;border-radius:16px;padding:12px;font-weight:900;line-height:1.45}
+    @media(max-width:700px){.v96Field{grid-template-columns:64px minmax(0,1fr)}}
+
   </style>
 </head>
 <body>
@@ -1429,7 +1462,7 @@ function setCaptureMode(mode){
 }
 function captureInputHTML(){
   const isPhoto=captureMode==='photo';
-  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒。' :
+  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒��' :
     captureMode==='voice' ? '例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。' :
     captureMode==='photo' ? '可補充：呢張係功課 / 學校通知 / 樂譜 / 棋盤。' :
     '例：老師話 reading 有進步，但做數太快。';
@@ -2622,7 +2655,7 @@ function renderRecord(){
   $('record').innerHTML=`
     <div class="card">
       <h2>🎙️ 記錄</h2>
-      <div class="muted">可以用���細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
+      <div class="muted">可以用�����細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
     </div>
     <div class="card">
       <h2>🙂 Emotion Check</h2>
@@ -2650,7 +2683,7 @@ function renderRecord(){
         <div id="teacherVoiceStatus" class="voiceMiniStatus">例：老師話今日 reading 比較主動，但做數時有少少快。</div>
       </div>
 
-      <label>學校老師原句 / 課堂觀察</label>
+      <label>��校老師原句 / 課堂觀察</label>
       <textarea id="teacherText" placeholder="例：${esc(v92ChildLabel())} was a bit distracted during reading group today..."></textarea>
       <div class="actions"><button class="btn primary" onclick="saveTeacherComment()">保存 comment</button></div>
       <div>${app.teacherComments.slice(-5).reverse().map(c=>rowHTML(`${new Date(c.date).toLocaleString()} · ${esc(c.category||'School')}`,esc(c.text))).join('') || ''}</div>
@@ -4237,14 +4270,16 @@ function v84WowSummary(report, record={}){
     const skills=v84Unique(reading.map(x=>v82NiceFocus(x).replace(/ \/ .*/,'')).filter(Boolean)).slice(0,4).join('、');
     return `今日最值得留意：${v92ChildLabel()} 能處理${report?.growth?.worksheetLevel||'這份'}英文閱讀，${skills||'reading detail'} 都答得穩，顯示佢開始掌握題目重點。`;
   }
+  // V96.1: use the same review count parents see in the list so headline matches.
+  const reviewTotal=v96ReviewCounts(report).total;
   if(/Math|數學|Addition|Multiplication/i.test(subject) || e.some(x=>/[+\-xX*×÷\/]/.test(x.question||''))){
-    const correct=e.filter(x=>x.status==='correct').length, wrong=e.filter(x=>x.status==='wrong').length;
-    if(wrong) return `今日最值得留意：${v92ChildLabel()} 有 ${correct} 題做得穩，但有 ${wrong} 個位值得覆核；今晚集中講一題代表性錯題就夠。`;
+    const correct=e.filter(x=>x.status==='correct').length;
+    if(reviewTotal) return `今日最值得留意：${v92ChildLabel()} 有 ${correct} 題做得穩，但有 ${reviewTotal} 個位值得覆核；今晚集中講一題代表性題目就夠。`;
     if(correct) return `今日最值得留意：${v92ChildLabel()} 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
   }
-  if(review.length) return `今日最值得留意：AI 找到 ${review.length} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
+  if(reviewTotal) return `今日最值得留意：AI 找到 ${reviewTotal} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
   if(strong.length) return `今日最值得留意：${v92ChildLabel()} 在 ${strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
-  return v82ParentInsight(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
+  return v82ParentInsight(report) || '���日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
 }
 function v84QAHTML(report, record={}){
   const qa=v84ReportQA(report,record);
@@ -4381,7 +4416,7 @@ function v92CleanReviewQuestion(q){
     .trim();
 }
 function v92LineLooksPositive(s){
-  return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|明確錯/.test(String(s||''));
+  return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|��確錯/.test(String(s||''));
 }
 function v92ParseReviewLine(line){
   const raw=String(line||'').trim();
@@ -4517,7 +4552,7 @@ function v93IncompleteReportHTML(report, record={}){
           <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
         </div>
       </div>
-      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最不肯定的題目，慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
+      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最不肯定的題目��慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
       ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
     </div>`;
   }
@@ -4623,17 +4658,107 @@ function v93StatusClass(status){
   if(status==='missing') return 'v93Missing';
   return 'v93Unclear';
 }
+/* V96.1: light Traditional-Chinese labels for common skill names so the main
+   parent explanation reads naturally. English names still appear as small tags. */
+function v96ZhSkill(name){
+  const s=String(name||'').trim().toLowerCase();
+  if(!s) return '';
+  const map=[
+    [/3-?digit|three[- ]?digit|三位數/, '三位數加法'],
+    [/two[- ]?digit|2-?digit|兩位數/, '兩位數加法'],
+    [/carry|carrying|進位/, '進位加法'],
+    [/multi[- ]?term|multiple addends|多項/, '多項相加'],
+    [/basic addition|simple addition|基礎加法/, '基礎加法'],
+    [/\baddition\b|加法/, '加法'],
+    [/times table|multiplication facts|乘數表|乘法表/, '乘數表'],
+    [/multiplication|乘法/, '乘法'],
+    [/subtraction|減法/, '減法'],
+    [/division|除法/, '除法'],
+    [/perimeter|周界/, '周界'],
+    [/measurement|unit|單位|換算/, '單位換算'],
+    [/temperature|溫度/, '溫度題'],
+    [/clock|time|時間|時鐘/, '時間題'],
+    [/circle|greatest value|圈選|圈/, '需要圈選答案的題目'],
+    [/word problem|worded|應用題/, '應用題'],
+    [/pattern|規律/, '數列規律'],
+    [/shape|2-?dimensional|1-?dimensional|圖形/, '圖形'],
+  ];
+  for(const [re,zh] of map){ if(re.test(s)) return zh; }
+  return String(name||'').trim();
+}
+/* V96.1: detect the question type so we can use safer parent wording. */
+function v96QType(e){
+  const t=[e.question,e.skill,e.subSkill].join(' ').toLowerCase();
+  if(/greatest value|circle the equation|circle the|圈選|圈出|圈/.test(t)) return 'circle';
+  if(/half|pocket money|saves|spend|money|一半|儲|零用|\$/.test(t)) return 'money';
+  if(/clock|clockface|o'clock|\btime\b|minutes after|分鐘|時鐘|時間/.test(t) || /\b\d{1,2}\s*[:：]\s*\d{2}\b/.test(t)) return 'time';
+  return 'general';
+}
+function v96IsTimeQuestion(e){ return v96QType(e)==='time'; }
+/* V96.1: turn a compact time answer (e.g. 450, 285, 865) into real H:MM with carrying. */
+function v96FormatTimeAnswer(val){
+  let s=String(val||'').trim();
+  if(!s) return s;
+  let h,mm;
+  const m=s.match(/^(\d{1,2})\s*[:：.]\s*(\d{1,2})$/);
+  if(m){ h=+m[1]; mm=+m[2]; }
+  else if(/^\d{3,4}$/.test(s)){ h=+s.slice(0,s.length-2); mm=+s.slice(-2); }
+  else return s;
+  h += Math.floor(mm/60); mm = mm%60;
+  if(h>=24) h=h%24;
+  return h + ':' + String(mm).padStart(2,'0');
+}
+/* V96.1: the status parents actually see. Circle/money questions are never
+   called a definite mistake; only high-confidence wrongs stay 明確錯. */
+function v96DisplayStatus(e){
+  if(e.status==='missing') return 'missing';
+  const type=v96QType(e);
+  if(type==='circle'||type==='money') return 'review';
+  if(e.status==='wrong' && String(e.confidence||'').toLowerCase()==='high') return 'wrong';
+  return 'review';
+}
+function v96StatusLabelFromDisplay(d){
+  if(d==='wrong') return '明確錯';
+  if(d==='missing') return '未完成 / 漏做';
+  return '需要覆核';
+}
+function v96StatusClassFromDisplay(d){
+  if(d==='wrong') return 'v93Wrong';
+  if(d==='missing') return 'v93Missing';
+  return 'v93Unclear';
+}
+/* V96.1: parent-facing suggestion line per question type. */
+function v96Suggestion(e, d){
+  const type=v96QType(e);
+  if(type==='circle') return '未能清楚看到圈選答案，請家長確認孩子選了哪一個。';
+  if(type==='money') return '題目資料未完整顯示，建議家長先確認題目，再陪孩子重做。';
+  if(d==='missing') return '這題似乎未完成，請家長陪孩子一齊補做。';
+  return '請家長陪孩子重讀題目，確認圖片是否清晰，再做一題類似題。';
+}
+/* V96.1: single source of truth for review counts, matching the labels shown. */
+function v96ReviewCounts(report){
+  const rows=v93ReviewEvidence(report);
+  let definiteWrong=0,needsReview=0,missing=0;
+  rows.forEach(e=>{const d=v96DisplayStatus(e); if(d==='wrong')definiteWrong++; else if(d==='missing')missing++; else needsReview++;});
+  return {rows,definiteWrong,needsReview,missing,total:rows.length};
+}
 function v93ReviewItemHTML(e,i){
-  const child=v93ChildName();
-  const skill=[e.skill,e.subSkill].filter(Boolean).join(' · ');
-  return `<div class="v93ReviewItem">
-    <div class="v93ReviewHead"><span class="v93Pill ${v93StatusClass(e.status)}">${v93StatusLabel(e.status, e.confidence)}</span><span class="v93Pill">#${i+1}</span>${(e.confidence&&v85AdminMode())?`<span class="v93Pill">confidence: ${esc(e.confidence)}</span>`:''}</div>
-    <div class="v93Question">${esc(e.question||'需要查看原圖')}</div>
-    ${(e.studentAnswer||e.correctAnswer)?`<div class="v93AnswerPair">
-      <div class="v93Answer"><b>${esc(child)} 答案</b>${esc(e.studentAnswer||'未能清楚看到')}</div>
-      <div class="v93Answer"><b>正確 / 期望答案</b>${esc(e.correctAnswer||'需要覆核')}</div>
-    </div>`:''}
-    ${skill?`<div class="v93Skill">學習位：${esc(skill)}</div>`:''}
+  const d=v96DisplayStatus(e);
+  const label=v96StatusLabelFromDisplay(d);
+  const cls=v96StatusClassFromDisplay(d);
+  const isTime=v96IsTimeQuestion(e);
+  const stuRaw=String(e.studentAnswer||'').trim();
+  const corRaw=String(e.correctAnswer||'').trim();
+  const stu=stuRaw?(isTime?v96FormatTimeAnswer(stuRaw):stuRaw):'';
+  const cor=corRaw?(isTime?v96FormatTimeAnswer(corRaw):corRaw):'';
+  const tags=[e.skill,e.subSkill].filter(Boolean);
+  return `<div class="v96ReviewCard ${cls}">
+    <div class="v96CardHead"><span class="v96StatusTag ${cls}">${label}</span><span class="v96NumTag">#${i+1}</span></div>
+    <div class="v96Field"><span class="v96Lbl">題目</span><span class="v96Val">${esc(e.question||'需要查看原圖')}</span></div>
+    ${stu?`<div class="v96Field"><span class="v96Lbl">孩子寫了</span><span class="v96Val">${esc(stu)}</span></div>`:''}
+    ${cor?`<div class="v96Field"><span class="v96Lbl">參考答案</span><span class="v96Val">${esc(cor)}</span></div>`:''}
+    <div class="v96Suggest"><span class="v96SuggestLbl">建議</span>${esc(v96Suggestion(e,d))}</div>
+    ${tags.length?`<div class="v96SkillTags">${tags.map(s=>`<span class="v96SkillTag">${esc(s)}</span>`).join('')}</div>`:''}
   </div>`;
 }
 function v93ChildName(){
@@ -4645,37 +4770,38 @@ function v93ChildName(){
    clearly different from the headline. */
 function v96NormText(s){ return String(s||'').toLowerCase().replace(/[\s，。、,.!！?？:：;；]/g,''); }
 function v96HeroSub(report, headline){
+  // V96.1: one warm, natural-Chinese learning-focus sentence (skills translated).
+  const child=v96ChildLabel();
   const sets=(typeof v85ResolvedSkillSets==='function')?v85ResolvedSkillSets(report):{strong:[],review:[]};
-  const strong=(sets.strong||[]).slice(0,3);
-  const review=(sets.review||[]).slice(0,2);
-  if(strong.length || review.length){
-    const parts=[];
-    if(strong.length) parts.push(`做得好：${strong.join('、')}`);
-    if(review.length) parts.push(`下次留意：${review.join('、')}`);
-    const line=parts.join('｜');
-    if(v96NormText(line)!==v96NormText(headline)) return line;
+  const strong=v84Unique((sets.strong||[]).map(v96ZhSkill).filter(Boolean)).slice(0,2);
+  const review=v84Unique((sets.review||[]).map(v96ZhSkill).filter(Boolean)).slice(0,2);
+  let s='';
+  if(strong.length) s=`${child} 今日值得欣賞的是，在 ${strong.join('、')} 有穩定表現`;
+  if(review.length){
+    s += s ? `；下一步最值得集中的是 ${review.join('、')}。` : `${child} 下一步最值得集中的是 ${review.join('、')}。`;
+  } else if(s){
+    s += '，可以再加一題挑戰題鞏固。';
   }
-  const insight=v93ParentCleanText(v85ParentInsight(report),360);
-  // Avoid echoing the headline verbatim.
+  if(s && v96NormText(s)!==v96NormText(headline)) return s;
+  const insight=v93ParentCleanText(v85ParentInsight(report),300);
   if(v96NormText(insight) && v96NormText(insight)!==v96NormText(headline)) return insight;
   return '';
 }
 function v93ReviewDetailHTML(report){
-  const rows=v93ReviewEvidence(report);
+  const c=v96ReviewCounts(report);
+  const rows=c.rows;
   if(!rows.length) return `<div class="v93GoodEmpty">暫未見明確錯題。若圖片有陰影、反光或手寫不清，建議家長對照原圖再確認。</div>`;
-  // V96: count by the label parents actually see (definite error only when high confidence).
-  const definiteWrong=rows.filter(x=>x.status==='wrong' && String(x.confidence||'').toLowerCase()==='high').length;
-  const needsReview=rows.filter(x=>(x.status==='wrong' && String(x.confidence||'').toLowerCase()!=='high') || x.status==='unclear').length;
-  const missing=rows.filter(x=>x.status==='missing').length;
-  const first=rows.slice(0,5).map(v93ReviewItemHTML).join('');
-  const rest=rows.slice(5).map((x,i)=>v93ReviewItemHTML(x,i+5)).join('');
-  return `<div class="v93ReviewSummaryGrid">
-      <div class="v93ReviewCount"><b>${definiteWrong}</b>明確錯</div>
-      <div class="v93ReviewCount"><b>${needsReview}</b>需要覆核</div>
-      <div class="v93ReviewCount"><b>${missing}</b>未完成 / 漏做</div>
+  // V96.1: clean parent cards by default; the rest collapse under a friendly toggle.
+  const cards=rows.map(v93ReviewItemHTML);
+  const head=cards.slice(0,3).join('');
+  const rest=cards.slice(3).join('');
+  return `<div class="v96CountRow">
+      <div class="v96Count v93Wrong"><b>${c.definiteWrong}</b>明確錯</div>
+      <div class="v96Count v93Unclear"><b>${c.needsReview}</b>需要覆核</div>
+      <div class="v96Count v93Missing"><b>${c.missing}</b>未完成 / 漏做</div>
     </div>
-    ${first}
-    ${rest?`<details class="v93Details"><summary>查看全部 ${rows.length} 個覆核位置</summary><div class="v93DetailsBody">${rest}</div></details>`:''}`;
+    <div class="v96ReviewList">${head}</div>
+    ${rest?`<details class="v96RawDetails"><summary>查看詳細覆核內容（其餘 ${rows.length-3} 題）</summary><div class="v96ReviewList">${rest}</div></details>`:''}`;
 }
 
 function homeworkReportHTML(r, record={}){
@@ -5017,7 +5143,7 @@ function renderRoutineSheet(){
   <label>準備物品 / 備註</label><button type="button" class="btn" onclick="v61ApplyPrepSuggestion(true)">AI 自動建議準備物品</button><textarea id="rPrep" placeholder="例：書包、水樽、reader bag">${esc(r?.prep||'')}</textarea>
   <div class="grid">
     <div><label>提醒時間</label><input id="rReminder" value="${esc(r?.reminder||'前一晚 8:00 PM')}"></div>
-    <div><label>功課影響</label><select id="rImpact">${['正常','輕量功課日','不建議額外 worksheet'].map(x=>`<option ${r?.impact===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label>功課影響</label><select id="rImpact">${['正常','輕量功課���','不建議額外 worksheet'].map(x=>`<option ${r?.impact===x?'selected':''}>${x}</option>`).join('')}</select></div>
   </div>
   <div class="actions">
     <button class="btn primary" onclick="saveRoutineFromForm()">${routineEditId?'💾 保存修改':'➕ 加入固定行程'}</button>
