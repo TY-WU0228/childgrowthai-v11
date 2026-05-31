@@ -1462,7 +1462,7 @@ function setCaptureMode(mode){
 }
 function captureInputHTML(){
   const isPhoto=captureMode==='photo';
-  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒��' :
+  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒佢' :
     captureMode==='voice' ? '例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。' :
     captureMode==='photo' ? '可補充：呢張係功課 / 學校通知 / 樂譜 / 棋盤。' :
     '例：老師話 reading 有進步，但做數太快。';
@@ -1820,7 +1820,7 @@ function v60JaniceDefaultRoutines(){
     {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'7:00 PM',prep:'泳衣、毛巾、goggles、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'},
-    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課��鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課、鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Sunday',name:'📚 QS school',start:'9:00 AM',end:'12:00 PM',prep:'功課、水樽',reminder:'前一晚 8:00 PM',impact:'正常'}
   ];
 }
@@ -2056,7 +2056,7 @@ function renderBetaOnboarding(){
       <div class="grid">
         <div><label>小朋友名字 / Nickname</label><input id="obName" placeholder="例如 Chloe" value="${esc(v86BlankForBeta(p.childName))}"></div>
         <div><label>年齡</label><input id="obAge" placeholder="例如 7 歲" value="${esc(v86BlankForBeta(p.age))}"></div>
-        <div><label>目前年���</label><input id="obYear" placeholder="例如 Year 2" value="${esc(v86BlankForBeta(p.year))}"></div>
+        <div><label>目前年級</label><input id="obYear" placeholder="例如 Year 2" value="${esc(v86BlankForBeta(p.year))}"></div>
         <div><label>主要語言</label><select id="obLang">
           ${['English','Cantonese + English','Mandarin + English','Traditional Chinese + English'].map(x=>`<option ${String(p.language||'').includes(x.split(' ')[0])?'selected':''}>${x}</option>`).join('')}
         </select></div>
@@ -2655,7 +2655,7 @@ function renderRecord(){
   $('record').innerHTML=`
     <div class="card">
       <h2>🎙️ 記錄</h2>
-      <div class="muted">可以用�����細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
+      <div class="muted">可以用詳細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
     </div>
     <div class="card">
       <h2>🙂 Emotion Check</h2>
@@ -2683,7 +2683,7 @@ function renderRecord(){
         <div id="teacherVoiceStatus" class="voiceMiniStatus">例：老師話今日 reading 比較主動，但做數時有少少快。</div>
       </div>
 
-      <label>��校老師原句 / 課堂觀察</label>
+      <label>學校老師原句 / 課堂觀察</label>
       <textarea id="teacherText" placeholder="例：${esc(v92ChildLabel())} was a bit distracted during reading group today..."></textarea>
       <div class="actions"><button class="btn primary" onclick="saveTeacherComment()">保存 comment</button></div>
       <div>${app.teacherComments.slice(-5).reverse().map(c=>rowHTML(`${new Date(c.date).toLocaleString()} · ${esc(c.category||'School')}`,esc(c.text))).join('') || ''}</div>
@@ -2713,7 +2713,7 @@ function schoolNoticeCardHTML(){
   return `<div class="card">
     <h2>📣 School Notice AI</h2>
     <div class="muted">上載 Compass / 學校通知截圖，或貼上通知文字。AI 會抽日期、要帶物品、付款、deadline。你 Confirm Add 先會加入。</div>
-    <div class="notice">Beta��不連接 Compass 密碼，不自動抓資料。截圖/文字 → AI 分析 → 家長確認。</div>
+    <div class="notice">Beta：不連接 Compass 密碼，不自動抓資料。截圖/文字 → AI 分析 → 家長確認。</div>
     <label>Upload Compass screenshot</label><input id="noticeFile" type="file" accept="image/*"><img id="noticePreview" class="preview">
     <label>或者 Paste school notice text</label><textarea id="noticeText" placeholder="例：Ice pops day next Monday. Students may bring $2..."></textarea>
     <div class="actions"><button class="btn primary" onclick="analyzeNotice()">🤖 Scan Notice</button><button class="btn" onclick="clearNoticeScan()">Clear</button></div>
@@ -3323,7 +3323,7 @@ function v79SkillTrend(evidence){
 }
 function v79SkillInterpretation(row){
   const name=row.skill + (row.subSkill && row.subSkill!=='general' ? ' / '+row.subSkill : '');
-  if(row.status==='Strong') return `${name} 暫��表現穩定。`;
+  if(row.status==='Strong') return `${name} 暫時表現穩定。`;
   if(row.status==='Generally Strong') return `${name} 多數正確，偶爾仍可覆核。`;
   if(row.status==='Needs Review') return `${name} 是目前較需要針對練習的位置。`;
   if(row.status==='Mixed') return `${name} 有做得好的證據，也有覆核證據，建議拆細 sub-skill 看。`;
@@ -3337,7 +3337,7 @@ function v79StatusClass(status){
 }
 function v79EvidenceTableHTML(evidence){
   const rows=(evidence||[]).slice(0,10);
-  if(!rows.length) return '<div class="muted">暫時未抽取到���夠題目證據。</div>';
+  if(!rows.length) return '<div class="muted">暫時未抽取到足夠題目證據。</div>';
   return `<table class="evidenceTable">${rows.map(e=>`<tr>
     <td><b>${esc(e.question||'')}</b><br><small>${esc(e.skill||'')} · ${esc(e.subSkill||'')}</small></td>
     <td>${esc(v92ChildLabel())}：${esc(e.studentAnswer||'-')}<br>正確：${esc(e.correctAnswer||'-')}</td>
@@ -3479,7 +3479,7 @@ function v77CleanGoodLine(line){
     .replace(/^\s*【明確錯】\s*/,'')
     .replace(/^\s*【需家長確認】\s*/,'')
     .replace(/^\s*【未完成】\s*/,'')
-    .replace(/^\s*請家長���認[:：]?\s*/,'')
+    .replace(/^\s*請家長確認[:：]?\s*/,'')
     .trim();
 }
 
@@ -4246,7 +4246,7 @@ function v84ReportQA(report, record={}){
   if(hasStrong){score+=10; reasons.push(['pass','有具體 strong skill / 做得好位置']);} else reasons.push(['warn','strong skill 不夠具體']);
   if(trueReview.length || v82ReviewList(report).some(x=>/暫未見明確錯題/.test(x))){score+=10; reasons.push(['pass','覆核區有清楚規則']);} else reasons.push(['warn','覆核區未夠乾淨']);
   if(hasParent){score+=10; reasons.push(['pass','有家長可讀解讀']);} else reasons.push(['warn','缺少家長解讀']);
-  if(hasNext){score+=10; reasons.push(['pass','有今晚可做���一件事']);} else reasons.push(['warn','缺少具體 next step']);
+  if(hasNext){score+=10; reasons.push(['pass','有今晚可做嘅一件事']);} else reasons.push(['warn','缺少具體 next step']);
   if(noisyRaw<=3){score+=5; reasons.push(['pass','technical noise 已控制']);} else reasons.push(['warn',`仍有 ${noisyRaw} 條 evidence 被清走`]);
   if(low){score=Math.min(score,78); reasons.push(['warn','Confidence Low：trial 時要小心解讀']);}
   score=Math.max(0,Math.min(95,Math.round(score)));
@@ -4279,7 +4279,7 @@ function v84WowSummary(report, record={}){
   }
   if(reviewTotal) return `今日最值得留意：AI 找到 ${reviewTotal} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
   if(strong.length) return `今日最值得留意：${v92ChildLabel()} 在 ${strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
-  return v82ParentInsight(report) || '���日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
+  return v82ParentInsight(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
 }
 function v84QAHTML(report, record={}){
   const qa=v84ReportQA(report,record);
@@ -4416,7 +4416,7 @@ function v92CleanReviewQuestion(q){
     .trim();
 }
 function v92LineLooksPositive(s){
-  return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|��確錯/.test(String(s||''));
+  return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|明確錯/.test(String(s||''));
 }
 function v92ParseReviewLine(line){
   const raw=String(line||'').trim();
@@ -4552,7 +4552,7 @@ function v93IncompleteReportHTML(report, record={}){
           <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
         </div>
       </div>
-      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最���肯定的題目��慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
+      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最唔肯定的題目，慢慢讀題目���求，再請孩子講一次答案點樣得出。</div></div>
       ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
     </div>`;
   }
@@ -4686,12 +4686,22 @@ function v96ZhSkill(name){
   for(const [re,zh] of map){ if(re.test(s)) return zh; }
   return String(name||'').trim();
 }
-/* V96.1: detect the question type so we can use safer parent wording. */
+/* V96.3: detect the question type so we can use safer parent wording and
+   stricter classification. Order matters (most specific first). */
 function v96QType(e){
-  const t=[e.question,e.skill,e.subSkill].join(' ').toLowerCase();
+  // V96.3: classify on the CLEANED question so debug debris like "Page 2 Q1:"
+  // can't cause false positives (e.g. "Page" contains "age", "Q1: 23" looks like a time).
+  const q=v96CleanParentQuestion(String(e&&e.question||''));
+  const t=[q,e&&e.skill,e&&e.subSkill].join(' ').toLowerCase();
+  // pure arithmetic first: the question is essentially one "a op b" (optionally "= answer").
+  const core=String(q).replace(/\s+/g,'').replace(/=.*$/,'');
+  if(/^\d+[+\-xX*×÷\/]\d+$/.test(core)) return 'arith';
   if(/greatest value|circle the equation|circle the|圈選|圈出|圈/.test(t)) return 'circle';
-  if(/half|pocket money|saves|spend|money|一半|儲|零用|\$/.test(t)) return 'money';
-  if(/clock|clockface|o'clock|\btime\b|minutes after|分鐘|時鐘|時間/.test(t) || /\b\d{1,2}\s*[:：]\s*\d{2}\b/.test(t)) return 'time';
+  if(/temperature|degrees?|°|cooler|warmer|溫度|度數|taylah|james/.test(t)) return 'temperature';
+  if(/clock|clockface|o'clock|\btime\b|minutes after|past the hour|to the hour|分鐘|時鐘|時間/.test(t) || /\b\d{1,2}\s*[:：]\s*\d{2}\b/.test(t)) return 'time';
+  if(/half|fraction|quarter|third|pocket money|saves?|spend|spent|money|一半|分數|四分|三分|儲|零用|\$/.test(t)) return 'money';
+  if(/\b(cm|mm|km|kg|grams?|metres?|meters?|litres?|liters?|ml)\b|convert|conversion|單位|換算|公分|公斤|公升|毫升/.test(t)) return 'unit';
+  if(/word problem|worded|altogether|how many|how much|years?\s+old|older than|younger than|應用題|多少|幾多|幾歲|年齡/.test(t)) return 'word';
   return 'general';
 }
 function v96IsTimeQuestion(e){ return v96QType(e)==='time'; }
@@ -4732,9 +4742,24 @@ function v96GreatestValue(e){
   });
   return best;
 }
+/* V96.3: numeric value the child wrote — from studentAnswer, else after "=". */
+function v96StudentNumber(e){
+  const s=String(e&&e.studentAnswer||'').trim();
+  let m=s.match(/-?\d+(?:\.\d+)?/);
+  if(m) return parseFloat(m[0]);
+  const q=String(e&&e.question||'');
+  const eq=q.match(/=\s*(-?\d+(?:\.\d+)?)/);
+  if(eq) return parseFloat(eq[1]);
+  return null;
+}
+/* V96.3: locally computed expected value of a pure "a op b" question. */
+function v96ArithExpected(e){
+  const q=String(e&&e.question||'').replace(/=.*$/,'');
+  return v96EvalExpr(q);
+}
 /* V96.2: strip raw/debug wording from any parent-facing question text.
    Removes evidence markers (Page 1 Q3), Status:/Skill:/Sub-skill:/confidence:
-   labels, etc. These can stay in the data, but parents only see clean text. */
+   labels and English debug fragments. Data keeps them; parents see clean text. */
 function v96CleanParentQuestion(q){
   let s=String(q||'');
   s=s.replace(/\bPage\s*\d+\b/gi,'');
@@ -4742,10 +4767,38 @@ function v96CleanParentQuestion(q){
   s=s.replace(/\b(Status|狀態)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
   s=s.replace(/\b(Sub[-\s]?skill|Skill|學習位|理解位)\s*[:：]\s*/gi,'');
   s=s.replace(/\b(confidence|信心)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
+  // V96.3: remove English debug fragments that sometimes leak from the model.
+  s=s.replace(/\b(actual logic|correction|corrected|raw ocr|debug|unknown|unclear)\b\s*[:：]?/gi,'');
   s=v93ParentCleanText(s,0);
   s=s.replace(/^[\s,，。:：;；\-–—|、]+/,'');
   s=s.replace(/\s{2,}/g,' ').trim();
   return s;
+}
+/* V96.3: collapse many temperature-table rows (one weekday each) into a single
+   grouped review card so parents don't see repeated near-identical cards. */
+function v96GroupTemperature(rows){
+  const temps=rows.filter(e=>v96QType(e)==='temperature');
+  if(temps.length<2) return rows;
+  const answers=v84Unique(temps.map(e=>String(e.studentAnswer||'').trim()).filter(Boolean));
+  const grouped={
+    status:'unclear', confidence:'low',
+    question:'溫度表：Taylah 的讀數',
+    studentAnswer: answers.join('、'),
+    correctAnswer:'每格 = James − 8 度',
+    skill:'溫度題', __group:'temperature'
+  };
+  const out=[]; let inserted=false;
+  rows.forEach(e=>{
+    if(v96QType(e)==='temperature'){ if(!inserted){ out.push(grouped); inserted=true; } }
+    else out.push(e);
+  });
+  return out;
+}
+/* V96.3: the rows parents actually see — verified-correct items removed and
+   temperature rows grouped. Single source used by both counts and the card list. */
+function v96VisibleRows(report){
+  let rows=v93ReviewEvidence(report).filter(e=>v96DisplayStatus(e)!=='ok');
+  return v96GroupTemperature(rows);
 }
 /* V96.2: translate skill tags to natural Chinese and drop debug/unclear ones. */
 function v96CleanSkillTags(e){
@@ -4753,13 +4806,30 @@ function v96CleanSkillTags(e){
     .filter(t=>!/^(unclear|none|n\/?a|na|null|undefined|status|skill|sub[-\s]?skill|page|q\d+)/i.test(t)
       && !/handwriting|photo unclear|careless|rushing|看不清|不清楚|未能辨認/i.test(t));
 }
-/* V96.1: the status parents actually see. Circle/money questions are never
-   called a definite mistake; only high-confidence wrongs stay 明確錯. */
+/* V96.3: the status parents actually see. Returns 'ok' for items we can locally
+   verify as correct (excluded from the list), 'wrong' only when we are certain,
+   otherwise 'review' (需要覆核). Interpretation-heavy question types are never
+   marked a definite mistake. */
 function v96DisplayStatus(e){
   if(e.status==='missing') return 'missing';
   const type=v96QType(e);
-  if(type==='circle'||type==='money') return 'review';
-  if(e.status==='wrong' && String(e.confidence||'').toLowerCase()==='high') return 'wrong';
+  // Pure arithmetic: trust local computation over the AI.
+  if(type==='arith'){
+    const exp=v96ArithExpected(e), stu=v96StudentNumber(e);
+    if(exp!==null && stu!==null){
+      if(stu===exp) return 'ok';   // genuinely correct → drop from review list
+      return 'wrong';              // math is certain → definite error
+    }
+    return 'review';
+  }
+  // Questions that need human interpretation are never auto-marked 明確錯.
+  if(type==='circle'||type==='money'||type==='time'||type==='temperature'||type==='unit'||type==='word') return 'review';
+  // Generic: definite error only when AI is highly confident AND we have both
+  // the child's answer and a reference answer to compare.
+  const conf=String(e.confidence||'').toLowerCase();
+  const hasStudent=String(e.studentAnswer||'').trim()!=='';
+  const hasCorrect=String(e.correctAnswer||'').trim()!=='';
+  if(e.status==='wrong' && conf==='high' && hasStudent && hasCorrect) return 'wrong';
   return 'review';
 }
 function v96StatusLabelFromDisplay(d){
@@ -4772,17 +4842,22 @@ function v96StatusClassFromDisplay(d){
   if(d==='missing') return 'v93Missing';
   return 'v93Unclear';
 }
-/* V96.1: parent-facing suggestion line per question type. */
+/* V96.3: parent-facing suggestion line per question type. */
 function v96Suggestion(e, d){
   const type=v96QType(e);
-  if(type==='circle') return '未能清楚看到圈選答案，請家長確認孩子選了哪一個。';
-  if(type==='money') return '題目資料未完整顯示，建議家長先確認題目，再陪孩子重做。';
   if(d==='missing') return '這題似乎未完成，請家長陪孩子一齊補做。';
+  if(type==='circle') return '未能清楚看到孩子圈選了哪一個，請家長對照原圖確認。';
+  if(type==='temperature') return '這是溫度表題，規則為 Taylah 比 James 低 8 度（James − 8）。建議家長對照原圖逐格確認。';
+  if(type==='time') return '時間題請家長對照時鐘圖再確認；如圖片不清楚，建議重影一張。';
+  if(type==='money'||type==='word'||type==='unit') return '題目資料未完整顯示，建議家長先確認題目和孩子答案，再陪孩子重做一次。';
+  if(type==='arith' && d==='wrong') return '計算結果與正確答案不同，建議家長陪孩子重新計一次。';
   return '請家長陪孩子重讀題目，確認圖片是否清晰，再做一題類似題。';
 }
-/* V96.1: single source of truth for review counts, matching the labels shown. */
+/* V96.3: single source of truth for review counts — uses the same visible rows
+   (verified-correct removed, temperature grouped) as the card list, so the
+   count tiles always match the cards shown (including collapsed ones). */
 function v96ReviewCounts(report){
-  const rows=v93ReviewEvidence(report);
+  const rows=v96VisibleRows(report);
   let definiteWrong=0,needsReview=0,missing=0;
   rows.forEach(e=>{const d=v96DisplayStatus(e); if(d==='wrong')definiteWrong++; else if(d==='missing')missing++; else needsReview++;});
   return {rows,definiteWrong,needsReview,missing,total:rows.length};
@@ -4798,19 +4873,23 @@ function v93ReviewItemHTML(e,i){
   const stuRaw=String(e.studentAnswer||'').trim();
   const corRaw=String(e.correctAnswer||'').trim();
   const stu=stuRaw?(isTime?v96FormatTimeAnswer(stuRaw):stuRaw):'';
-  // V96.2: for greatest-value / circle questions, recompute the correct answer
-  // locally so a wrong AI reference answer (e.g. 27 instead of 24) is overridden.
+  // V96.2/3: recompute the reference answer locally where math is certain, so a
+  // wrong AI reference answer (e.g. 27 instead of 24) is overridden.
   let cor=corRaw?(isTime?v96FormatTimeAnswer(corRaw):corRaw):'';
+  let corLbl='參考答案';
   if(type==='circle'){
     const gv=v96GreatestValue(e);
-    cor = gv ? `${gv.value}（${gv.expr}）` : cor;
+    cor = gv ? `${gv.value}（${gv.expr}）` : cor; corLbl='最大值';
+  } else if(type==='arith'){
+    const exp=v96ArithExpected(e);
+    if(exp!==null && isFinite(exp)) cor=String(exp);
   }
   const tags=v96CleanSkillTags(e);
   return `<div class="v96ReviewCard ${cls}">
     <div class="v96CardHead"><span class="v96StatusTag ${cls}">${label}</span><span class="v96NumTag">#${i+1}</span></div>
     <div class="v96Field"><span class="v96Lbl">題目</span><span class="v96Val">${esc(question)}</span></div>
     ${stu?`<div class="v96Field"><span class="v96Lbl">孩子寫了</span><span class="v96Val">${esc(stu)}</span></div>`:''}
-    ${cor?`<div class="v96Field"><span class="v96Lbl">${type==='circle'?'最大值':'參考答案'}</span><span class="v96Val">${esc(cor)}</span></div>`:''}
+    ${cor?`<div class="v96Field"><span class="v96Lbl">${corLbl}</span><span class="v96Val">${esc(cor)}</span></div>`:''}
     <div class="v96Suggest"><span class="v96SuggestLbl">建議</span>${esc(v96Suggestion(e,d))}</div>
     ${tags.length?`<div class="v96SkillTags">${tags.map(s=>`<span class="v96SkillTag">${esc(s)}</span>`).join('')}</div>`:''}
   </div>`;
@@ -4824,13 +4903,14 @@ function v93ChildName(){
    clearly different from the headline. */
 function v96NormText(s){ return String(s||'').toLowerCase().replace(/[\s，。、,.!！?？:：;；]/g,''); }
 function v96HeroSub(report, headline){
-  // V96.1: one warm, natural-Chinese learning-focus sentence (skills translated).
+  // V96.3: one warm, honest, parent-friendly learning-focus sentence.
+  // Strengths first, then the next focus — skills translated to short Chinese tags.
   const child=v96ChildLabel();
   const sets=(typeof v85ResolvedSkillSets==='function')?v85ResolvedSkillSets(report):{strong:[],review:[]};
-  const strong=v84Unique((sets.strong||[]).map(v96ZhSkill).filter(Boolean)).slice(0,2);
-  const review=v84Unique((sets.review||[]).map(v96ZhSkill).filter(Boolean)).slice(0,2);
+  const strong=v84Unique((sets.strong||[]).map(v96ZhSkill).filter(Boolean)).slice(0,3);
+  const review=v84Unique((sets.review||[]).map(v96ZhSkill).filter(Boolean)).slice(0,3);
   let s='';
-  if(strong.length) s=`${child} 今日值得欣賞的是，在 ${strong.join('、')} 有穩定表���`;
+  if(strong.length) s=`${child} 在 ${strong.join('、')} 有不少穩定表現`;
   if(review.length){
     s += s ? `；下一步最值得集中的是 ${review.join('、')}。` : `${child} 下一步最值得集中的是 ${review.join('、')}。`;
   } else if(s){
@@ -4978,7 +5058,7 @@ function weeklyReportHTML(){
     st.avgQuality?`最近 report 平均 quality：${st.avgQuality}/100。`:'Report quality 仍未有足夠樣本。'
   ];
   const emotion=[
-    recentMoods.length?`最近情緒���錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
+    recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
     st.tired?`有 ${st.tired} 次 tired/frustrated 訊號；活動多或夜晚功課時建議減量。`:'暫時未見明顯疲倦 / 挫敗 pattern。',
     topBusy&&topBusy[1]>=2?`${DAY_LABEL[topBusy[0]]} 固定活動較多，當日建議安排輕量功課。`:'固定活動量暫時不算密集。'
   ];
@@ -5118,7 +5198,7 @@ function v61SmartPrepItems(activityName=''){
 }
 function v61SmartImpact(activityName=''){
   const s=String(activityName||'').toLowerCase();
-  if(/swim|soccer|football|basketball|tennis|dance|gym|運動|游水|足球|籃���|網球|體操/.test(s)) return '輕量功課日';
+  if(/swim|soccer|football|basketball|tennis|dance|gym|運動|游水|足球|籃球|網球|體操/.test(s)) return '輕量功課日';
   return '正常';
 }
 function v61ApplyPrepSuggestion(force=false){
@@ -5197,7 +5277,7 @@ function renderRoutineSheet(){
   <label>準備物品 / 備註</label><button type="button" class="btn" onclick="v61ApplyPrepSuggestion(true)">AI 自動建議準備物品</button><textarea id="rPrep" placeholder="例：書包、水樽、reader bag">${esc(r?.prep||'')}</textarea>
   <div class="grid">
     <div><label>提醒時間</label><input id="rReminder" value="${esc(r?.reminder||'前一晚 8:00 PM')}"></div>
-    <div><label>功課影響</label><select id="rImpact">${['正常','輕量功課���','不建議額外 worksheet'].map(x=>`<option ${r?.impact===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label>功課影響</label><select id="rImpact">${['正常','輕量功課日','不建議額外 worksheet'].map(x=>`<option ${r?.impact===x?'selected':''}>${x}</option>`).join('')}</select></div>
   </div>
   <div class="actions">
     <button class="btn primary" onclick="saveRoutineFromForm()">${routineEditId?'💾 保存修改':'➕ 加入固定行程'}</button>
@@ -5210,11 +5290,11 @@ function renderRoutineSheet(){
   ${app.routines.filter(x=>!x.oneOffDate).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||sortByTime(a,b)).map(routineManageRow).join('')||'<div class="notice bluebox">未有固定行程。</div>'}`;
   setTimeout(v61BindSmartPrep,80);
 }
-function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提���：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
+function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
 window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i;setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday';setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.saveRoutineFromForm=()=>{
-  const name=$('rName').value.trim(), day=$('rDay').value, start=readTimeField('rStart'), end=readTimeField('rEnd'), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'��一晚 8:00 PM', impact=$('rImpact').value;
+  const name=$('rName').value.trim(), day=$('rDay').value, start=readTimeField('rStart'), end=readTimeField('rEnd'), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'前一晚 8:00 PM', impact=$('rImpact').value;
   if(!name||!start){alert('請最少填活動名稱和開始時間。');return}
   if(routineEditId){const r=app.routines.find(x=>x.id===routineEditId); if(r)Object.assign(r,{day:day==='Monday–Friday'?'Monday':day,name,start,end,prep,reminder,impact,updatedAt:new Date().toISOString()}); routineEditId=null;}
   else{
@@ -5323,7 +5403,7 @@ setTimeout(v78BootReady,800);
     var active=document.querySelector('.page.active');
     var target=active || home;
     if(target && !String(target.innerHTML||'').trim()){
-      target.innerHTML='<div class="bootError">⚠️ App 已停止喺 loading 畫面，V52 已自動放行。若首頁仍然空白，請重新整理或重新 upload V52 package。</div>';
+      target.innerHTML='<div class="bootError">⚠️ App 已停止喺 loading 畫面，V52 已自動放行。如首頁仍然空白，請重新整理或重新 upload V52 package。</div>';
     }
   }
   window.addEventListener('load', function(){
