@@ -2056,7 +2056,7 @@ function renderBetaOnboarding(){
       <div class="grid">
         <div><label>小朋友名字 / Nickname</label><input id="obName" placeholder="例如 Chloe" value="${esc(v86BlankForBeta(p.childName))}"></div>
         <div><label>年齡</label><input id="obAge" placeholder="例如 7 歲" value="${esc(v86BlankForBeta(p.age))}"></div>
-        <div><label>目前年級</label><input id="obYear" placeholder="例如 Year 2" value="${esc(v86BlankForBeta(p.year))}"></div>
+        <div><label>目前年���</label><input id="obYear" placeholder="例如 Year 2" value="${esc(v86BlankForBeta(p.year))}"></div>
         <div><label>主要語言</label><select id="obLang">
           ${['English','Cantonese + English','Mandarin + English','Traditional Chinese + English'].map(x=>`<option ${String(p.language||'').includes(x.split(' ')[0])?'selected':''}>${x}</option>`).join('')}
         </select></div>
@@ -3337,7 +3337,7 @@ function v79StatusClass(status){
 }
 function v79EvidenceTableHTML(evidence){
   const rows=(evidence||[]).slice(0,10);
-  if(!rows.length) return '<div class="muted">暫時未抽取到足夠題目證據。</div>';
+  if(!rows.length) return '<div class="muted">暫時未抽取到���夠題目證據。</div>';
   return `<table class="evidenceTable">${rows.map(e=>`<tr>
     <td><b>${esc(e.question||'')}</b><br><small>${esc(e.skill||'')} · ${esc(e.subSkill||'')}</small></td>
     <td>${esc(v92ChildLabel())}：${esc(e.studentAnswer||'-')}<br>正確：${esc(e.correctAnswer||'-')}</td>
@@ -3479,7 +3479,7 @@ function v77CleanGoodLine(line){
     .replace(/^\s*【明確錯】\s*/,'')
     .replace(/^\s*【需家長確認】\s*/,'')
     .replace(/^\s*【未完成】\s*/,'')
-    .replace(/^\s*請家長確認[:：]?\s*/,'')
+    .replace(/^\s*請家長���認[:：]?\s*/,'')
     .trim();
 }
 
@@ -4246,7 +4246,7 @@ function v84ReportQA(report, record={}){
   if(hasStrong){score+=10; reasons.push(['pass','有具體 strong skill / 做得好位置']);} else reasons.push(['warn','strong skill 不夠具體']);
   if(trueReview.length || v82ReviewList(report).some(x=>/暫未見明確錯題/.test(x))){score+=10; reasons.push(['pass','覆核區有清楚規則']);} else reasons.push(['warn','覆核區未夠乾淨']);
   if(hasParent){score+=10; reasons.push(['pass','有家長可讀解讀']);} else reasons.push(['warn','缺少家長解讀']);
-  if(hasNext){score+=10; reasons.push(['pass','有今晚可做的一件事']);} else reasons.push(['warn','缺少具體 next step']);
+  if(hasNext){score+=10; reasons.push(['pass','有今晚可做���一件事']);} else reasons.push(['warn','缺少具體 next step']);
   if(noisyRaw<=3){score+=5; reasons.push(['pass','technical noise 已控制']);} else reasons.push(['warn',`仍有 ${noisyRaw} 條 evidence 被清走`]);
   if(low){score=Math.min(score,78); reasons.push(['warn','Confidence Low：trial 時要小心解讀']);}
   score=Math.max(0,Math.min(95,Math.round(score)));
@@ -4552,7 +4552,7 @@ function v93IncompleteReportHTML(report, record={}){
           <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
         </div>
       </div>
-      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最不肯定的題目��慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
+      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最���肯定的題目��慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
       ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
     </div>`;
   }
@@ -4708,6 +4708,51 @@ function v96FormatTimeAnswer(val){
   if(h>=24) h=h%24;
   return h + ':' + String(mm).padStart(2,'0');
 }
+/* V96.2: safely evaluate a single binary arithmetic expression like "4 x 6". */
+function v96EvalExpr(expr){
+  const m=String(expr||'').match(/(\d+)\s*([+\-xX*×÷\/])\s*(\d+)/);
+  if(!m) return null;
+  const a=+m[1], b=+m[3], op=m[2];
+  if(op==='+') return a+b;
+  if(op==='-') return a-b;
+  if(op==='÷'||op==='/') return b===0?null:a/b;
+  return a*b; // x X * ×
+}
+/* V96.2: for "circle the equation with the greatest value" questions, compute
+   every option locally and return the genuinely greatest value (+ which option),
+   so the parent never sees a wrong reference answer from the AI. */
+function v96GreatestValue(e){
+  const txt=String(e.question||'');
+  const exprs=txt.match(/\d+\s*[+\-xX*×÷\/]\s*\d+/g);
+  if(!exprs || exprs.length<2) return null;
+  let best=null;
+  exprs.forEach(x=>{
+    const v=v96EvalExpr(x);
+    if(v!==null && isFinite(v) && (best===null || v>best.value)) best={value:v, expr:x.replace(/\s+/g,' ').trim()};
+  });
+  return best;
+}
+/* V96.2: strip raw/debug wording from any parent-facing question text.
+   Removes evidence markers (Page 1 Q3), Status:/Skill:/Sub-skill:/confidence:
+   labels, etc. These can stay in the data, but parents only see clean text. */
+function v96CleanParentQuestion(q){
+  let s=String(q||'');
+  s=s.replace(/\bPage\s*\d+\b/gi,'');
+  s=s.replace(/\bQ\s*\d+\b/gi,'');
+  s=s.replace(/\b(Status|狀態)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
+  s=s.replace(/\b(Sub[-\s]?skill|Skill|學習位|理解位)\s*[:：]\s*/gi,'');
+  s=s.replace(/\b(confidence|信心)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
+  s=v93ParentCleanText(s,0);
+  s=s.replace(/^[\s,，。:：;；\-–—|、]+/,'');
+  s=s.replace(/\s{2,}/g,' ').trim();
+  return s;
+}
+/* V96.2: translate skill tags to natural Chinese and drop debug/unclear ones. */
+function v96CleanSkillTags(e){
+  return v84Unique([e.skill,e.subSkill].filter(Boolean).map(v96ZhSkill).filter(Boolean))
+    .filter(t=>!/^(unclear|none|n\/?a|na|null|undefined|status|skill|sub[-\s]?skill|page|q\d+)/i.test(t)
+      && !/handwriting|photo unclear|careless|rushing|看不清|不清楚|未能辨認/i.test(t));
+}
 /* V96.1: the status parents actually see. Circle/money questions are never
    called a definite mistake; only high-confidence wrongs stay 明確錯. */
 function v96DisplayStatus(e){
@@ -4746,17 +4791,26 @@ function v93ReviewItemHTML(e,i){
   const d=v96DisplayStatus(e);
   const label=v96StatusLabelFromDisplay(d);
   const cls=v96StatusClassFromDisplay(d);
-  const isTime=v96IsTimeQuestion(e);
+  const type=v96QType(e);
+  const isTime=type==='time';
+  // V96.2: parent-facing question text only (no Page/Q/Status/Skill debug debris).
+  const question=v96CleanParentQuestion(e.question)||'需要查看原圖';
   const stuRaw=String(e.studentAnswer||'').trim();
   const corRaw=String(e.correctAnswer||'').trim();
   const stu=stuRaw?(isTime?v96FormatTimeAnswer(stuRaw):stuRaw):'';
-  const cor=corRaw?(isTime?v96FormatTimeAnswer(corRaw):corRaw):'';
-  const tags=[e.skill,e.subSkill].filter(Boolean);
+  // V96.2: for greatest-value / circle questions, recompute the correct answer
+  // locally so a wrong AI reference answer (e.g. 27 instead of 24) is overridden.
+  let cor=corRaw?(isTime?v96FormatTimeAnswer(corRaw):corRaw):'';
+  if(type==='circle'){
+    const gv=v96GreatestValue(e);
+    cor = gv ? `${gv.value}（${gv.expr}）` : cor;
+  }
+  const tags=v96CleanSkillTags(e);
   return `<div class="v96ReviewCard ${cls}">
     <div class="v96CardHead"><span class="v96StatusTag ${cls}">${label}</span><span class="v96NumTag">#${i+1}</span></div>
-    <div class="v96Field"><span class="v96Lbl">題目</span><span class="v96Val">${esc(e.question||'需要查看原圖')}</span></div>
+    <div class="v96Field"><span class="v96Lbl">題目</span><span class="v96Val">${esc(question)}</span></div>
     ${stu?`<div class="v96Field"><span class="v96Lbl">孩子寫了</span><span class="v96Val">${esc(stu)}</span></div>`:''}
-    ${cor?`<div class="v96Field"><span class="v96Lbl">參考答案</span><span class="v96Val">${esc(cor)}</span></div>`:''}
+    ${cor?`<div class="v96Field"><span class="v96Lbl">${type==='circle'?'最大值':'參考答案'}</span><span class="v96Val">${esc(cor)}</span></div>`:''}
     <div class="v96Suggest"><span class="v96SuggestLbl">建議</span>${esc(v96Suggestion(e,d))}</div>
     ${tags.length?`<div class="v96SkillTags">${tags.map(s=>`<span class="v96SkillTag">${esc(s)}</span>`).join('')}</div>`:''}
   </div>`;
@@ -4776,7 +4830,7 @@ function v96HeroSub(report, headline){
   const strong=v84Unique((sets.strong||[]).map(v96ZhSkill).filter(Boolean)).slice(0,2);
   const review=v84Unique((sets.review||[]).map(v96ZhSkill).filter(Boolean)).slice(0,2);
   let s='';
-  if(strong.length) s=`${child} 今日值得欣賞的是，在 ${strong.join('、')} 有穩定表現`;
+  if(strong.length) s=`${child} 今日值得欣賞的是，在 ${strong.join('、')} 有穩定表���`;
   if(review.length){
     s += s ? `；下一步最值得集中的是 ${review.join('、')}。` : `${child} 下一步最值得集中的是 ${review.join('、')}。`;
   } else if(s){
@@ -4924,7 +4978,7 @@ function weeklyReportHTML(){
     st.avgQuality?`最近 report 平均 quality：${st.avgQuality}/100。`:'Report quality 仍未有足夠樣本。'
   ];
   const emotion=[
-    recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
+    recentMoods.length?`最近情緒���錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
     st.tired?`有 ${st.tired} 次 tired/frustrated 訊號；活動多或夜晚功課時建議減量。`:'暫時未見明顯疲倦 / 挫敗 pattern。',
     topBusy&&topBusy[1]>=2?`${DAY_LABEL[topBusy[0]]} 固定活動較多，當日建議安排輕量功課。`:'固定活動量暫時不算密集。'
   ];
@@ -5064,7 +5118,7 @@ function v61SmartPrepItems(activityName=''){
 }
 function v61SmartImpact(activityName=''){
   const s=String(activityName||'').toLowerCase();
-  if(/swim|soccer|football|basketball|tennis|dance|gym|運動|游水|足球|籃球|網球|體操/.test(s)) return '輕量功課日';
+  if(/swim|soccer|football|basketball|tennis|dance|gym|運動|游水|足球|籃���|網球|體操/.test(s)) return '輕量功課日';
   return '正常';
 }
 function v61ApplyPrepSuggestion(force=false){
@@ -5160,7 +5214,7 @@ function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].fil
 window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i;setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday';setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.saveRoutineFromForm=()=>{
-  const name=$('rName').value.trim(), day=$('rDay').value, start=readTimeField('rStart'), end=readTimeField('rEnd'), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'前一晚 8:00 PM', impact=$('rImpact').value;
+  const name=$('rName').value.trim(), day=$('rDay').value, start=readTimeField('rStart'), end=readTimeField('rEnd'), prep=$('rPrep').value.trim(), reminder=$('rReminder').value.trim()||'��一晚 8:00 PM', impact=$('rImpact').value;
   if(!name||!start){alert('請最少填活動名稱和開始時間。');return}
   if(routineEditId){const r=app.routines.find(x=>x.id===routineEditId); if(r)Object.assign(r,{day:day==='Monday–Friday'?'Monday':day,name,start,end,prep,reminder,impact,updatedAt:new Date().toISOString()}); routineEditId=null;}
   else{
