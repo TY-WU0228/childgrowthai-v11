@@ -1417,7 +1417,7 @@ let capturePending=null;
 function captureHomeCardHTML(){
   return `<div class="card">
     <h2>＋ 快速記錄 / Capture</h2>
-    <div class="muted">影相、語音或打字，AI 會幫你分流成 School Notice、Teacher Comment、Activity Progress、Homework 或行程提醒。原本詳細功能仍然保留。</div>
+    <div class="muted">影相、語音或打字，AI 會幫你分流成 School Notice、Teacher Comment、Activity Progress、Homework 或行程提醒。原有詳細功能仍然保留。</div>
     <div class="captureHero">
       <h3>家長只需要 capture，AI 負責整理</h3>
       <div class="captureExamples">
@@ -4270,10 +4270,12 @@ function v84WowSummary(report, record={}){
     const skills=v84Unique(reading.map(x=>v82NiceFocus(x).replace(/ \/ .*/,'')).filter(Boolean)).slice(0,4).join('、');
     return `今日最值得留意：${v92ChildLabel()} 能處理${report?.growth?.worksheetLevel||'這份'}英文閱讀，${skills||'reading detail'} 都答得穩，顯示佢開始掌握題目重點。`;
   }
-  // V96.1: use the same review count parents see in the list so headline matches.
-  const reviewTotal=v96ReviewCounts(report).total;
+  // V96.1/V96.6: use the SAME computed counts parents see in the list so the
+  // headline numbers always match the review cards for the same report.
+  const counts=v96ReviewCounts(report);
+  const reviewTotal=counts.total;
   if(/Math|數學|Addition|Multiplication/i.test(subject) || e.some(x=>/[+\-xX*×÷\/]/.test(x.question||''))){
-    const correct=e.filter(x=>x.status==='correct').length;
+    const correct=counts.stable;
     if(reviewTotal) return `今日最值得留意：${v92ChildLabel()} 有 ${correct} 題做得穩，但有 ${reviewTotal} 個位值得覆核；今晚集中講一題代表性題目就夠。`;
     if(correct) return `今日最值得留意：${v92ChildLabel()} 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
   }
@@ -4901,11 +4903,66 @@ function v96GroupTemperature(rows){
   });
   return out;
 }
-/* V96.3: the rows parents actually see — verified-correct items removed and
-   temperature rows grouped. Single source used by both counts and the card list. */
+/* V96.6: page number for an evidence item (from an explicit field or the
+   question text), used for a stable dedupe key and ordering. 0 when unknown. */
+function v96PageOf(e){
+  if(e && (e.page||e.page===0)){ const n=parseInt(e.page,10); if(!isNaN(n)) return n; }
+  const m=String(e&&e.question||'').match(/\bpage\s*(\d+)\b|第\s*(\d+)\s*[頁页張张]/i);
+  if(m){ const n=parseInt(m[1]||m[2],10); if(!isNaN(n)) return n; }
+  return 0;
+}
+/* V96.6: stable, normalized dedupe key = cleaned question + page + expected answer.
+   Same question at the same worksheet location with the same expected answer is
+   one item; the same expression on different pages stays distinct. */
+function v96StableKey(e){
+  const q=v96CleanParentQuestion(String(e&&e.question||'')).toLowerCase().replace(/\s+/g,'');
+  const page=v96PageOf(e);
+  const expN=v96ArithExpected(e); const ref=v96RefNumber(e);
+  const exp=(expN!==null)?('n'+expN):(ref!==null?('r'+ref):String(e&&e.correctAnswer||'').toLowerCase().replace(/\s+/g,''));
+  return q+'|p'+page+'|'+exp;
+}
+/* V96.6: deterministic ordering — wrong first, then review, then missing; within
+   each group by page, then question text, then a stable original index. This makes
+   the visible list (and therefore every count) independent of AI response order. */
+function v96StatusRank(d){ return d==='wrong'?0:(d==='review'?1:(d==='missing'?2:3)); }
+function v96SortItems(rows){
+  return rows.map((e,i)=>({e,i}))
+    .sort((a,b)=>{
+      const ra=v96StatusRank(v96DisplayStatus(a.e)), rb=v96StatusRank(v96DisplayStatus(b.e));
+      if(ra!==rb) return ra-rb;
+      const pa=v96PageOf(a.e), pb=v96PageOf(b.e);
+      if(pa!==pb) return pa-pb;
+      const qa=v96CleanParentQuestion(String(a.e.question||'')), qb=v96CleanParentQuestion(String(b.e.question||''));
+      if(qa<qb) return -1; if(qa>qb) return 1;
+      return a.i-b.i;
+    })
+    .map(x=>x.e);
+}
+/* V96.3/V96.6: the rows parents actually see — verified-correct items removed,
+   stably deduped (question+page+expected), deterministically ordered, and
+   temperature rows grouped. SINGLE source used by every count and the card list. */
 function v96VisibleRows(report){
-  let rows=v93ReviewEvidence(report).filter(e=>v96DisplayStatus(e)!=='ok');
-  return v96GroupTemperature(rows);
+  const candidates=v93ReviewEvidence(report).filter(e=>v96DisplayStatus(e)!=='ok');
+  // stable dedupe: keep the first occurrence per normalized key
+  const seen=new Set(); const deduped=[];
+  candidates.forEach(e=>{ const k=v96StableKey(e); if(seen.has(k)) return; seen.add(k); deduped.push(e); });
+  const ordered=v96SortItems(deduped);
+  return v96GroupTemperature(ordered);
+}
+/* V96.6: count of items the child clearly got right (做得穩), derived from the
+   SAME evidence the review list uses — AI-correct items plus any review
+   candidates we locally verified as correct — deduped with the stable key. */
+function v96StableCount(report){
+  const seen=new Set(); let stable=0;
+  (v82CleanEvidence(report?.engineV2?.evidence||[])||[]).forEach(e=>{
+    if(String(e&&e.status||'').toLowerCase()!=='correct') return;
+    const k=v96StableKey(e); if(seen.has(k)) return; seen.add(k); stable++;
+  });
+  v93ReviewEvidence(report).forEach(e=>{
+    if(v96DisplayStatus(e)!=='ok') return;
+    const k=v96StableKey(e); if(seen.has(k)) return; seen.add(k); stable++;
+  });
+  return stable;
 }
 /* V96.2: translate skill tags to natural Chinese and drop debug/unclear ones. */
 function v96CleanSkillTags(e){
@@ -4980,7 +5037,10 @@ function v96ReviewCounts(report){
   const rows=v96VisibleRows(report);
   let definiteWrong=0,needsReview=0,missing=0;
   rows.forEach(e=>{const d=v96DisplayStatus(e); if(d==='wrong')definiteWrong++; else if(d==='missing')missing++; else needsReview++;});
-  return {rows,definiteWrong,needsReview,missing,total:rows.length};
+  // V96.6: stable (做得穩) count from the same single source, so the hero numbers
+  // and the review cards can never disagree for the same report.
+  const stable=v96StableCount(report);
+  return {rows,definiteWrong,needsReview,missing,total:rows.length,stable};
 }
 function v93ReviewItemHTML(e,i){
   const d=v96DisplayStatus(e);
