@@ -2622,7 +2622,7 @@ function renderRecord(){
   $('record').innerHTML=`
     <div class="card">
       <h2>🎙️ 記錄</h2>
-      <div class="muted">可以用詳細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
+      <div class="muted">可以用���細表格輸入；如果想最快，回首頁撳「＋快速記錄」，AI 會幫你分流。</div>
     </div>
     <div class="card">
       <h2>🙂 Emotion Check</h2>
@@ -2680,7 +2680,7 @@ function schoolNoticeCardHTML(){
   return `<div class="card">
     <h2>📣 School Notice AI</h2>
     <div class="muted">上載 Compass / 學校通知截圖，或貼上通知文字。AI 會抽日期、要帶物品、付款、deadline。你 Confirm Add 先會加入。</div>
-    <div class="notice">Beta：不連接 Compass 密碼，不自動抓資料。截圖/文字 → AI 分析 → 家長確認。</div>
+    <div class="notice">Beta��不連接 Compass 密碼，不自動抓資料。截圖/文字 → AI 分析 → 家長確認。</div>
     <label>Upload Compass screenshot</label><input id="noticeFile" type="file" accept="image/*"><img id="noticePreview" class="preview">
     <label>或者 Paste school notice text</label><textarea id="noticeText" placeholder="例：Ice pops day next Monday. Students may bring $2..."></textarea>
     <div class="actions"><button class="btn primary" onclick="analyzeNotice()">🤖 Scan Notice</button><button class="btn" onclick="clearNoticeScan()">Clear</button></div>
@@ -3931,11 +3931,18 @@ async function sendHomeworkToAI(imagesToSend, options={}){
   if(!res.ok) throw new Error(data.error || data.detail || data.message || data.raw || ('AI function failed: HTTP '+res.status));
   return data;
 }
+/* V96: message shown when AI analysis fails after the user left the app /
+   backgrounded the tab (iOS Safari can suspend in-flight requests). */
+const V96_BACKGROUND_MSG='AI 分析期間請保持此頁開啟；如離開 App，iPhone 可能會中斷分析。圖片已保留，可重新按分析。';
 async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const text=$('hwText').value.trim();
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。請保持此頁開啟，離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
+  // Track whether the page was hidden (user left the app) while analysis was running.
+  let wentHidden=false;
+  const onVis=()=>{ if(document.hidden) wentHidden=true; };
+  document.addEventListener('visibilitychange',onVis);
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
     const report=normalizeHomeworkReport(data,text,imagesToSend.length);
@@ -3952,13 +3959,18 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
       : `圖片已保存，但今次 AI 未能完整完成所有分析。請看下面提示，或先用「只分析第一張」再試。`;
     $('hwStatus').innerHTML= partial ? `<div class="notice">${partialMsg}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>` : `<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
   }catch(e){
+    const backgrounded=wentHidden || document.hidden;
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
-    report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
-    app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e)});
+    report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,backgrounded,completedAt:new Date().toISOString()};
+    app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e),backgrounded});
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
-    $('hwStatus').innerHTML=`<div class="notice">AI 暫時未能完成分析，但圖片已保存。請先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`;
+    $('hwStatus').innerHTML= backgrounded
+      ? `<div class="notice">${V96_BACKGROUND_MSG}${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`
+      : `<div class="notice">AI 暫時未能完成分析，但圖片已保存。請先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`;
+  }finally{
+    document.removeEventListener('visibilitychange',onVis);
   }
 }
 window.analyzeHomework=async()=>{
@@ -4334,8 +4346,22 @@ function v85ParentStrengths(report){
 
 
 /* V92 Review Detail Drilldown */
+/* V96: never surface placeholder / test profile names in the parent report.
+   Falls back to a neutral label (小朋友 / Student) when the stored name looks
+   like a test or demo value. */
+function v96IsPlaceholderName(name){
+  const s=String(name||'').trim().toLowerCase();
+  if(!s) return true;
+  return /^(test|tester|test child|demo|sample|child|student|kid|user|untitled|n\/?a|na|none|null|undefined|小朋友|學生|小朋友名|測試)$/i.test(s)
+    || /\btest\b/i.test(s);
+}
+function v96ChildLabel(lang){
+  const raw=String(app?.profile?.childName||'').trim();
+  if(!v96IsPlaceholderName(raw)) return raw;
+  return (lang==='en') ? 'Student' : '小朋友';
+}
 function v92ChildLabel(){
-  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+  return v96ChildLabel();
 }
 function v92ReviewStatusLabel(status){
   if(status==='wrong') return '明確錯';
@@ -4495,11 +4521,12 @@ function v93IncompleteReportHTML(report, record={}){
       ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
     </div>`;
   }
+  const backgrounded=!!(report?.runtime?.backgrounded || record?.backgrounded);
   return `<div class="card" style="box-shadow:none">
     <h2>📚 功課圖片已保存</h2>
     <div class="v93FailSafeCard">
       <h2>⚠️ AI 今次未能完整分析</h2>
-      <div>${n?`已收到 ${n} 張功課圖片，`:''}但今次 AI 未能完成完整 report。為避免誤導，這次不會當成正式功課分析。</div>
+      <div>${backgrounded?`${n?`已收到 ${n} 張功課圖片，圖片已保留。`:'圖片已保留。'}AI 分析期間請保持此頁開啟；如離開 App，iPhone 可能會中斷分析，可重新按分析。`:`${n?`已收到 ${n} 張功課圖片，`:''}但今次 AI 未能完成完整 report。為避免誤導，這次不會當成正式功課分析。`}</div>
       <div class="v93FailGrid">
         <div class="v93FailTile"><b>建議下一步</b>先按「只分析第一張」確認連線和圖片清晰度；成功後再試 2–3 張。</div>
         <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
@@ -4583,10 +4610,13 @@ function v93ReviewEvidence(report){
   });
   return out.slice(0,30);
 }
-function v93StatusLabel(status){
-  if(status==='wrong') return '明確錯';
+function v93StatusLabel(status, confidence){
+  // V96: only call something a definite mistake when AI is highly confident.
+  // Anything uncertain is framed as "needs review", never a confirmed error.
+  const conf=String(confidence||'').toLowerCase();
   if(status==='missing') return '未完成 / 漏做';
-  return '需家長確認';
+  if(status==='wrong') return (conf==='high') ? '明確錯' : '需要覆核';
+  return '需要覆核';
 }
 function v93StatusClass(status){
   if(status==='wrong') return 'v93Wrong';
@@ -4597,29 +4627,51 @@ function v93ReviewItemHTML(e,i){
   const child=v93ChildName();
   const skill=[e.skill,e.subSkill].filter(Boolean).join(' · ');
   return `<div class="v93ReviewItem">
-    <div class="v93ReviewHead"><span class="v93Pill ${v93StatusClass(e.status)}">${v93StatusLabel(e.status)}</span><span class="v93Pill">#${i+1}</span>${e.confidence?`<span class="v93Pill">confidence: ${esc(e.confidence)}</span>`:''}</div>
+    <div class="v93ReviewHead"><span class="v93Pill ${v93StatusClass(e.status)}">${v93StatusLabel(e.status, e.confidence)}</span><span class="v93Pill">#${i+1}</span>${(e.confidence&&v85AdminMode())?`<span class="v93Pill">confidence: ${esc(e.confidence)}</span>`:''}</div>
     <div class="v93Question">${esc(e.question||'需要查看原圖')}</div>
     ${(e.studentAnswer||e.correctAnswer)?`<div class="v93AnswerPair">
       <div class="v93Answer"><b>${esc(child)} 答案</b>${esc(e.studentAnswer||'未能清楚看到')}</div>
-      <div class="v93Answer"><b>正確 / 期望答案</b>${esc(e.correctAnswer||'需家長確認')}</div>
+      <div class="v93Answer"><b>正確 / 期望答案</b>${esc(e.correctAnswer||'需要覆核')}</div>
     </div>`:''}
     ${skill?`<div class="v93Skill">學習位：${esc(skill)}</div>`:''}
   </div>`;
 }
 function v93ChildName(){
-  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+  return v96ChildLabel();
+}
+/* V96: build a concise, complementary hero sub-line so the top of the report
+   never repeats the same paragraph twice. Prefers a strengths + review snapshot
+   built from resolved skills; only falls back to the parent insight when it is
+   clearly different from the headline. */
+function v96NormText(s){ return String(s||'').toLowerCase().replace(/[\s，。、,.!！?？:：;；]/g,''); }
+function v96HeroSub(report, headline){
+  const sets=(typeof v85ResolvedSkillSets==='function')?v85ResolvedSkillSets(report):{strong:[],review:[]};
+  const strong=(sets.strong||[]).slice(0,3);
+  const review=(sets.review||[]).slice(0,2);
+  if(strong.length || review.length){
+    const parts=[];
+    if(strong.length) parts.push(`做得好：${strong.join('、')}`);
+    if(review.length) parts.push(`下次留意：${review.join('、')}`);
+    const line=parts.join('｜');
+    if(v96NormText(line)!==v96NormText(headline)) return line;
+  }
+  const insight=v93ParentCleanText(v85ParentInsight(report),360);
+  // Avoid echoing the headline verbatim.
+  if(v96NormText(insight) && v96NormText(insight)!==v96NormText(headline)) return insight;
+  return '';
 }
 function v93ReviewDetailHTML(report){
   const rows=v93ReviewEvidence(report);
   if(!rows.length) return `<div class="v93GoodEmpty">暫未見明確錯題。若圖片有陰影、反光或手寫不清，建議家長對照原圖再確認。</div>`;
-  const wrong=rows.filter(x=>x.status==='wrong').length;
-  const unclear=rows.filter(x=>x.status==='unclear').length;
+  // V96: count by the label parents actually see (definite error only when high confidence).
+  const definiteWrong=rows.filter(x=>x.status==='wrong' && String(x.confidence||'').toLowerCase()==='high').length;
+  const needsReview=rows.filter(x=>(x.status==='wrong' && String(x.confidence||'').toLowerCase()!=='high') || x.status==='unclear').length;
   const missing=rows.filter(x=>x.status==='missing').length;
   const first=rows.slice(0,5).map(v93ReviewItemHTML).join('');
   const rest=rows.slice(5).map((x,i)=>v93ReviewItemHTML(x,i+5)).join('');
   return `<div class="v93ReviewSummaryGrid">
-      <div class="v93ReviewCount"><b>${wrong}</b>明確錯</div>
-      <div class="v93ReviewCount"><b>${unclear}</b>需家長確認</div>
+      <div class="v93ReviewCount"><b>${definiteWrong}</b>明確錯</div>
+      <div class="v93ReviewCount"><b>${needsReview}</b>需要覆核</div>
       <div class="v93ReviewCount"><b>${missing}</b>未完成 / 漏做</div>
     </div>
     ${first}
@@ -4652,8 +4704,7 @@ function homeworkReportHTML(r, record={}){
 
   <div class="wowHero">
     <h2>✨ 今日最值得留意</h2>
-    <div class="wowSentence">${esc(v93ParentCleanText(v84WowSummary(r,record),240))}</div>
-    <div class="wowSub">${esc(v93ParentCleanText(v85ParentInsight(r),360))}</div>
+    ${(()=>{const headline=v93ParentCleanText(v84WowSummary(r,record),240);const sub=v96HeroSub(r,headline);return `<div class="wowSentence">${esc(headline)}</div>${sub?`<div class="wowSub">${esc(sub)}</div>`:''}`;})()}
     <div class="parentMiniGrid">
       <div class="parentMini"><b>今晚做一件事</b>${esc(v93ParentCleanText(v85ConcreteNextStep(r),180))}</div>
       <div class="parentMini"><b>學習重點</b>先看需要覆核的位置，再做一題代表性練習。</div>
