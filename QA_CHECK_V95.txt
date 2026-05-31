@@ -1,0 +1,34 @@
+ChildGrowth AI V95 - QA Check (human-readable)
+Based on V93.
+
+AUTOMATED CHECKS (verified in v0 sandbox)
+-----------------------------------------
+[x] a1_debug_openai_env_gated          debug-openai returns 404 unless ENABLE_DEBUG_ENDPOINTS=1 set
+[x] a2_cloud_save_token_required       cloud-save requires CLOUD_SAVE_TOKEN (403/401 otherwise)
+[x] a3_backend_prompt_label_neutral    analyze-homework prompt uses "Student", not "Janice"
+[x] a3_parent_reports_use_dynamic_name parent-facing report strings use v92ChildLabel()
+[x] a4_save_localstorage_try_catch     save() wrapped in try/catch
+[x] a4_mirrorlegacy_try_catch          mirrorLegacy() wrapped in try/catch
+[x] a4_storage_warning_banner          cgShowStorageWarning() shows dismissible parent banner
+[x] a5_partial_state_helper            v95PartialState() computes analysed vs failed pages
+[x] a5_incomplete_report_partial_branch v93IncompleteReportHTML() has partial-success branch
+[x] a5_hwstatus_partial_counts         hwStatus inline message shows partial page counts
+[x] legacy_root_duplicates_untouched   root-level legacy fn copies left unchanged
+[x] no_data_removed                    no existing data deleted
+[x] main_js_syntax                     index.html inline scripts pass node Function() parse
+[x] functions_syntax                   all 3 edited functions pass node --check
+[x] working_copy_only_not_pushed       NOT pushed to v95-beta-critical-fix branch
+
+MANUAL CHECKS (to be done on device - see README_V95 section 6)
+---------------------------------------------------------------
+[ ] iPhone Safari: new non-demo child name shows in report (never "Janice")
+[ ] iPhone Safari: green "complete" only on full analysis
+[ ] iPhone Safari: multi-photo with bad pages shows "X / Y 張已完成分析" partial card
+[ ] iPhone Safari Private: storage banner appears, app does not crash
+[ ] Home Screen PWA: data persists across relaunch; report checks pass
+[ ] Endpoints: /debug-openai -> 404, /cloud-save without token -> 403/401
+
+STATUS
+------
+v0 working copy only. Not deployed, not published, not committed to main,
+not pushed to GitHub branch v95-beta-critical-fix.

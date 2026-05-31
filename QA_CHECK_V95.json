@@ -1,0 +1,18 @@
+{
+  "based_on": "V93",
+  "a1_debug_openai_env_gated": true,
+  "a2_cloud_save_token_required": true,
+  "a3_backend_prompt_label_neutral": true,
+  "a3_parent_reports_use_dynamic_name": true,
+  "a4_save_localstorage_try_catch": true,
+  "a4_mirrorlegacy_try_catch": true,
+  "a4_storage_warning_banner": true,
+  "a5_partial_state_helper": true,
+  "a5_incomplete_report_partial_branch": true,
+  "a5_hwstatus_partial_counts": true,
+  "legacy_root_duplicates_untouched": true,
+  "no_data_removed": true,
+  "main_js_syntax": true,
+  "functions_syntax": true,
+  "working_copy_only_not_pushed": true
+}

@@ -1,6 +1,33 @@
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
+  // A2 (V95): protect this write endpoint so it cannot be called anonymously.
+  // A shared secret must be configured via CLOUD_SAVE_TOKEN and supplied by the
+  // caller as the `x-cg-save-token` header (or Authorization: Bearer <token>).
+  // If no token is configured, the endpoint is treated as disabled.
+  const expectedToken = (process.env.CLOUD_SAVE_TOKEN || '').trim();
+  if (!expectedToken) {
+    return json(403, {
+      code: 'CLOUD_SAVE_DISABLED',
+      message: 'Cloud save is currently disabled.',
+      error: 'CLOUD_SAVE_TOKEN not configured; endpoint disabled'
+    });
+  }
+  const headers = event.headers || {};
+  const providedToken = String(
+    headers['x-cg-save-token'] ||
+    headers['X-Cg-Save-Token'] ||
+    (headers.authorization || headers.Authorization || '').replace(/^Bearer\s+/i, '') ||
+    ''
+  ).trim();
+  if (providedToken !== expectedToken) {
+    return json(401, {
+      code: 'UNAUTHORIZED',
+      message: 'Not authorized to save.',
+      error: 'Missing or invalid cloud save token'
+    });
+  }
+
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

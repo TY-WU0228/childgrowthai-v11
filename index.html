@@ -1126,7 +1126,29 @@ const DEFAULT_DATA={
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function readJSON(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch(e){return f}}
-function save(){app.version=46;localStorage.setItem(DATA_KEY,JSON.stringify(app));mirrorLegacy();}
+/* A4 (V95): parent-friendly storage failure warning (e.g. Safari Private mode / quota full). */
+function cgShowStorageWarning(){
+  try{
+    if(typeof document==='undefined'||!document.body) return;
+    if(document.getElementById('cgStorageWarning')) return;
+    var el=document.createElement('div');
+    el.id='cgStorageWarning';
+    el.setAttribute('role','alert');
+    el.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#b3261e;color:#fff;padding:12px 16px;font-size:14px;line-height:1.5;box-shadow:0 -2px 12px rgba(0,0,0,.25)';
+    el.innerHTML='⚠️ 這部裝置暫時無法儲存資料（可能是 Safari 私密瀏覽，或儲存空間已滿）。你仍可以使用 App，但今次輸入或分析結果可能不會被保留。建議改用 Safari 正常模式，或從主畫面 icon 開啟。 <button type="button" style="margin-left:8px;background:#fff;color:#b3261e;border:none;border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer" onclick="var w=document.getElementById(\'cgStorageWarning\');if(w)w.remove();">知道了</button>';
+    document.body.appendChild(el);
+  }catch(e){/* never let the warning itself break the app */}
+}
+function save(){
+  app.version=46;
+  try{
+    localStorage.setItem(DATA_KEY,JSON.stringify(app));
+  }catch(e){
+    console.log("[v0] save() localStorage failed:", e && (e.message||e));
+    cgShowStorageWarning();
+  }
+  mirrorLegacy();
+}
 function todayISO(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return d.toISOString().slice(0,10)}
 function dayName(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return d.toLocaleDateString('en-AU',{weekday:'long'})}
 function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w\u4e00-\u9fff]/g,'')}
@@ -1245,14 +1267,19 @@ v60RestoreJaniceRoutines(false);
 save();
 
 function mirrorLegacy(){
-  localStorage.setItem('cg_v33_weekly_routines',JSON.stringify(app.routines));
-  localStorage.setItem('cg_v28_today_tasks',JSON.stringify(app.todayTasks));
-  localStorage.setItem('cg_today_tasks',JSON.stringify(app.todayTasks));
-  localStorage.setItem('cg_v44_school_notices',JSON.stringify(app.schoolNotices));
-  localStorage.setItem('cg_child_profile_v30',JSON.stringify({
-    childName:app.profile.childName,currentYear:app.profile.year,age:app.profile.age,school:app.profile.school,region:app.profile.region,mainLanguage:app.profile.language,
-    strengths:app.profile.strengths,watchAreas:app.profile.watchAreas,parentGoals:app.profile.parentGoals
-  }));
+  try{
+    localStorage.setItem('cg_v33_weekly_routines',JSON.stringify(app.routines));
+    localStorage.setItem('cg_v28_today_tasks',JSON.stringify(app.todayTasks));
+    localStorage.setItem('cg_today_tasks',JSON.stringify(app.todayTasks));
+    localStorage.setItem('cg_v44_school_notices',JSON.stringify(app.schoolNotices));
+    localStorage.setItem('cg_child_profile_v30',JSON.stringify({
+      childName:app.profile.childName,currentYear:app.profile.year,age:app.profile.age,school:app.profile.school,region:app.profile.region,mainLanguage:app.profile.language,
+      strengths:app.profile.strengths,watchAreas:app.profile.watchAreas,parentGoals:app.profile.parentGoals
+    }));
+  }catch(e){
+    console.log("[v0] mirrorLegacy() localStorage failed:", e && (e.message||e));
+    cgShowStorageWarning();
+  }
 }
 
 function updateHeader(){
@@ -1760,7 +1787,7 @@ function v60JaniceDefaultRoutines(){
     {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'7:00 PM',prep:'泳衣、毛巾、goggles、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'},
-    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課、鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課��鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Sunday',name:'📚 QS school',start:'9:00 AM',end:'12:00 PM',prep:'功課、水樽',reminder:'前一晚 8:00 PM',impact:'正常'}
   ];
 }
@@ -2624,7 +2651,7 @@ function renderRecord(){
       </div>
 
       <label>學校老師原句 / 課堂觀察</label>
-      <textarea id="teacherText" placeholder="例：Janice was a bit distracted during reading group today..."></textarea>
+      <textarea id="teacherText" placeholder="例：${esc(v92ChildLabel())} was a bit distracted during reading group today..."></textarea>
       <div class="actions"><button class="btn primary" onclick="saveTeacherComment()">保存 comment</button></div>
       <div>${app.teacherComments.slice(-5).reverse().map(c=>rowHTML(`${new Date(c.date).toLocaleString()} · ${esc(c.category||'School')}`,esc(c.text))).join('') || ''}</div>
     </div>
@@ -3127,7 +3154,7 @@ function v80FilterEvidence(evidence){
 function v80ReadingTableHTML(evidence){
   const rows=(evidence||[]).filter(e=>e.skill==='Reading Comprehension').slice(0,8);
   if(!rows.length) return '';
-  return `<div class="reportBlock"><b>Reading Intelligence</b><table class="readingTable"><tr><th>Focus</th><th>Janice</th><th>Result</th><th>Evidence</th></tr>${rows.map(e=>`<tr><td>${esc(e.subSkill||e.question)}</td><td>${esc(e.studentAnswer||'-')}</td><td><span class="statusPill ${e.status==='correct'?'correct':e.status==='wrong'?'wrong':'unclear'}">${e.status==='correct'?'Correct':e.status==='wrong'?'Review':'Unclear'}</span></td><td>${esc(e.question||'')}</td></tr>`).join('')}</table></div>`;
+  return `<div class="reportBlock"><b>Reading Intelligence</b><table class="readingTable"><tr><th>Focus</th><th>${esc(v92ChildLabel())}</th><th>Result</th><th>Evidence</th></tr>${rows.map(e=>`<tr><td>${esc(e.subSkill||e.question)}</td><td>${esc(e.studentAnswer||'-')}</td><td><span class="statusPill ${e.status==='correct'?'correct':e.status==='wrong'?'wrong':'unclear'}">${e.status==='correct'?'Correct':e.status==='wrong'?'Review':'Unclear'}</span></td><td>${esc(e.question||'')}</td></tr>`).join('')}</table></div>`;
 }
 function v80QualityScore(report){
   const e=report?.engineV2?.evidence||[];
@@ -3263,7 +3290,7 @@ function v79SkillTrend(evidence){
 }
 function v79SkillInterpretation(row){
   const name=row.skill + (row.subSkill && row.subSkill!=='general' ? ' / '+row.subSkill : '');
-  if(row.status==='Strong') return `${name} 暫時表現穩定。`;
+  if(row.status==='Strong') return `${name} 暫��表現穩定。`;
   if(row.status==='Generally Strong') return `${name} 多數正確，偶爾仍可覆核。`;
   if(row.status==='Needs Review') return `${name} 是目前較需要針對練習的位置。`;
   if(row.status==='Mixed') return `${name} 有做得好的證據，也有覆核證據，建議拆細 sub-skill 看。`;
@@ -3280,7 +3307,7 @@ function v79EvidenceTableHTML(evidence){
   if(!rows.length) return '<div class="muted">暫時未抽取到足夠題目證據。</div>';
   return `<table class="evidenceTable">${rows.map(e=>`<tr>
     <td><b>${esc(e.question||'')}</b><br><small>${esc(e.skill||'')} · ${esc(e.subSkill||'')}</small></td>
-    <td>Janice：${esc(e.studentAnswer||'-')}<br>正確：${esc(e.correctAnswer||'-')}</td>
+    <td>${esc(v92ChildLabel())}：${esc(e.studentAnswer||'-')}<br>正確：${esc(e.correctAnswer||'-')}</td>
     <td><span class="statusPill ${e.status==='correct'?'correct':e.status==='wrong'?'wrong':'unclear'}">${e.status==='correct'?'Correct':e.status==='wrong'?'Review':'Unclear'}</span></td>
   </tr>`).join('')}</table>`;
 }
@@ -3919,7 +3946,11 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
     const dbg=v83DebugFromData(data);
-    $('hwStatus').innerHTML= partial ? `<div class="notice">圖片已保存，但今次 AI 未能完整完成所有分析。請看下面提示，或先用「只分析第一張」再試。${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>` : `<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
+    const ps=v95PartialState(report, {imageCount:imagesToSend.length, debug:data.debug});
+    const partialMsg=ps.isPartial
+      ? `只完成部分分析：${ps.analyzed} / ${ps.total} 張已分析，另有 ${ps.failed} 張未完成。為避免誤導，這次不會當成完整功課分析；請把未完成那幾張重新拍清楚再試。`
+      : `圖片已保存，但今次 AI 未能完整完成所有分析。請看下面提示，或先用「只分析第一張」再試。`;
+    $('hwStatus').innerHTML= partial ? `<div class="notice">${partialMsg}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>` : `<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
   }catch(e){
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
     report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
@@ -4041,7 +4072,7 @@ function v82NiceFocus(e){
 function v82AnswerLine(e){
   const a=e.studentAnswer&&e.studentAnswer!=='-'?e.studentAnswer:'未能清楚抽取';
   const c=e.correctAnswer&&e.correctAnswer!=='-'?e.correctAnswer:'未提供';
-  return `Janice：${a}${c&&c!=='未提供'?`｜正確：${c}`:''}`;
+  return `${v92ChildLabel()}：${a}${c&&c!=='未提供'?`｜正確：${c}`:''}`;
 }
 function v80ReadingTableHTML(evidence){
   const rows=v82ReadingRows(evidence);
@@ -4066,7 +4097,7 @@ function v82EvidenceCardsHTML(evidence){
   return `<div class="v82EvidenceCards">${rows.map(e=>`<div class="v82EvidenceCard">
     <b>${esc(e.question||'')}</b>
     <small>${esc(e.skill||'')} · ${esc(e.subSkill||'')}</small><br>
-    <small>Janice：${esc(e.studentAnswer||'-')}｜正確：${esc(e.correctAnswer||'-')}｜${esc(e.status||'')}</small>
+    <small>${esc(v92ChildLabel())}：${esc(e.studentAnswer||'-')}｜正確：${esc(e.correctAnswer||'-')}｜${esc(e.status||'')}</small>
   </div>`).join('')}</div>`;
 }
 function v79EvidenceTableHTML(evidence){
@@ -4080,7 +4111,7 @@ function v82ReviewList(report){
   const trueReview=v82TrueReviewEvidence(report);
   if(trueReview.length){
     return trueReview.slice(0,6).map(e=>{
-      if(e.status==='wrong') return `【明確錯】${e.question}${e.studentAnswer?`，Janice：${e.studentAnswer}`:''}${e.correctAnswer?`，正確：${e.correctAnswer}`:''}`;
+      if(e.status==='wrong') return `【明確錯】${e.question}${e.studentAnswer?`，${v92ChildLabel()}：${e.studentAnswer}`:''}${e.correctAnswer?`，正確：${e.correctAnswer}`:''}`;
       return `【需家長確認】${e.question}`;
     });
   }
@@ -4096,13 +4127,13 @@ function v82ParentInsight(report){
   const interp=v82CleanText(report.parentInterpretation);
   if(interp) return interp;
   const rows=v82ReadingRows(report.engineV2?.evidence||[]);
-  if(rows.length && rows.every(e=>e.status==='correct')) return 'Janice 今次閱讀理解表現穩定，能分辨題目重點並選出正確答案。';
+  if(rows.length && rows.every(e=>e.status==='correct')) return `${v92ChildLabel()} 今次閱讀理解表現穩定，能分辨題目重點並選出正確答案。`;
   return report.shortSummary || '已完成功課分析。';
 }
 function v82NextStep(report){
   const review=v82TrueReviewEvidence(report);
   if(review.length) return report.nextStep || '今晚只揀一題錯題慢慢講解，先確認題目要求，再講解答案。';
-  if((v82ReadingRows(report.engineV2?.evidence||[]).length||0)>0) return '今晚可以請 Janice 口頭講一次：點解佢揀呢個答案，訓練用文章證據解釋。';
+  if((v82ReadingRows(report.engineV2?.evidence||[]).length||0)>0) return `今晚可以請 ${v92ChildLabel()} 口頭講一次：點解佢揀呢個答案，訓練用文章證據解釋。`;
   return report.nextStep || '今晚只揀一題最有代表性的題目慢慢講解。';
 }
 function v80QualityScore(report){
@@ -4192,15 +4223,15 @@ function v84WowSummary(report, record={}){
   const subject=String(report?.growth?.subject||'');
   if(reading.length>=3 && reading.every(x=>x.status==='correct')){
     const skills=v84Unique(reading.map(x=>v82NiceFocus(x).replace(/ \/ .*/,'')).filter(Boolean)).slice(0,4).join('、');
-    return `今日最值得留意：Janice 能處理${report?.growth?.worksheetLevel||'這份'}英文閱讀，${skills||'reading detail'} 都答得穩，顯示佢開始掌握題目重點。`;
+    return `今日最值得留意：${v92ChildLabel()} 能處理${report?.growth?.worksheetLevel||'這份'}英文閱讀，${skills||'reading detail'} 都答得穩，顯示佢開始掌握題目重點。`;
   }
   if(/Math|數學|Addition|Multiplication/i.test(subject) || e.some(x=>/[+\-xX*×÷\/]/.test(x.question||''))){
     const correct=e.filter(x=>x.status==='correct').length, wrong=e.filter(x=>x.status==='wrong').length;
-    if(wrong) return `今日最值得留意：Janice 有 ${correct} 題做得穩，但有 ${wrong} 個位值得覆核；今晚集中講一題代表性錯題就夠。`;
-    if(correct) return `今日最值得留意：Janice 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
+    if(wrong) return `今日最值得留意：${v92ChildLabel()} 有 ${correct} 題做得穩，但有 ${wrong} 個位值得覆核；今晚集中講一題代表性錯題就夠。`;
+    if(correct) return `今日最值得留意：${v92ChildLabel()} 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
   }
   if(review.length) return `今日最值得留意：AI 找到 ${review.length} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
-  if(strong.length) return `今日最值得留意：Janice 在 ${strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
+  if(strong.length) return `今日最值得留意：${v92ChildLabel()} 在 ${strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
   return v82ParentInsight(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
 }
 function v84QAHTML(report, record={}){
@@ -4276,14 +4307,14 @@ function v85ConcreteNextStep(report){
   const review=v82TrueReviewEvidence(report);
   if(review.length){
     const e=review[0];
-    return `今晚只做一題：${e.question||'選一題'}。先讀題目要求，再講 Janice 答案同正確答案有咩分別。`;
+    return `今晚只做一題：${e.question||'選一題'}。先讀題目要求，再講 ${v92ChildLabel()} 答案同正確答案有咩分別。`;
   }
   return v82NextStep(report);
 }
 function v85ParentInsight(report){
   const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
   if(/past|present|tense|時態|rided|rides|played|plays|cooked|cooks|drives|drove/i.test(txt)){
-    return 'Janice 不是完全不懂英文，而是今次在「讀題指令」和「判斷 past / present」之間有混淆：題目要她寫 past 或 present，但她似乎嘗試改寫動詞。這是 Year 2 常見、也很值得練的位。';
+    return `${v92ChildLabel()} 不是完全不懂英文，而是今次在「讀題指令」和「判斷 past / present」之間有混淆：題目要她寫 past 或 present，但她似乎嘗試改寫動詞。這是 Year 2 常見、也很值得練的位。`;
   }
   return v82ParentInsight(report);
 }
@@ -4433,8 +4464,37 @@ function v93IsIncompleteReport(report, record={}){
     /AI 暫時未能完成|等待 AI|分析未成功|逾時|timeout|upload 已保存|未完成分析|未完整分析|所有圖片分析都/.test(text)
   );
 }
+/* A5 (V95): work out how many uploaded pages actually got analyzed vs failed,
+   so partial success can be shown clearly instead of as a total failure. */
+function v95PartialState(report, record={}){
+  const dbg=report?.runtime?.debug || record?.debug || {};
+  const n=record?.imageCount || report?.runtime?.imageCount || report?.growth?.imageCount || dbg.frontendBatches || 0;
+  const total=dbg.frontendBatches || n || 0;
+  const failed=Array.isArray(dbg.errors) ? dbg.errors.length : 0;
+  const analyzed=(total && failed) ? Math.max(0, total-failed) : 0;
+  const isPartial=!!(report?.runtime?.partial) && failed>0 && analyzed>0;
+  return { n, total, failed, analyzed, isPartial };
+}
 function v93IncompleteReportHTML(report, record={}){
-  const n=record?.imageCount || report?.runtime?.imageCount || report?.growth?.imageCount || 0;
+  const ps=v95PartialState(report, record);
+  const n=ps.n;
+  // Partial success: some pages analyzed, some failed -> clearly label as partial,
+  // never present it as a complete report.
+  if(ps.isPartial){
+    return `<div class="card" style="box-shadow:none">
+      <h2>📚 部分功課已完成分析</h2>
+      <div class="v93FailSafeCard" style="border-color:#b8860b">
+        <h2>⚠️ 只完成部分分析（${ps.analyzed} / ${ps.total} 張）</h2>
+        <div>這次上載了 ${ps.total} 張，AI 完成了其中 <b>${ps.analyzed}</b> 張，另有 <b>${ps.failed}</b> 張未能完成。為避免誤導，<b>這次不會當成完整功課分析</b>，未完成的相片不計算在內。</div>
+        <div class="v93FailGrid">
+          <div class="v93FailTile"><b>建議下一步</b>把未完成那幾張重新拍清楚，或用「只分析第一張」逐張再試。</div>
+          <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
+        </div>
+      </div>
+      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最不肯定的題目，慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
+      ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
+    </div>`;
+  }
   return `<div class="card" style="box-shadow:none">
     <h2>📚 功課圖片已保存</h2>
     <div class="v93FailSafeCard">
@@ -4919,7 +4979,7 @@ function renderRoutineSheet(){
   ${app.routines.filter(x=>!x.oneOffDate).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||sortByTime(a,b)).map(routineManageRow).join('')||'<div class="notice bluebox">未有固定行程。</div>'}`;
   setTimeout(v61BindSmartPrep,80);
 }
-function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
+function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提���：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
 window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i;setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday';setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.saveRoutineFromForm=()=>{
