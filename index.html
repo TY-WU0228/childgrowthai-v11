@@ -65,6 +65,10 @@
       padding:10px 14px;font-weight:1000;width:auto;margin:0;white-space:nowrap;
     }
     .btn.primary{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .hwAnalyzing .notice.bluebox{border-color:#93c5fd;animation:hwPulse 1.2s ease-in-out infinite}
+    @keyframes hwPulse{0%,100%{opacity:1}50%{opacity:.72}}
+    .debugPill,.growthTag,.parentSkill,.parentMini,.wowSentence{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
     .btn.danger{background:#fee2e2;color:#991b1b;border:none}
     .btn.soft{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
     .row{
@@ -943,6 +947,10 @@
     .parentHero h2{margin:0 0 8px;font-size:28px}
     .parentHero .bigInsight{font-size:20px;line-height:1.55;font-weight:950;color:#0f172a}
     .parentMiniGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    @media (max-width:420px){
+      .parentMiniGrid{grid-template-columns:1fr}
+      #homework .actions{margin-bottom:10px}
+    }
     .parentMini{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:12px}
     .parentMini b{display:block;color:#2563eb;font-size:16px;margin-bottom:5px}
     .readingCardList{display:grid;gap:10px;margin-top:10px}
@@ -2796,7 +2804,7 @@ function renderHomework(){
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選最多 6 張相，例如第 1–6 頁。結果只作學習觀察，不作診斷。</div>
     <div class="parentBetaNote">Beta Parent Mode：上載功課後，AI 會整理成家長易明 report：今日重點、做得好、需要覆核、今晚做一件事。</div>
-    ${v85AdminMode()?`<div class="hwActionNote">Admin debug (${v85AdminSource()})：V85 保留 QA / technical evidence。正式家長測試預設隱藏。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured report</span><span class="qaBadge">✅ Parent mode clean-up</span></div><label class="qaCheckbox"><input type="checkbox" id="hwBypassCache"> Force fresh analysis / bypass cache (QA only)</label>`:''}
+    ${v85AdminMode()?`<div class="hwActionNote">Admin debug (${v85AdminSource()})：V85 保留 QA / technical evidence。正式家長測試預設隱藏。 <a href="?admin=0">關閉 admin mode</a></div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured report</span><span class="qaBadge">✅ Parent mode clean-up</span></div><label class="qaCheckbox"><input type="checkbox" id="hwBypassCache"> Force fresh analysis / bypass cache (QA only)</label>`:''}
     <label>Upload homework photos（最多 6 張）</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
@@ -2904,6 +2912,14 @@ function clearHomeworkUpload(){
   if($('hwStatus')) $('hwStatus').innerHTML='';
   if($('hwResult')) $('hwResult').innerHTML='';
 }
+window.clearHomeworkUpload=clearHomeworkUpload;
+function setHomeworkAnalyzing(busy){
+  const ids=['hwFile','hwText','hwBypassCache'];
+  ids.forEach(id=>{const el=$(id);if(el) el.disabled=!!busy;});
+  document.querySelectorAll('#homework .actions .btn').forEach(btn=>{btn.disabled=!!busy;});
+  const status=$('hwStatus');
+  if(status) status.classList.toggle('hwAnalyzing',!!busy);
+}
 function homeworkHistoryListHTML(){
   const list=[...app.homeworkReports].reverse();
   const shown=app.showAllHomeworkHistory?list:list.slice(0,3);
@@ -2923,7 +2939,8 @@ function hwRow(h){
   const summary=esc(report.shortSummary || report.summary || report.title || 'Homework report');
   const sets=v85ResolvedSkillSets(report);
   const parentTags=[report.growth?.subject,report.growth?.worksheetLevel,...sets.review.slice(0,2)].filter(Boolean);
-  const adminBits=v85AdminMode()?` · Quality ${report.reportQuality?.score||0}/100`:'';
+  const qaScore=v84ReportQA(report,{imageCount:h.imageCount||0}).score;
+  const adminBits=v85AdminMode()?` · Quality ${qaScore}/100`:'';
   return `<div class="row homeworkRecentCard">
     <div><b>${new Date(h.date).toLocaleString()}${count}${source}${adminBits}</b>
       <small>${summary}<br>下一步：${esc(v85ConcreteNextStep(report)||report.nextStep||'')}<br>${parentTags.length?`重點：${esc(parentTags.join(' · '))}`:''}</small>
@@ -4072,6 +4089,7 @@ window.v9611Hero=v9611Hero;
 window.v9611Skills=v9611Skills;
 window.v9611ReportFp=v9611ReportFp;
 async function runHomeworkAnalysis(imagesToSend, modeLabel){
+  setHomeworkAnalyzing(true);
   const text=$('hwText').value.trim();
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
@@ -4091,10 +4109,12 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
     const counts=v96ReviewCounts(report);
     const reportFp=v9611ReportFp(report);
-    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()?`<div class="debugPills"><span class="debugPill">cache hit</span><span class="debugPill">photo: ${fp.slice(0,8)}…</span><span class="debugPill">report: ${reportFp.slice(0,8)}…</span><span class="debugPill">S${counts.stable}|W${counts.definiteWrong}|R${counts.needsReview}|M${counts.missing}</span></div>`:''}</div>`;
+    const cacheParentNote=v85AdminMode()?'':'<div class="muted" style="margin-top:6px">已用之前同一批相的分析結果，所以會即時顯示。</div>';
+    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${cacheParentNote}${v85AdminMode()?`<div class="debugPills"><span class="debugPill">cache hit</span><span class="debugPill">photo: ${fp.slice(0,8)}…</span><span class="debugPill">report: ${reportFp.slice(0,8)}…</span><span class="debugPill">S${counts.stable}|W${counts.definiteWrong}|R${counts.needsReview}|M${counts.missing}</span></div>`:''}</div>`;
+    setHomeworkAnalyzing(false);
     return;
   }
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。請保持此頁開啟，離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課… ${modeLabel}，約 ${kb}KB。AI 需要一點時間，請保持此頁開啟；離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   // Track whether the page was hidden (user left the app) while analysis was running.
   let wentHidden=false;
   const onVis=()=>{ if(document.hidden) wentHidden=true; };
@@ -4138,6 +4158,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
       : `<div class="notice">AI 暫時未能完成分析，但圖片已保存。請先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`;
   }finally{
     document.removeEventListener('visibilitychange',onVis);
+    setHomeworkAnalyzing(false);
   }
 }
 window.analyzeHomework=async()=>{
@@ -4606,12 +4627,11 @@ function v84ReportQA(report, record={}){
   return {score,label,cls,reasons,incomplete,confidence,evidenceCount:e.length,readingCount:reading.length,contradictions,noisyRaw};
 }
 function v84WowSummary(report, record={}){
-  if(report?.wowSummary) return String(report.wowSummary).trim();
   if(v84IsIncompleteReport(report,record)){
     const n=record?.imageCount||report?.growth?.imageCount||0;
     return `已收到${n?` ${n} 張`:''}功課圖片，但 AI 未完成分析；今次只作 upload 保存，請稍後重試或先分析第一張。`;
   }
-  // V96.11: use the single source of truth for deterministic hero
+  // V96.11 / beta stability: parent hero always from normalized evidence (not raw AI wowSummary).
   return v9611Hero(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
 }
 function v84QAHTML(report, record={}){
