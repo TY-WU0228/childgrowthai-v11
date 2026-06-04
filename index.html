@@ -4106,10 +4106,13 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
   // V96.7: if this exact photo set was already fully analysed, reuse that report so
   // identical uploads can never produce a different parent report.
-  // V96.8: QA bypass checkbox skips the cache read (but still saves after).
+  // V96.8: QA bypass checkbox skips the immediate cache return.
+  // V96.12: if QA runs Force Fresh again for the same fingerprint, keep the
+  // parent-facing report anchored to the first complete canonical report.
   const bypassCache=!!($('hwBypassCache')&&$('hwBypassCache').checked);
   const fp=v967Fingerprint(imagesToSend, app.profile&&app.profile.childName);
-  const cached=bypassCache?null:v967CacheGet(fp);
+  const cachedAnchor=v967CacheGet(fp);
+  const cached=bypassCache?null:cachedAnchor;
   if(cached && cached.report){
     const report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cached.report)));
     report.v967Fingerprint=fp;
@@ -4137,8 +4140,16 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     report.v967Fingerprint=fp;
     if(!partial) report=v9611ApplyHomeworkCanonical(report);
+    let anchoredFresh=false;
+    if(!partial && bypassCache && cachedAnchor && cachedAnchor.report){
+      const freshRuntime=report.runtime||{};
+      report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cachedAnchor.report)));
+      report.v967Fingerprint=fp;
+      report.runtime={...(report.runtime||{}),...freshRuntime,parentAnchoredToFirstComplete:true};
+      anchoredFresh=true;
+    }
     // V96.7: only cache COMPLETE analyses, so partial/failed runs never poison reuse.
-    if(!partial) v967CachePut(fp, report);
+    if(!partial && !anchoredFresh) v967CachePut(fp, report);
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
     save();
     renderHomework();
@@ -4151,7 +4162,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     // V96.8/V96.11: show counts, cache status, and drift detection for QA
     const counts=v96ReviewCounts(report);
     const reportFp=v9611ReportFp(report);
-    const cacheStatusPill=bypassCache?'fresh (bypass)':'fresh analysis';
+    const cacheStatusPill=anchoredFresh?'fresh + stable parent anchor':(bypassCache?'fresh (bypass)':'fresh analysis');
     // V96.11: robust drift detection - compare all components
     const cachedReport=v967CacheGet(fp);
     const cachedReportFp=cachedReport&&cachedReport.report?v9611ReportFp(cachedReport.report):null;
