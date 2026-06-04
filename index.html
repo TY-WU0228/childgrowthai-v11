@@ -4122,10 +4122,11 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   document.addEventListener('visibilitychange',onVis);
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
-    const report=v9611ApplyHomeworkCanonical(normalizeHomeworkReport(data,text,imagesToSend.length));
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
+    let report=normalizeHomeworkReport(data,text,imagesToSend.length);
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     report.v967Fingerprint=fp;
+    if(!partial) report=v9611ApplyHomeworkCanonical(report);
     // V96.7: only cache COMPLETE analyses, so partial/failed runs never poison reuse.
     if(!partial) v967CachePut(fp, report);
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
@@ -4433,6 +4434,16 @@ function v9611ReportFp(report){
   const n=v9611NormalizedReport(report);
   return n?n.reportFp:'';
 }
+function v9611IsIncompleteCanonicalReport(report){
+  const rt=report?.runtime||{};
+  const debug=rt.debug||report?.debug||{};
+  return rt.partial===true ||
+    rt.incomplete===true ||
+    rt.success===false ||
+    !!rt.error ||
+    report?.reportQuality?.checks?.analysisComplete===false ||
+    (Array.isArray(debug.errors) && debug.errors.length>0);
+}
 /* Beta stability: freeze parent-facing fields from v9611 before save/display so
    hero, tonight task, skill tags and strengths stay aligned with evidence counts. */
 function v9611ApplyHomeworkCanonical(report){
@@ -4440,14 +4451,15 @@ function v9611ApplyHomeworkCanonical(report){
   if(_v9611Cache.has(report)) _v9611Cache.delete(report);
   const n=v9611NormalizedReport(report);
   if(!n) return report;
-  report.wowSummary=n.hero;
-  report.nextStep=n.tonight;
-  report.shortSummary=String(n.hero||'').slice(0,180);
+  const incomplete=v9611IsIncompleteCanonicalReport(report);
+  if(!incomplete){
+    report.wowSummary=n.hero;
+    report.nextStep=n.tonight;
+    report.shortSummary=String(n.hero||'').slice(0,180);
+  }
   report.growth=report.growth||{};
   report.growth.skillsStrong=n.skills.strong.slice();
   report.growth.skillsToReview=n.skills.review.slice();
-  const wl=String(report.growth.worksheetLevel||'').trim();
-  if(wl) report.growth.childYear=wl;
   const stableEv=(v82CleanEvidence(report.engineV2?.evidence||[])||[])
     .filter(e=>v96DisplayStatus(e)==='ok');
   const strengthLines=[];
@@ -4461,7 +4473,7 @@ function v9611ApplyHomeworkCanonical(report){
       strengthLines.push(`在 ${zh} 方面有穩定表現。`);
     });
   }
-  if(strengthLines.length) report.strengths=v84Unique(strengthLines).slice(0,6);
+  if(!incomplete && strengthLines.length) report.strengths=v84Unique(strengthLines).slice(0,6);
   report.v9611AppliedAt=new Date().toISOString();
   return report;
 }
