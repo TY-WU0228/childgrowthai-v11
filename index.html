@@ -2811,7 +2811,7 @@ function renderHomework(){
     <label>補充文字（可選）</label><textarea id="hwText" placeholder="例：這是 Year 3 worksheet / 有幾題不肯定..."></textarea>
     <div class="actions">
       <button class="btn primary" onclick="analyzeHomework()">🤖 分析功課</button>
-      <button class="btn" onclick="analyzeHomeworkFirstOnly()">只分析第一張</button>
+      <button class="btn" id="hwAnalyzeFirst" onclick="analyzeHomeworkFirstOnly()" style="display:none">只分析第 1 張（多張失敗時用）</button>
       <button class="btn" onclick="clearHomeworkUpload()">Clear</button>
     </div>
     <div id="hwStatus"></div><div id="hwResult"></div>
@@ -2855,7 +2855,9 @@ async function bindHomeworkFiles(){
     const sendCount=Math.min(homeworkImages.length,6);
     const kb=Math.round(JSON.stringify(homeworkImages.slice(0,sendCount)).length/1024);
     if($('hwImageInfo')) $('hwImageInfo').textContent=`已準備 ${homeworkImages.length} 張；會送頭 ${sendCount} 張去 AI。V83 會逐張分析，多張相會自動分批並自動 retry，避免 timeout。估計傳送大小：${kb}KB\n`+info.join('\n');
-    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。V83 會先壓縮；多張相會逐張分析並自動 retry。如仍失敗，請試「只分析第一張」。</div>`;
+    const multi=homeworkImages.length>1;
+    if($('hwAnalyzeFirst')) $('hwAnalyzeFirst').style.display=multi?'':'none';
+    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。${multi?'V83 會先壓縮；多張相會逐張分析並自動 retry。如某幾張失敗，可改用「只分析第 1 張」。':'AI 會分析這張功課並整理成家長易明 report。'}</div>`;
   };
 }
 function fileToDataURL(file){
@@ -2911,6 +2913,7 @@ function clearHomeworkUpload(){
   if($('hwText')) $('hwText').value='';
   if($('hwStatus')) $('hwStatus').innerHTML='';
   if($('hwResult')) $('hwResult').innerHTML='';
+  if($('hwAnalyzeFirst')) $('hwAnalyzeFirst').style.display='none';
 }
 window.clearHomeworkUpload=clearHomeworkUpload;
 function setHomeworkAnalyzing(busy){
@@ -5530,17 +5533,22 @@ function v93ReviewDetailHTML(report){
   const c=v96ReviewCounts(report);
   const rows=c.rows;
   if(!rows.length) return `<div class="v93GoodEmpty">暫未見明確錯題。若圖片有陰影、反光或手寫不清，建議家長對照原圖再確認。</div>`;
-  // V96.1: clean parent cards by default; the rest collapse under a friendly toggle.
-  const cards=rows.map(v93ReviewItemHTML);
-  const head=cards.slice(0,3).join('');
-  const rest=cards.slice(3).join('');
+  // Beta stability (B-11): always show every clearly-wrong item up front so parents
+  // never miss a confirmed mistake; only the remaining review/missing items collapse.
+  const wrongRows=rows.filter(e=>v96DisplayStatus(e)==='wrong');
+  const otherRows=rows.filter(e=>v96DisplayStatus(e)!=='wrong');
+  const headRows=[...wrongRows, ...otherRows.slice(0, Math.max(0, 3-wrongRows.length))];
+  const restRows=rows.filter(e=>!headRows.includes(e));
+  const cardAt=(e)=>v93ReviewItemHTML(e, rows.indexOf(e));
+  const head=headRows.map(cardAt).join('');
+  const rest=restRows.map(cardAt).join('');
   return `<div class="v96CountRow">
       <div class="v96Count v93Wrong"><b>${c.definiteWrong}</b>明確錯</div>
       <div class="v96Count v93Unclear"><b>${c.needsReview}</b>需要覆核</div>
       <div class="v96Count v93Missing"><b>${c.missing}</b>未完成 / 漏做</div>
     </div>
     <div class="v96ReviewList">${head}</div>
-    ${rest?`<details class="v96RawDetails"><summary>查看詳細覆核內容（其餘 ${rows.length-3} 題）</summary><div class="v96ReviewList">${rest}</div></details>`:''}`;
+    ${rest?`<details class="v96RawDetails"><summary>展開其餘 ${restRows.length} 個需要覆核的位置</summary><div class="v96ReviewList">${rest}</div></details>`:''}`;
 }
 
 function homeworkReportHTML(r, record={}){
