@@ -2821,6 +2821,13 @@ function renderHomework(){
     ${homeworkHistoryListHTML()}
   </div>`;
   bindHomeworkFiles();
+  updateHomeworkFirstOnlyVisibility();
+}
+function updateHomeworkFirstOnlyVisibility(){
+  const btn=$('hwAnalyzeFirst');
+  if(!btn) return;
+  const count=homeworkImages.length || (homeworkImage?1:0);
+  btn.style.display=count>1?'':'none';
 }
 async function bindHomeworkFiles(){
   const f=$('hwFile');
@@ -2856,7 +2863,7 @@ async function bindHomeworkFiles(){
     const kb=Math.round(JSON.stringify(homeworkImages.slice(0,sendCount)).length/1024);
     if($('hwImageInfo')) $('hwImageInfo').textContent=`已準備 ${homeworkImages.length} 張；會送頭 ${sendCount} 張去 AI。V83 會逐張分析，多張相會自動分批並自動 retry，避免 timeout。估計傳送大小：${kb}KB\n`+info.join('\n');
     const multi=homeworkImages.length>1;
-    if($('hwAnalyzeFirst')) $('hwAnalyzeFirst').style.display=multi?'':'none';
+    updateHomeworkFirstOnlyVisibility();
     $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。${multi?'V83 會先壓縮；多張相會逐張分析並自動 retry。如某幾張失敗，可改用「只分析第 1 張」。':'AI 會分析這張功課並整理成家長易明 report。'}</div>`;
   };
 }
@@ -2913,7 +2920,7 @@ function clearHomeworkUpload(){
   if($('hwText')) $('hwText').value='';
   if($('hwStatus')) $('hwStatus').innerHTML='';
   if($('hwResult')) $('hwResult').innerHTML='';
-  if($('hwAnalyzeFirst')) $('hwAnalyzeFirst').style.display='none';
+  updateHomeworkFirstOnlyVisibility();
 }
 window.clearHomeworkUpload=clearHomeworkUpload;
 function setHomeworkAnalyzing(busy){
