@@ -2938,7 +2938,8 @@ function hwRow(h){
   const source=h.offline?' · 暫存':'';
   const summary=esc(report.shortSummary || report.summary || report.title || 'Homework report');
   const sets=v85ResolvedSkillSets(report);
-  const parentTags=[report.growth?.subject,report.growth?.worksheetLevel,...sets.review.slice(0,2)].filter(Boolean);
+  const levelTag=report.growth?.worksheetLevel||report.growth?.childYear;
+  const parentTags=[report.growth?.subject,levelTag,...sets.review.slice(0,2)].filter(Boolean);
   const qaScore=v84ReportQA(report,{imageCount:h.imageCount||0}).score;
   const adminBits=v85AdminMode()?` · Quality ${qaScore}/100`:'';
   return `<div class="row homeworkRecentCard">
@@ -4100,7 +4101,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   const fp=v967Fingerprint(imagesToSend, app.profile&&app.profile.childName);
   const cached=bypassCache?null:v967CacheGet(fp);
   if(cached && cached.report){
-    const report=JSON.parse(JSON.stringify(cached.report));
+    const report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cached.report)));
     report.v967Fingerprint=fp;
     if(report.runtime){ report.runtime.reusedFromCache=true; report.runtime.completedAt=new Date().toISOString(); }
     app.homeworkReports.push({...baseRecord,report,offline:false,reusedFromCache:true});
@@ -4121,7 +4122,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   document.addEventListener('visibilitychange',onVis);
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
-    const report=normalizeHomeworkReport(data,text,imagesToSend.length);
+    const report=v9611ApplyHomeworkCanonical(normalizeHomeworkReport(data,text,imagesToSend.length));
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     report.v967Fingerprint=fp;
@@ -4432,6 +4433,39 @@ function v9611ReportFp(report){
   const n=v9611NormalizedReport(report);
   return n?n.reportFp:'';
 }
+/* Beta stability: freeze parent-facing fields from v9611 before save/display so
+   hero, tonight task, skill tags and strengths stay aligned with evidence counts. */
+function v9611ApplyHomeworkCanonical(report){
+  if(!report) return report;
+  if(_v9611Cache.has(report)) _v9611Cache.delete(report);
+  const n=v9611NormalizedReport(report);
+  if(!n) return report;
+  report.wowSummary=n.hero;
+  report.nextStep=n.tonight;
+  report.shortSummary=String(n.hero||'').slice(0,180);
+  report.growth=report.growth||{};
+  report.growth.skillsStrong=n.skills.strong.slice();
+  report.growth.skillsToReview=n.skills.review.slice();
+  const wl=String(report.growth.worksheetLevel||'').trim();
+  if(wl) report.growth.childYear=wl;
+  const stableEv=(v82CleanEvidence(report.engineV2?.evidence||[])||[])
+    .filter(e=>v96DisplayStatus(e)==='ok');
+  const strengthLines=[];
+  stableEv.slice(0,5).forEach(e=>{
+    const q=v96CleanParentQuestion(e.question||'');
+    if(q) strengthLines.push(`在 ${q} 答得正確。`);
+  });
+  if(!strengthLines.length && n.skills.strong.length){
+    n.skills.strong.forEach(s=>{
+      const zh=v96ZhSkill(s)||s;
+      strengthLines.push(`在 ${zh} 方面有穩定表現。`);
+    });
+  }
+  if(strengthLines.length) report.strengths=v84Unique(strengthLines).slice(0,6);
+  report.v9611AppliedAt=new Date().toISOString();
+  return report;
+}
+window.v9611ApplyHomeworkCanonical=v9611ApplyHomeworkCanonical;
 function v82CleanEvidence(evidence){
   // V96.10: apply stronger normalization first for deterministic deduping
   const normalized=v9610NormalizeEvidence(evidence||[]);
@@ -4728,7 +4762,19 @@ function v85CleanReviewList(report){
   return clean.length?clean:['暫未見明確錯題。'];
 }
 function v85ParentStrengths(report){
-  const arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認/.test(x));
+  let arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認|暫時未有足夠|insufficient/i.test(x));
+  if(!arr.length){
+    const sets=v85ResolvedSkillSets(report);
+    if(sets.strong.length){
+      arr=sets.strong.map(s=>`在 ${v96ZhSkill(s)||s} 方面有穩定表現。`);
+    }
+    const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
+      .filter(e=>v96DisplayStatus(e)==='ok').slice(0,4);
+    stableEv.forEach(e=>{
+      const q=v96CleanParentQuestion(e.question||'');
+      if(q && !arr.some(x=>x.includes(q))) arr.push(`在 ${q} 答得正確。`);
+    });
+  }
   const txt=[report?.summary,report?.rawAnalysis].join(' ');
   if(/word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
     if(!arr.some(x=>/word search|拼字|單字/.test(x))) arr.unshift('Word search / spelling 部分能找到多個目標單字，拼字搜尋能力不錯。');
@@ -5487,6 +5533,7 @@ function v93ReviewDetailHTML(report){
 
 function homeworkReportHTML(r, record={}){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  r=v9611ApplyHomeworkCanonical(r);
   r=v93SanitizeReport(r);
   if(v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
   // Rebuild clean engine view using V82 filters.
