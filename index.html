@@ -4334,6 +4334,7 @@ function v9611NormalizeSkillTag(tag){
   // lowercase, collapse whitespace, trim
   s=s.toLowerCase().replace(/\s+/g,' ').trim();
   if(s==='additio') s='addition';
+  if(/^(ad|n\/?a|na|none|null|undefined)$/.test(s)) return '';
   return s;
 }
 
@@ -5084,7 +5085,7 @@ function v93ReviewEvidence(report){
     .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
     .map(v93NormalizeReviewEvidence)
     .filter(e=>v93QuestionLooksSpecific(e.question,e));
-  const parsed=(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
+  const parsed=ev.length?[]:(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
   const out=[]; const seen=new Set();
   [...ev,...parsed].forEach(e=>{
     if(!v93QuestionLooksSpecific(e.question,e)) return;
