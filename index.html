@@ -2943,7 +2943,7 @@ function toggleHomeworkHistory(){
   renderHomework();
 }
 function hwRow(h){
-  const report=v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0);
+  const report=v93SanitizeReport(v9611ApplyHomeworkCanonical(v74EnrichHomeworkReport(JSON.parse(JSON.stringify(h.report||{})),h.note||'',h.imageCount||0)));
   const count=h.imageCount?` · ${h.imageCount}張相`:'';
   const source=h.offline?' · 暫存':'';
   const summary=esc(report.shortSummary || report.summary || report.title || 'Homework report');
@@ -4322,6 +4322,7 @@ function v9611NormalizeSkillTag(tag){
      .replace(/place value|位值/gi,'Place Value');
   // lowercase, collapse whitespace, trim
   s=s.toLowerCase().replace(/\s+/g,' ').trim();
+  if(s==='additio') s='addition';
   return s;
 }
 
@@ -4505,6 +4506,16 @@ function v82CleanEvidence(evidence){
     out.push(fixed);
   });
   return out.slice(0,60);
+}
+function v9611ReviewDedupeKey(e){
+  const q=v9610NormalizeQuestion(e?.question||'');
+  const stu=v9610NormalizeAnswer(e?.studentAnswer||'');
+  let corr=v9610NormalizeAnswer(e?.correctAnswer||'');
+  const exp=v96ArithExpected(e);
+  const ref=v96RefNumber(e);
+  if(exp!==null && isFinite(exp)) corr=String(exp);
+  else if(ref!==null && isFinite(ref)) corr=String(ref);
+  return `${v96DisplayStatus(e)}|${q}|${stu}|${corr}`;
 }
 function v79SkillTrend(evidence){
   const map={};
@@ -4742,6 +4753,7 @@ function v85AdminSource(){ return _v85AdminSource; }
 function v85NormalizeSkillTag(x){
   if(v85IsSectionHeadingLine && v85IsSectionHeadingLine(x)) return '';
   let s=String(x||'').trim().toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ');
+  if(s==='additio') return 'Addition';
   if(!s || /需要覆核的位置|已做得好的地方|可能出錯原因|給家長的簡短解讀|今晚只做一件事/.test(s)) return '';
   if(/present|past|tense|verb tense|時態/.test(s)) return 'present vs past tense';
   if(/instruction|讀題|question requirement|題目要求/.test(s)) return 'reading instructions';
@@ -5368,7 +5380,7 @@ function v96VisibleRows(report){
   const candidates=v93ReviewEvidence(report).filter(e=>v96DisplayStatus(e)!=='ok');
   // stable dedupe: keep the first occurrence per normalized key
   const seen=new Set(); const deduped=[];
-  candidates.forEach(e=>{ const k=v96StableKey(e); if(seen.has(k)) return; seen.add(k); deduped.push(e); });
+  candidates.forEach(e=>{ const k=v9611ReviewDedupeKey(e); if(seen.has(k)) return; seen.add(k); deduped.push(e); });
   const ordered=v96SortItems(deduped);
   return v96GroupTemperature(ordered);
 }
