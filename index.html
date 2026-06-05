@@ -4060,13 +4060,27 @@ function v967Fingerprint(images, childName){
 /* V96.7: per-browser cache of fully-analysed photo sets, keyed by fingerprint.
    Lives inside `app` so it persists via save() / localStorage. Capped so it can't
    grow without bound. Only COMPLETE (non-partial, non-error) reports are stored. */
+const V967_CACHE_VERSION='v96.15-parent-admin-consistency';
 function v967CacheGet(fp){
-  try{ return (app.homeworkReportCache && app.homeworkReportCache[fp]) || null; }catch(e){ return null; }
+  try{
+    const entry=(app.homeworkReportCache && app.homeworkReportCache[fp]) || null;
+    if(!entry || !entry.report) return null;
+    if(entry.cacheVersion!==V967_CACHE_VERSION || entry.report.v967CacheVersion!==V967_CACHE_VERSION){
+      delete app.homeworkReportCache[fp];
+      return null;
+    }
+    if(v9611IsIncompleteCanonicalReport(entry.report)) return null;
+    return entry;
+  }catch(e){ return null; }
 }
 function v967CachePut(fp, report){
   try{
     if(!app.homeworkReportCache) app.homeworkReportCache={};
-    app.homeworkReportCache[fp]={ report:JSON.parse(JSON.stringify(report)), at:new Date().toISOString() };
+    const cachedReport=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(report)));
+    cachedReport.v967Fingerprint=fp;
+    cachedReport.v967CacheVersion=V967_CACHE_VERSION;
+    cachedReport.v967CanonicalReportFp=v9611ReportFp(cachedReport);
+    app.homeworkReportCache[fp]={ report:cachedReport, at:new Date().toISOString(), cacheVersion:V967_CACHE_VERSION };
     // cap to the 12 most recent entries
     const keys=Object.keys(app.homeworkReportCache);
     if(keys.length>12){
@@ -4154,7 +4168,9 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   if(cached && cached.report){
     const report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cached.report)));
     report.v967Fingerprint=fp;
-    if(report.runtime){ report.runtime.reusedFromCache=true; report.runtime.completedAt=new Date().toISOString(); }
+    report.v967CacheVersion=V967_CACHE_VERSION;
+    report.v967CanonicalReportFp=v9611ReportFp(report);
+    if(report.runtime){ report.runtime.reusedFromCache=true; report.runtime.completedAt=new Date().toISOString(); report.runtime.cacheVersion=V967_CACHE_VERSION; }
     app.homeworkReports.push({...baseRecord,report,offline:false,reusedFromCache:true});
     save();
     renderHomework();
@@ -4183,11 +4199,18 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
       const freshRuntime=report.runtime||{};
       report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cachedAnchor.report)));
       report.v967Fingerprint=fp;
-      report.runtime={...(report.runtime||{}),...freshRuntime,parentAnchoredToFirstComplete:true};
+      report.v967CacheVersion=V967_CACHE_VERSION;
+      report.v967CanonicalReportFp=v9611ReportFp(report);
+      report.runtime={...(report.runtime||{}),...freshRuntime,parentAnchoredToFirstComplete:true,cacheVersion:V967_CACHE_VERSION};
       anchoredFresh=true;
     }
     // V96.7: only cache COMPLETE analyses, so partial/failed runs never poison reuse.
     if(!partial && !anchoredFresh) v967CachePut(fp, report);
+    if(!partial){
+      report.v967CacheVersion=V967_CACHE_VERSION;
+      report.v967CanonicalReportFp=v9611ReportFp(report);
+      if(report.runtime) report.runtime.cacheVersion=V967_CACHE_VERSION;
+    }
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
     save();
     renderHomework();
@@ -4394,6 +4417,41 @@ function v9611SkillsFromEvidence(rows){
   };
 }
 
+function v9615ArithmeticFacts(question){
+  const q=String(question||'');
+  const m=q.match(/(\d+)\s*([+\-xX*×÷\/])\s*(\d+)/);
+  if(!m) return null;
+  const a=parseInt(m[1],10), b=parseInt(m[3],10), op=m[2];
+  const twoDigit=(a>=10?1:0)+(b>=10?1:0);
+  return {a,b,op,twoDigit,carry:/[+]/.test(op) && (a%10)+(b%10)>=10,borrow:/-/.test(op) && (a%10)<(b%10)};
+}
+
+function v9615TonightScore(e){
+  const d=v96DisplayStatus(e);
+  const q=v96CleanParentQuestion(e?.question||'');
+  let score=0;
+  if(d==='wrong') score+=100;
+  else if(d==='review') score+=70;
+  else if(d==='missing') score+=35;
+  if(v96QType(e)==='arith') score+=35;
+  const f=v9615ArithmeticFacts(q);
+  if(f){
+    score+=20+f.twoDigit*18;
+    if(f.carry||f.borrow) score+=35;
+    if(/[xX*×]/.test(f.op) && f.a>1 && f.b>1) score+=18;
+    if((f.a<=2||f.b<=2) && f.twoDigit<2 && !f.carry && !f.borrow) score-=20;
+  }
+  if(/place value|carry|carrying|位值|進位/i.test([q,e?.skill,e?.subSkill].join(' '))) score+=25;
+  if(q.length>8) score+=Math.min(15,Math.floor(q.length/8));
+  return score;
+}
+
+function v9615PickTonightRow(rows){
+  const candidates=(rows||[]).filter(e=>v96DisplayStatus(e)!=='ok');
+  if(!candidates.length) return null;
+  return candidates.slice().sort((a,b)=>v9615TonightScore(b)-v9615TonightScore(a))[0];
+}
+
 // V96.11: the single normalized report object, cached per report instance
 const _v9611Cache=new WeakMap();
 function v9611NormalizedReport(report){
@@ -4444,10 +4502,10 @@ function v9611NormalizedReport(report){
     hero='今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
   }
   
-  // 5. Generate tonight task from first review item
+  // 5. Generate tonight task from the most educationally representative item.
   let tonight='今晚只揀一題最有代表性的題目慢慢講解。';
   if(rows.length){
-    const first=rows[0];
+    const first=v9615PickTonightRow(rows)||rows[0];
     tonight=`今晚只做一題：${v96CleanParentQuestion(first.question||'')||'選一題'}。先讀題目要求，再講 ${v92ChildLabel()} 答案同正確答案有咩分別。`;
   }
   
@@ -4884,7 +4942,8 @@ function v85ParentStrengths(report){
     });
   }
   const txt=[report?.summary,report?.rawAnalysis].join(' ');
-  if(/word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
+  const isMathReport=!!(v9611NormalizedReport(report)?.isMath);
+  if(!isMathReport && /word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
     if(!arr.some(x=>/word search|拼字|單字/.test(x))) arr.unshift('Word search / spelling 部分能找到多個目標單字，拼字搜尋能力不錯。');
   }
   return arr;
