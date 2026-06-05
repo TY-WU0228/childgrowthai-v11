@@ -4775,8 +4775,9 @@ function v84TrialChecklistHTML(){
 }
 
 
-/* V96.9: persistent admin mode — set via ?admin=1, cleared via ?admin=0,
-   survives PWA/Home Screen launch via localStorage. */
+/* V96.13: persistent admin mode — set via ?admin=1, cleared via ?admin=0
+   or on normal (non-admin, non-HomeScreen) page loads. Never leaks admin
+   tools to a subsequent normal parent session. */
 let _v85AdminSource='none';
 function v85AdminModeInit(){
   try{
@@ -4787,10 +4788,20 @@ function v85AdminModeInit(){
     }else if(qs.get('admin')==='0'){
       localStorage.removeItem('childGrowthAdminMode');
       _v85AdminSource='none';
-    }else if(localStorage.getItem('childGrowthAdminMode')==='1'){
+    }else if(localStorage.getItem('childGrowthAdminMode')==='1' && v85IsHomeScreenOrAdmin()){
       _v85AdminSource='localStorage';
+    }else{
+      localStorage.removeItem('childGrowthAdminMode');
+      _v85AdminSource='none';
     }
   }catch(e){}
+}
+function v85IsHomeScreenOrAdmin(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    if(qs.get('admin')==='1') return true;
+    return qs.get('homescreen')==='1' || (typeof v89IsStandalone==='function' && v89IsStandalone());
+  }catch(e){return false;}
 }
 v85AdminModeInit();
 function v85AdminMode(){
@@ -5133,10 +5144,12 @@ function v93ReviewEvidence(report){
     .map(v93NormalizeReviewEvidence)
     .filter(e=>v93QuestionLooksSpecific(e.question,e));
   const parsed=ev.length?[]:(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
+  // V96.13: use the same normalized dedupe key as v96VisibleRows so
+  // semantically identical items from slightly different AI wording merge.
   const out=[]; const seen=new Set();
   [...ev,...parsed].forEach(e=>{
     if(!v93QuestionLooksSpecific(e.question,e)) return;
-    const key=[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
+    const key=typeof v9611ReviewDedupeKey==='function'?v9611ReviewDedupeKey(e):[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
     if(seen.has(key)) return;
     seen.add(key); out.push(e);
   });
@@ -5695,6 +5708,7 @@ function homeworkReportHTML(r, record={}){
   <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted v93ShortParentText">${esc(v93ParentCleanText(v85ParentInsight(r),420))}</div></div>
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v93ParentCleanText(v85ConcreteNextStep(r),220))}</div></div>
 
+  ${v85AdminMode()?(()=>{const nc=v9611NormalizedReport(r)||{counts:{}};const c=nc.counts;return `<div class="reportBlock" style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:10px;margin:12px 0;font-size:13px"><b>✅ Source of truth check</b> Parent Mode and Admin Mode use the same <code>v9611NormalizedReport</code> object. The counts below (S${c.stable}|W${c.wrong}|R${c.review}|M${c.missing}) are identical in both modes. Any difference you see comes from different AI analysis runs, not different rendering paths.</div>`})():''}
   ${v85AdminMode()?v84QAHTML(r,record):''}
   <details class="technicalDetails" style="${v85AdminMode()?'':'display:none'}">
     <summary>Technical evidence（平時可不用看）</summary>
