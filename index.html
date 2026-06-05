@@ -5009,6 +5009,14 @@ function v92ParseReviewLine(line){
   }
   return {status, question:q, studentAnswer:ans, correctAnswer:corr, skill:'', subSkill:'', confidence:'low', source:'checkpoint'};
 }
+function v9616IsConcreteReviewItem(x){
+  const q=String(x?.question||'');
+  const ans=String(x?.studentAnswer||'').trim();
+  const corr=String(x?.correctAnswer||'').trim();
+  if(ans || corr) return true;
+  if(/\d+\s*[+\-xX*×÷\/]\s*\d+|\d+\s*(kg|g|hours?|days?|minutes?|mins?|°|degrees?)|clock|time|perimeter|temperature|shape|money|age|question|題|page/i.test(q)) return true;
+  return false;
+}
 function v92ReviewEvidence(report){
   const ev=(typeof v82TrueReviewEvidence==='function'?v82TrueReviewEvidence(report):[])
     .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
@@ -5022,7 +5030,7 @@ function v92ReviewEvidence(report){
       confidence:e.confidence||'',
       source:e.source||'evidence'
     }));
-  const parsed=(report?.checkPoints||[]).map(v92ParseReviewLine).filter(Boolean);
+  const parsed=(report?.checkPoints||[]).map(v92ParseReviewLine).filter(Boolean).filter(v9616IsConcreteReviewItem);
   const all=[...ev,...parsed].filter(x=>x.question && !v92LineLooksPositive([x.question,x.studentAnswer,x.correctAnswer].join(' ')));
   const seen=new Set(), out=[];
   all.forEach(x=>{
