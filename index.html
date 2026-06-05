@@ -1088,6 +1088,36 @@
     .v93GoodEmpty{background:#ecfdf5;border:1px solid #86efac;color:#166534;border-radius:16px;padding:12px;font-weight:900;line-height:1.45}
     @media(max-width:700px){.v96Field{grid-template-columns:64px minmax(0,1fr)}}
 
+    /* V96.13: iPhone Homework/PWA overflow guard */
+    html,body{max-width:100%;overflow-x:hidden}
+    #homework,#homework *{min-width:0;max-width:100%;box-sizing:border-box}
+    #homework .card,#homework .reportBlock,#homework .wowHero,#homework .parentProgressCard,
+    #homework .engineCard,#homework .engineV2Card,#homework .technicalDetails,#homework .v96ReviewCard{
+      max-width:100%;overflow:hidden
+    }
+    #homework .muted,#homework .wowSentence,#homework .wowSub,#homework .parentMini,#homework .v96Val,
+    #homework .v96Suggest,#homework .hwActionNote,#homework .parentBetaNote,#homework .rawAnalysisBox,
+    #homework small,#homework .notice,#homework .insight{
+      overflow-wrap:anywhere;word-break:break-word
+    }
+    #homework .growthTagWrap,#homework .parentSkillGroup,#homework .debugPills,#homework .v96SkillTags{
+      max-width:100%;overflow:hidden
+    }
+    #homework .growthTag,#homework .parentSkill,#homework .debugPill,#homework .v96SkillTag{
+      white-space:normal;overflow-wrap:anywhere;word-break:break-word
+    }
+    @media(max-width:430px){
+      .page{padding-left:12px;padding-right:12px}
+      #homework .actions{display:grid;grid-template-columns:1fr;gap:8px}
+      #homework .btn{width:100%;white-space:normal;line-height:1.25}
+      #homework .multiPreviewGrid{grid-template-columns:1fr 1fr}
+      #homework .v96CountRow{grid-template-columns:1fr}
+      #homework .v96Field{grid-template-columns:1fr;gap:3px}
+      #homework .readingQTop{display:grid;grid-template-columns:1fr}
+      #homework .wowHero h2{font-size:23px;line-height:1.15}
+      #homework .wowSentence{font-size:18px;line-height:1.45}
+    }
+
   </style>
 </head>
 <body>
