@@ -4788,10 +4788,19 @@ v85AdminModeInit();
 function v85AdminMode(){
   try{
     const qs=new URLSearchParams(location.search);
-    return qs.get('admin')==='1' || localStorage.getItem('childGrowthAdminMode')==='1';
+    return qs.get('admin')==='1' || localStorage.getItem('childGrowthAdminMode')==='1' || v85HomeScreenJaniceAdmin();
   }catch(e){return false;}
 }
-function v85AdminSource(){ return _v85AdminSource; }
+function v85HomeScreenJaniceAdmin(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    const homescreen=qs.get('homescreen')==='1' || (typeof v89IsStandalone==='function' && v89IsStandalone());
+    const done=app?.settings?.betaOnboardingDone===true;
+    const child=String(app?.profile?.childName||'').trim();
+    return homescreen && done && /^janice$/i.test(child);
+  }catch(e){return false;}
+}
+function v85AdminSource(){ return v85HomeScreenJaniceAdmin()?'home-screen-janice':_v85AdminSource; }
 function v85NormalizeSkillTag(x){
   if(v85IsSectionHeadingLine && v85IsSectionHeadingLine(x)) return '';
   let s=String(x||'').trim().toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ');
