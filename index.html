@@ -4833,21 +4833,16 @@ function v84TrialChecklistHTML(){
 }
 
 
-/* V96.13: persistent admin mode — set via ?admin=1, cleared via ?admin=0
-   or on normal (non-admin, non-HomeScreen) page loads. Never leaks admin
-   tools to a subsequent normal parent session. */
+/* V96.17: explicit admin mode only. Admin/QA tools appear only when the
+   current URL has ?admin=1. Normal links, ?admin=0, and Home Screen launches
+   stay parent-clean, including the Janice test profile. */
 let _v85AdminSource='none';
 function v85AdminModeInit(){
   try{
     const qs=new URLSearchParams(location.search);
     if(qs.get('admin')==='1'){
-      localStorage.setItem('childGrowthAdminMode','1');
-      _v85AdminSource='query';
-    }else if(qs.get('admin')==='0'){
       localStorage.removeItem('childGrowthAdminMode');
-      _v85AdminSource='none';
-    }else if(localStorage.getItem('childGrowthAdminMode')==='1' && v85IsHomeScreenOrAdmin()){
-      _v85AdminSource='localStorage';
+      _v85AdminSource='query';
     }else{
       localStorage.removeItem('childGrowthAdminMode');
       _v85AdminSource='none';
@@ -4865,8 +4860,7 @@ v85AdminModeInit();
 function v85AdminMode(){
   try{
     const qs=new URLSearchParams(location.search);
-    if(qs.get('admin')==='0') return false;
-    return qs.get('admin')==='1' || localStorage.getItem('childGrowthAdminMode')==='1' || v85HomeScreenJaniceAdmin();
+    return qs.get('admin')==='1';
   }catch(e){return false;}
 }
 function v85HomeScreenJaniceAdmin(){
@@ -4879,8 +4873,7 @@ function v85HomeScreenJaniceAdmin(){
   }catch(e){return false;}
 }
 function v85AdminSource(){
-  try{ const qs=new URLSearchParams(location.search); if(qs.get('admin')==='0') return 'none'; }catch(e){}
-  return v85HomeScreenJaniceAdmin()?'home-screen-janice':_v85AdminSource;
+  return v85AdminMode()?_v85AdminSource:'none';
 }
 function v85NormalizeSkillTag(x){
   if(v85IsSectionHeadingLine && v85IsSectionHeadingLine(x)) return '';
