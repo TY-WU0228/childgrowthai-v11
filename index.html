@@ -4617,12 +4617,26 @@ function v82CleanEvidence(evidence){
 }
 function v9611ReviewDedupeKey(e){
   const q=v9610NormalizeQuestion(e?.question||'');
+  const topic=v9618ReviewTopicKey(e);
   let corr=v9610NormalizeAnswer(e?.correctAnswer||'');
   const exp=v96ArithExpected(e);
   const ref=v96RefNumber(e);
   if(exp!==null && isFinite(exp)) corr=String(exp);
   else if(ref!==null && isFinite(ref)) corr=String(ref);
-  return `${v96DisplayStatus(e)}|p${v96PageOf(e)}|${q}|${corr}`;
+  return `${v96DisplayStatus(e)}|p${v96PageOf(e)}|${topic||q}|${corr}`;
+}
+function v9618ReviewTopicKey(e){
+  const q=String(e?.question||'').toLowerCase().replace(/\s+/g,' ');
+  const skill=String(e?.skill||e?.subSkill||'').toLowerCase();
+  const text=`${q} ${skill}`;
+  const time=text.match(/(\d{1,2})\s*[:：]\s*(\d{2}).{0,30}30\s*(?:mins?|minutes?|分)/i);
+  if(time) return `time-plus-30-${parseInt(time[1],10)}:${time[2]}`;
+  if(/2\s*days?.{0,20}hours?/.test(text)) return 'unit-2-days-hours';
+  if(/jane/.test(text) && /(save|saves|saving|spend|spent|half|儲|半)/.test(text)) return 'jane-saves-half';
+  if(/justin/.test(text) && /(age|歲|mum|媽媽|爸爸|father|dad)/.test(text)) return 'justin-age';
+  if(/shape|1-d|2-d|1d|2d|圖形|circle/.test(text) && /(classif|圈|circle|draw)/.test(text)) return 'shape-classification';
+  if(/taylah|temperature|溫度/.test(text)) return 'temperature-taylah';
+  return '';
 }
 function v79SkillTrend(evidence){
   const map={};
