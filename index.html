@@ -4617,13 +4617,12 @@ function v82CleanEvidence(evidence){
 }
 function v9611ReviewDedupeKey(e){
   const q=v9610NormalizeQuestion(e?.question||'');
-  const stu=v9610NormalizeAnswer(e?.studentAnswer||'');
   let corr=v9610NormalizeAnswer(e?.correctAnswer||'');
   const exp=v96ArithExpected(e);
   const ref=v96RefNumber(e);
   if(exp!==null && isFinite(exp)) corr=String(exp);
   else if(ref!==null && isFinite(ref)) corr=String(ref);
-  return `${v96DisplayStatus(e)}|${q}|${stu}|${corr}`;
+  return `${v96DisplayStatus(e)}|p${v96PageOf(e)}|${q}|${corr}`;
 }
 function v79SkillTrend(evidence){
   const map={};
