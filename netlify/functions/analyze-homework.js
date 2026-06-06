@@ -38,7 +38,11 @@ exports.handler = async function(event) {
           ...images.map(url => ({ type: 'input_image', image_url: url }))
         ]
       }],
-      max_output_tokens: maxTokens
+      max_output_tokens: maxTokens,
+      // V96.20: pin decoding to reduce same-photo report variance on fresh
+      // analysis. Default temperature (~1.0) caused large run-to-run swings in
+      // detected question/stable counts for the same homework photo.
+      temperature: 0
     };
 
     const first = await callOpenAI('https://api.openai.com/v1/responses', apiKey, payload, timeoutMs);
@@ -65,7 +69,9 @@ exports.handler = async function(event) {
         ]
       }],
       max_tokens: Math.min(maxTokens, 1200),
-      temperature: 0.15
+      // V96.20: pin fallback decoding too, with a fixed seed for reproducibility.
+      temperature: 0,
+      seed: 7
     };
 
     const second = await callOpenAI('https://api.openai.com/v1/chat/completions', apiKey, chatPayload, Math.min(timeoutMs, 14000));
