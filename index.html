@@ -4461,13 +4461,15 @@ function v9611NormalizedReport(report){
   // 1. Get the normalized, deduped, sorted evidence rows
   const rows=v96VisibleRows(report);
   
-  // 2. Count by display status
+  // 2. Count by display status, all from ONE deduped normalized item list.
   const counts={stable:0, wrong:0, review:0, missing:0, total:0};
   const allEvidence=v82CleanEvidence(report?.engineV2?.evidence||[]);
-  allEvidence.forEach(e=>{
-    const ds=v96DisplayStatus(e);
-    if(ds==='ok') counts.stable++;
-  });
+  // V96.21: derive the stable (做得穩) count from the SAME deduped item list as
+  // the review rows, via v96StableKey, instead of the raw un-deduped evidence
+  // list. Counting raw evidence let duplicate "correct" lines inflate the total
+  // (e.g. 27/28 stable on a 26-question worksheet). Now stable, wrong, review and
+  // missing all come from one grounded, deduped question list.
+  counts.stable=v96StableCount(report);
   rows.forEach(e=>{
     const ds=v96DisplayStatus(e);
     if(ds==='wrong') counts.wrong++;
