@@ -4063,7 +4063,12 @@ function v967Fingerprint(images, childName){
 /* V96.7: per-browser cache of fully-analysed photo sets, keyed by fingerprint.
    Lives inside `app` so it persists via save() / localStorage. Capped so it can't
    grow without bound. Only COMPLETE (non-partial, non-error) reports are stored. */
-const V967_CACHE_VERSION='v96.15-parent-admin-consistency';
+// V96.24: bump after the V96.22 question-level extraction + V96.23 fingerprint
+// changes so reports cached under the older extraction (which stored comparison
+// questions as separate facts, inflating counts e.g. S28 on a 26-question sheet)
+// are retired and re-analysed under the current standard instead of being served
+// as a stale "cache hit". Bump this string whenever extraction/count logic changes.
+const V967_CACHE_VERSION='v96.24-question-level-counts';
 function v967CacheGet(fp){
   try{
     const entry=(app.homeworkReportCache && app.homeworkReportCache[fp]) || null;
