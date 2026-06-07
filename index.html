@@ -65,6 +65,10 @@
       padding:10px 14px;font-weight:1000;width:auto;margin:0;white-space:nowrap;
     }
     .btn.primary{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .hwAnalyzing .notice.bluebox{border-color:#93c5fd;animation:hwPulse 1.2s ease-in-out infinite}
+    @keyframes hwPulse{0%,100%{opacity:1}50%{opacity:.72}}
+    .debugPill,.growthTag,.parentSkill,.parentMini,.wowSentence{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
     .btn.danger{background:#fee2e2;color:#991b1b;border:none}
     .btn.soft{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
     .row{
@@ -735,6 +739,8 @@
 
   
     /* V66 QA Stable Report */
+    .qaCheckbox{display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280;margin:6px 0 8px}
+    .qaCheckbox input{margin:0}
     .qaBadge{
       display:inline-flex;
       align-items:center;
@@ -941,6 +947,10 @@
     .parentHero h2{margin:0 0 8px;font-size:28px}
     .parentHero .bigInsight{font-size:20px;line-height:1.55;font-weight:950;color:#0f172a}
     .parentMiniGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    @media (max-width:420px){
+      .parentMiniGrid{grid-template-columns:1fr}
+      #homework .actions{margin-bottom:10px}
+    }
     .parentMini{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:12px}
     .parentMini b{display:block;color:#2563eb;font-size:16px;margin-bottom:5px}
     .readingCardList{display:grid;gap:10px;margin-top:10px}
@@ -968,8 +978,8 @@
     /* V83 Backend Reliability */
     .reliabilityBox{background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:18px;padding:12px;margin-top:10px;font-weight:900;line-height:1.45}
     .reliabilityWarn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:18px;padding:12px;margin-top:10px;font-weight:900;line-height:1.45}
-    .debugPills{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
-    .debugPill{background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900;color:#475569}
+.debugPills{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;max-width:100%;overflow:hidden}
+.debugPill{background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;color:#475569;max-width:100%;overflow-wrap:break-word;word-break:break-all;white-space:normal}
 
   
     /* V84 Trial-ready QA + Report Wow Layer */
@@ -1045,6 +1055,77 @@
       .betaFormCard h2{font-size:24px!important;line-height:1.15}
     }
 
+  
+    /* V96.1 Parent-friendly review cards + cleaner report */
+    .v96CountRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+    .v96Count{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:10px;text-align:center;font-weight:900;color:#475569;font-size:13px;line-height:1.3}
+    .v96Count b{display:block;font-size:22px;color:#0f172a}
+    .v96Count.v93Wrong b{color:#b91c1c}
+    .v96Count.v93Unclear b{color:#b45309}
+    .v96Count.v93Missing b{color:#475569}
+    .v96ReviewList{display:grid;gap:10px;margin-top:6px}
+    .v96ReviewCard{background:#fff;border:1px solid #e5e7eb;border-left:5px solid #cbd5e1;border-radius:16px;padding:12px;box-shadow:0 4px 12px rgba(15,23,42,.04)}
+    .v96ReviewCard.v93Wrong{border-left-color:#ef4444}
+    .v96ReviewCard.v93Unclear{border-left-color:#f59e0b}
+    .v96ReviewCard.v93Missing{border-left-color:#94a3b8}
+    .v96CardHead{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .v96StatusTag{border-radius:999px;padding:4px 10px;font-weight:950;font-size:12px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569}
+    .v96StatusTag.v93Wrong{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .v96StatusTag.v93Unclear{background:#fffbeb;border-color:#fde68a;color:#b45309}
+    .v96StatusTag.v93Missing{background:#f8fafc;border-color:#e2e8f0;color:#475569}
+    .v96NumTag{font-weight:900;color:#94a3b8;font-size:12px}
+    .v96Field{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;padding:5px 0;align-items:start}
+    .v96Lbl{color:#2563eb;font-weight:950;font-size:13px}
+    .v96Val{color:#0f172a;font-weight:850;line-height:1.4;overflow-wrap:anywhere}
+    .v96Suggest{margin-top:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:9px 11px;color:#0c4a6e;font-weight:850;line-height:1.45}
+    .v96SuggestLbl{display:inline-block;color:#0369a1;font-weight:950;margin-right:6px}
+    .v96SkillTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .v96SkillTag{border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;padding:3px 9px;font-weight:850;font-size:11px}
+    .v96RawDetails{margin-top:10px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden}
+    .v96RawDetails summary{cursor:pointer;padding:11px 13px;font-weight:950;color:#334155;list-style:none}
+    .v96RawDetails summary::-webkit-details-marker{display:none}
+    .v96RawDetails .v96ReviewList{padding:0 12px 12px}
+    .v93GoodEmpty{background:#ecfdf5;border:1px solid #86efac;color:#166534;border-radius:16px;padding:12px;font-weight:900;line-height:1.45}
+    @media(max-width:700px){.v96Field{grid-template-columns:64px minmax(0,1fr)}}
+
+    /* V96.13: iPhone Homework/PWA overflow guard */
+    html,body{max-width:100%;overflow-x:hidden}
+    #homework,#homework *{min-width:0;max-width:100%;box-sizing:border-box}
+    #homework .card,#homework .reportBlock,#homework .wowHero,#homework .parentProgressCard,
+    #homework .engineCard,#homework .engineV2Card,#homework .technicalDetails,#homework .v96ReviewCard{
+      max-width:100%;overflow:hidden
+    }
+    #homework .muted,#homework .wowSentence,#homework .wowSub,#homework .parentMini,#homework .v96Val,
+    #homework .v96Suggest,#homework .hwActionNote,#homework .parentBetaNote,#homework .rawAnalysisBox,
+    #homework small,#homework .notice,#homework .insight{
+      overflow-wrap:anywhere;word-break:break-word
+    }
+    #homework .growthTagWrap,#homework .parentSkillGroup,#homework .debugPills,#homework .v96SkillTags{
+      max-width:100%;overflow:hidden
+    }
+    #homework .growthTag,#homework .parentSkill,#homework .debugPill,#homework .v96SkillTag{
+      white-space:normal;overflow-wrap:anywhere;word-break:break-word
+    }
+    #homework .qaCheckbox{
+      display:grid;grid-template-columns:24px minmax(0,1fr);align-items:start;
+      width:100%;max-width:100%;white-space:normal;overflow:hidden;
+      overflow-wrap:anywhere;word-break:break-word;line-height:1.35
+    }
+    #homework .qaCheckbox input{
+      width:18px;min-width:18px;height:18px;min-height:18px;margin-top:1px
+    }
+    @media(max-width:430px){
+      .page{padding-left:12px;padding-right:12px}
+      #homework .actions{display:grid;grid-template-columns:1fr;gap:8px}
+      #homework .btn{width:100%;white-space:normal;line-height:1.25}
+      #homework .multiPreviewGrid{grid-template-columns:1fr 1fr}
+      #homework .v96CountRow{grid-template-columns:1fr}
+      #homework .v96Field{grid-template-columns:1fr;gap:3px}
+      #homework .readingQTop{display:grid;grid-template-columns:1fr}
+      #homework .wowHero h2{font-size:23px;line-height:1.15}
+      #homework .wowSentence{font-size:18px;line-height:1.45}
+    }
+
   </style>
 </head>
 <body>
@@ -1080,8 +1161,8 @@
   <button class="navbtn active" data-tab="home"><span class="ico">🏠</span><span>首頁</span></button>
   <button class="navbtn" data-tab="record"><span class="ico">🎙️</span><span>記錄</span></button>
   <button class="navbtn" data-tab="homework"><span class="ico">📚</span><span>功課</span></button>
-  <button class="navbtn" data-tab="analytics"><span class="ico">🤖</span><span>分析</span></button>
-  <button class="navbtn" data-tab="profile"><span class="ico">👤</span><span>我的</span></button>
+  <button class="navbtn" data-tab="analytics"><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span><span>分析</span></button>
+  <button class="navbtn" data-tab="profile"><span class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg></span><span>我的</span></button>
 </nav>
 
 <div id="captureModal" class="modal"><div class="sheet" id="captureSheet"></div></div>
@@ -1118,6 +1199,7 @@ const DEFAULT_DATA={
   emotions:[],
   teacherComments:[],
   homeworkReports:[],
+  homeworkReportCache:{},
   activityReports:[],
   captureHistory:[],
   settings:{weekExpanded:false, onboardingDone:true}
@@ -1348,9 +1430,9 @@ function v85IsSectionHeadingLine(x){
     || /^(⚠️\s*)?\d+\.\s*需要覆核的位置/.test(s)
     || /^查看原本詳細內容$/i.test(s);
 }
-function v85CleanBulletText(x){
-  return String(x||'')
-    .replace(/^[\s\-•*]+/,'')
+  function v85CleanBulletText(x){
+  return v96StripEvidenceDebris(String(x||'')) // V96.4: strip raw debug evidence rows from bullets
+  .replace(/^[\s\-•*]+/,'')
     .replace(/^([⚠️✅🧠💬📌🌟✨🏷️🔎]\s*)?\d+\.?\s*(我睇到嘅內容|我大約睇到嘅功課內容|已做得好的地方|需要覆核的位置|可能出錯原因|給家長的簡短解讀|今晚只做一件事)\s*[:：-]?\s*/,'')
     .replace(/^【需家長確認】\s*請家長確認[:：]?\s*/,'【需家長確認】')
     .replace(/^請家長確認[:：]?\s*/,'')
@@ -1384,7 +1466,7 @@ let capturePending=null;
 function captureHomeCardHTML(){
   return `<div class="card">
     <h2>＋ 快速記錄 / Capture</h2>
-    <div class="muted">影相、語音或打字，AI 會幫你分流成 School Notice、Teacher Comment、Activity Progress、Homework 或行程提醒。原本詳細功能仍然保留。</div>
+    <div class="muted">影相、語音或打字，AI 會幫你分流成 School Notice、Teacher Comment、Activity Progress、Homework 或行程提醒。原有詳細功能仍然保留。</div>
     <div class="captureHero">
       <h3>家長只需要 capture，AI 負責整理</h3>
       <div class="captureExamples">
@@ -1429,7 +1511,7 @@ function setCaptureMode(mode){
 }
 function captureInputHTML(){
   const isPhoto=captureMode==='photo';
-  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒。' :
+  const placeholder = captureMode==='schedule' ? '例：星期六 9:20 到 12:20 中文堂，要帶中文書、功課、水樽，前一晚提醒佢' :
     captureMode==='voice' ? '例：今日游水老師話 kicking 好咗，但 breathing 同 turning 仲要練。' :
     captureMode==='photo' ? '可補充：呢張係功課 / 學校通知 / 樂譜 / 棋盤。' :
     '例：老師話 reading 有進步，但做數太快。';
@@ -1787,7 +1869,7 @@ function v60JaniceDefaultRoutines(){
     {day:'Thursday',name:'⚽ Soccer',start:'3:30 PM',end:'4:30 PM',prep:'水樽、運動鞋',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Thursday',name:'🏊 Swimming',start:'6:00 PM',end:'7:00 PM',prep:'泳衣、毛巾、goggles、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Friday',name:'♟️ Chess',start:'3:30 PM',end:'4:30 PM',prep:'水樽、snack、chess book 如需要',reminder:'前一晚 8:00 PM',impact:'正常'},
-    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課��鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
+    {day:'Saturday',name:'📚 Chinese class',start:'9:20 AM',end:'12:20 PM',prep:'中文書、功課、鉛筆袋、水樽',reminder:'前一晚 8:00 PM',impact:'輕量功課日'},
     {day:'Sunday',name:'📚 QS school',start:'9:00 AM',end:'12:00 PM',prep:'功課、水樽',reminder:'前一晚 8:00 PM',impact:'正常'}
   ];
 }
@@ -2287,7 +2369,7 @@ function v53StartDictation(textareaId, statusId, langSelectId, label='語音輸�
       v58AppendText(textareaId,text);
       v58Status(statusId,'✅ 已加入語音文字，請檢查後再儲存 / Analyze。','live');
     }else{
-      v58Status(statusId,'⚠️ 未聽到清楚內容，可以再試一次或直接打字。','warn');
+      v58Status(statusId,'未聽到清楚內容，可以再試一次或直接打字。','warn');
     }
     v58Recognition=null;
   },25000);
@@ -2601,7 +2683,7 @@ function activityReportHTML(r){
   return `<div class="card" style="box-shadow:none">
     <h2>🏅 Activity Progress Report</h2>
     <div class="reportBlock"><b>1. 今日活動</b><div class="muted">${esc(r.activity||'Activity')}</div></div>
-    <div class="reportBlock"><b>2. 我睇到 / 家長提供咗咩</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
+    <div class="reportBlock"><b>2. 我聽到 / 家長提供咗咩</b><div class="muted">${esc(r.summary||'未有足夠資料')}</div></div>
     <div class="reportBlock"><b>3. 做得好</b>${compactList(r.strengths||[],'能夠持續參與練習本身已經值得肯定。')}</div>
     <div class="reportBlock"><b>4. 需要留意</b>${compactList(r.watchPoints||[],'暫時未有明顯需要留意事項。')}</div>
     <div class="reportBlock"><b>5. 下次練習重點</b><div class="muted">${esc(r.nextPractice||'只設定一個細目標，避免一次練太多。')}</div></div>
@@ -2760,14 +2842,14 @@ function renderHomework(){
     <h2>📚 Homework AI</h2>
     <div class="muted">上載功課圖片，AI 會用目前年級 + 圖中題目 level 去分析。可以一次過選最多 6 張相，例如第 1–6 頁。結果只作學習觀察，不作診斷。</div>
     <div class="parentBetaNote">Beta Parent Mode：上載功課後，AI 會整理成家長易明 report：今日重點、做得好、需要覆核、今晚做一件事。</div>
-    ${v85AdminMode()?`<div class="hwActionNote">Admin debug：V85 保留 QA / technical evidence。正式家長測試預設隱藏。</div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured report</span><span class="qaBadge">✅ Parent mode clean-up</span></div>`:''}
+    ${v85AdminMode()?`<div class="hwActionNote">Admin debug (${v85AdminSource()})：V85 保留 QA / technical evidence。正式家長測試預設隱藏。 <a href="?admin=0">關閉 admin mode</a></div><div><span class="qaBadge">✅ QA passed: syntax</span><span class="qaBadge">✅ Structured report</span><span class="qaBadge">✅ Parent mode clean-up</span></div><label class="qaCheckbox"><input type="checkbox" id="hwBypassCache"> Force fresh analysis / bypass cache (QA only)</label>`:''}
     <label>Upload homework photos（最多 6 張）</label><input id="hwFile" type="file" accept="image/*" multiple>
     <div id="hwPreviewGrid" class="multiPreviewGrid"></div>
     <div id="hwImageInfo" class="hwDebugBox" style="display:none"></div>
     <label>補充文字（可選）</label><textarea id="hwText" placeholder="例：這是 Year 3 worksheet / 有幾題不肯定..."></textarea>
     <div class="actions">
       <button class="btn primary" onclick="analyzeHomework()">🤖 分析功課</button>
-      <button class="btn" onclick="analyzeHomeworkFirstOnly()">只分析第一張</button>
+      <button class="btn" id="hwAnalyzeFirst" onclick="analyzeHomeworkFirstOnly()" style="display:none">只分析第 1 張（多張失敗時用）</button>
       <button class="btn" onclick="clearHomeworkUpload()">Clear</button>
     </div>
     <div id="hwStatus"></div><div id="hwResult"></div>
@@ -2777,6 +2859,13 @@ function renderHomework(){
     ${homeworkHistoryListHTML()}
   </div>`;
   bindHomeworkFiles();
+  updateHomeworkFirstOnlyVisibility();
+}
+function updateHomeworkFirstOnlyVisibility(){
+  const btn=$('hwAnalyzeFirst');
+  if(!btn) return;
+  const count=homeworkImages.length || (homeworkImage?1:0);
+  btn.style.display=count>1?'':'none';
 }
 async function bindHomeworkFiles(){
   const f=$('hwFile');
@@ -2811,7 +2900,9 @@ async function bindHomeworkFiles(){
     const sendCount=Math.min(homeworkImages.length,6);
     const kb=Math.round(JSON.stringify(homeworkImages.slice(0,sendCount)).length/1024);
     if($('hwImageInfo')) $('hwImageInfo').textContent=`已準備 ${homeworkImages.length} 張；會送頭 ${sendCount} 張去 AI。V83 會逐張分析，多張相會自動分批並自動 retry，避免 timeout。估計傳送大小：${kb}KB\n`+info.join('\n');
-    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。V83 會先壓縮；多張相會逐張分析並自動 retry。如仍失敗，請試「只分析第一張」。</div>`;
+    const multi=homeworkImages.length>1;
+    updateHomeworkFirstOnlyVisibility();
+    $('hwStatus').innerHTML=`<div class="notice good">已選擇 ${homeworkImages.length} 張圖片。${multi?'V83 會先壓縮；多張相會逐張分析並自動 retry。如某幾張失敗，可改用「只分析第 1 張」。':'AI 會分析這張功課並整理成家長易明 report。'}</div>`;
   };
 }
 function fileToDataURL(file){
@@ -2867,6 +2958,15 @@ function clearHomeworkUpload(){
   if($('hwText')) $('hwText').value='';
   if($('hwStatus')) $('hwStatus').innerHTML='';
   if($('hwResult')) $('hwResult').innerHTML='';
+  updateHomeworkFirstOnlyVisibility();
+}
+window.clearHomeworkUpload=clearHomeworkUpload;
+function setHomeworkAnalyzing(busy){
+  const ids=['hwFile','hwText','hwBypassCache'];
+  ids.forEach(id=>{const el=$(id);if(el) el.disabled=!!busy;});
+  document.querySelectorAll('#homework .actions .btn').forEach(btn=>{btn.disabled=!!busy;});
+  const status=$('hwStatus');
+  if(status) status.classList.toggle('hwAnalyzing',!!busy);
 }
 function homeworkHistoryListHTML(){
   const list=[...app.homeworkReports].reverse();
@@ -2881,13 +2981,15 @@ function toggleHomeworkHistory(){
   renderHomework();
 }
 function hwRow(h){
-  const report=v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0);
+  const report=v93SanitizeReport(v9611ApplyHomeworkCanonical(v74EnrichHomeworkReport(JSON.parse(JSON.stringify(h.report||{})),h.note||'',h.imageCount||0)));
   const count=h.imageCount?` · ${h.imageCount}張相`:'';
   const source=h.offline?' · 暫存':'';
   const summary=esc(report.shortSummary || report.summary || report.title || 'Homework report');
   const sets=v85ResolvedSkillSets(report);
-  const parentTags=[report.growth?.subject,report.growth?.worksheetLevel,...sets.review.slice(0,2)].filter(Boolean);
-  const adminBits=v85AdminMode()?` · Quality ${report.reportQuality?.score||0}/100`:'';
+  const levelTag=report.growth?.worksheetLevel||report.growth?.childYear;
+  const parentTags=[report.growth?.subject,levelTag,...sets.review.slice(0,2)].filter(Boolean);
+  const qaScore=v84ReportQA(report,{imageCount:h.imageCount||0}).score;
+  const adminBits=v85AdminMode()?` · Quality ${qaScore}/100`:'';
   return `<div class="row homeworkRecentCard">
     <div><b>${new Date(h.date).toLocaleString()}${count}${source}${adminBits}</b>
       <small>${summary}<br>下一步：${esc(v85ConcreteNextStep(report)||report.nextStep||'')}<br>${parentTags.length?`重點：${esc(parentTags.join(' · '))}`:''}</small>
@@ -3290,7 +3392,7 @@ function v79SkillTrend(evidence){
 }
 function v79SkillInterpretation(row){
   const name=row.skill + (row.subSkill && row.subSkill!=='general' ? ' / '+row.subSkill : '');
-  if(row.status==='Strong') return `${name} 暫��表現穩定。`;
+  if(row.status==='Strong') return `${name} 暫時表現穩定。`;
   if(row.status==='Generally Strong') return `${name} 多數正確，偶爾仍可覆核。`;
   if(row.status==='Needs Review') return `${name} 是目前較需要針對練習的位置。`;
   if(row.status==='Mixed') return `${name} 有做得好的證據，也有覆核證據，建議拆細 sub-skill 看。`;
@@ -3692,7 +3794,7 @@ function v74FrameworkHTML(){
   return `<div class="card frameworkBox">
     <h2>📏 Report Quality Framework v2</h2>
     <div class="muted">內部標準：每份 report 要有證據、有分析、有方向、有下一步。</div>
-    <details open><summary>一份 Wow report 要答到咩？</summary>
+    <details open><summary>一份 Wow report 要答到咩？</summary></summary>
       <div class="frameworkBody">
         1. 小朋友目前大概咩程度？<br>
         2. 強項係咩？<br>
@@ -3913,7 +4015,8 @@ async function sendHomeworkToAI(imagesToSend, options={}){
     learningContext:{
       childCurrentYear:app.profile.year,
       childName:app.profile.childName,
-      instruction:'Please compare worksheet level detected from image with child current year, and return a complete parent-friendly homework report.'
+      instruction:'Please compare worksheet level detected from image with child current year, and return a complete parent-friendly homework report.',
+      deterministic:true  // V96.10: request deterministic output (temperature 0)
     }
   };
   const res=await fetch('/.netlify/functions/analyze-homework',{
@@ -3931,16 +4034,191 @@ async function sendHomeworkToAI(imagesToSend, options={}){
   if(!res.ok) throw new Error(data.error || data.detail || data.message || data.raw || ('AI function failed: HTTP '+res.status));
   return data;
 }
+/* V96: message shown when AI analysis fails after the user left the app /
+   backgrounded the tab (iOS Safari can suspend in-flight requests). */
+const V96_BACKGROUND_MSG='AI 分析期間請保持此頁開啟；如離開 App，iPhone 可能會中斷分析。圖片已保留，可重新按分析。';
+/* V96.7: deterministic fingerprint of an uploaded photo set. Same image bytes →
+   same fingerprint, even when uploaded again later. Uses a stable 53-bit string
+   hash (two 32-bit FNV-1a passes) over the raw image data plus the child name,
+   so the same photos for the same child reuse the same normalized report. */
+function v967HashString(str){
+  let h1=0x811c9dc5, h2=0x01000193;
+  for(let i=0;i<str.length;i++){
+    const c=str.charCodeAt(i);
+    h1^=c; h1=Math.imul(h1,0x01000193);
+    h2^=c; h2=Math.imul(h2,0x85ebca6b);
+  }
+  h1>>>=0; h2>>>=0;
+  return (h1.toString(16).padStart(8,'0'))+(h2.toString(16).padStart(8,'0'));
+}
+function v967Fingerprint(images, childName){
+  const imgs=(images||[]).map(x=>String(x||''));
+  // length-prefix each image so concatenation can't collide across boundaries
+  // V96.23: sort the per-image keys so the SAME photo set yields the SAME
+  // fingerprint regardless of upload order, letting repeated multi-photo uploads
+  // (any order) reuse the same canonical report / anchor like single-photo does.
+  const joined=imgs.map(s=>s.length+':'+s).sort().join('\u0001');
+  return v967HashString((childName||'')+'\u0002'+imgs.length+'\u0002'+joined);
+}
+/* V96.7: per-browser cache of fully-analysed photo sets, keyed by fingerprint.
+   Lives inside `app` so it persists via save() / localStorage. Capped so it can't
+   grow without bound. Only COMPLETE (non-partial, non-error) reports are stored. */
+// V96.24: bump after the V96.22 question-level extraction + V96.23 fingerprint
+// changes so reports cached under the older extraction (which stored comparison
+// questions as separate facts, inflating counts e.g. S28 on a 26-question sheet)
+// are retired and re-analysed under the current standard instead of being served
+// as a stale "cache hit". Bump this string whenever extraction/count logic changes.
+const V967_CACHE_VERSION='v96.24-question-level-counts';
+function v967CacheGet(fp){
+  try{
+    const entry=(app.homeworkReportCache && app.homeworkReportCache[fp]) || null;
+    if(!entry || !entry.report) return null;
+    if(entry.cacheVersion!==V967_CACHE_VERSION || entry.report.v967CacheVersion!==V967_CACHE_VERSION){
+      delete app.homeworkReportCache[fp];
+      return null;
+    }
+    if(v9611IsIncompleteCanonicalReport(entry.report)) return null;
+    return entry;
+  }catch(e){ return null; }
+}
+function v967CachePut(fp, report){
+  try{
+    if(!app.homeworkReportCache) app.homeworkReportCache={};
+    const cachedReport=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(report)));
+    cachedReport.v967Fingerprint=fp;
+    cachedReport.v967CacheVersion=V967_CACHE_VERSION;
+    cachedReport.v967CanonicalReportFp=v9611ReportFp(cachedReport);
+    app.homeworkReportCache[fp]={ report:cachedReport, at:new Date().toISOString(), cacheVersion:V967_CACHE_VERSION };
+    // cap to the 12 most recent entries
+    const keys=Object.keys(app.homeworkReportCache);
+    if(keys.length>12){
+      keys.map(k=>({k,at:app.homeworkReportCache[k].at||''}))
+          .sort((a,b)=>a.at<b.at?-1:1)
+          .slice(0,keys.length-12)
+          .forEach(o=>{ delete app.homeworkReportCache[o.k]; });
+    }
+  }catch(e){ /* never let caching break analysis */ }
+}
+/* V96.7/V96.11: internal regression harness (manual; not auto-run). Returns a results
+   object so it can be checked from the console: window.v967SelfTest(). Confirms
+   repeated-run + shuffled-order count/card/hero/skills determinism. */
+window.v967SelfTest=function(){
+  const mk=ev=>({engineV2:{evidence:ev},checkPoints:[],growth:{subject:'Math'}});
+  const base=[
+    {status:'correct',question:'Page 1 | 12 + 7 = 19',studentAnswer:'19',correctAnswer:'19',confidence:'high',skill:'Addition'},
+    {status:'correct',question:'Page 1 | 8 x 3 = 24',studentAnswer:'24',correctAnswer:'24',confidence:'high',skill:'Multiplication'},
+    {status:'wrong',question:'Page 1 | 17 + 15 = 30',studentAnswer:'30',correctAnswer:'32',confidence:'high',skill:'Addition'},
+    {status:'wrong',question:'Page 1 | 17 + 15 = 30',studentAnswer:'30',correctAnswer:'32',confidence:'high',skill:'Addition'},
+    {status:'unclear',question:'Page 2 | Circle the equation with the greatest value: 2 x 9 or 4 x 6',studentAnswer:'2 x 9',correctAnswer:'',confidence:'low',skill:'Comparison'},
+    {status:'missing',question:'Page 2 | 2 days = ? hours',studentAnswer:'未寫',correctAnswer:'48',confidence:'low',skill:'Time'},
+    {status:'wrong',question:'Page 2 | 4:20 + 30 minutes',studentAnswer:'4:40',correctAnswer:'0',confidence:'low',skill:'Time'}
+  ];
+  const shuffle=(a,seed)=>{a=a.slice();for(let i=a.length-1;i>0;i--){seed=(seed*9301+49297)%233280;const j=Math.floor(seed/233280*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const snap=rep=>{
+    const n=v9611NormalizedReport(rep);
+    const c=n?n.counts:{stable:0,wrong:0,review:0,missing:0,total:0};
+    return {
+      stable:c.stable, wrong:c.wrong, review:c.review, missing:c.missing, total:c.total,
+      firstCards:(n?n.rows:[]).slice(0,5).map(e=>v96CleanParentQuestion(String(e.question||''))),
+      hero:n?n.hero:'',
+      skills:n?n.skills:{strong:[],review:[]},
+      reportFp:n?n.reportFp:''
+    };
+  };
+  const a=snap(mk(base)), b=snap(mk(base)), c=snap(mk(shuffle(base,7))), d=snap(mk(shuffle(base,99)));
+  const eq=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+  const fpEq=v967Fingerprint(['imgA','imgB'],'Janice')===v967Fingerprint(['imgA','imgB'],'Janice');
+  const fpDiff=v967Fingerprint(['imgA','imgB'],'Janice')!==v967Fingerprint(['imgB','imgA'],'Janice');
+  const timeCard=q=>{const h=v93ReviewItemHTML({status:'wrong',confidence:'high',question:q,studentAnswer:'x:xx',correctAnswer:'0'},0);const m=h.match(/參考答案<\/span><span class="v96Val">([^<]*)/);return m?m[1]:'(none)';};
+  const results={
+    sameInput:eq(a,b), shuffledC:eq(a,c), shuffledD:eq(a,d), counts:a,
+    fingerprintStable:fpEq, fingerprintOrderSensitive:fpDiff,
+    time_420_30:timeCard('4:20 + 30 minutes'), time_835_30:timeCard('8:35 + 30 minutes'),
+    // V96.11: full report determinism
+    reportFpA:a.reportFp, reportFpB:b.reportFp, reportFpC:c.reportFp,
+    heroA:a.hero.slice(0,50), heroC:c.hero.slice(0,50),
+    skillsA:a.skills, skillsC:c.skills,
+    reportFpStable:a.reportFp===b.reportFp && a.reportFp===c.reportFp,
+    heroStable:a.hero===c.hero,
+    skillsStable:eq(a.skills,c.skills)
+  };
+  results.pass = results.sameInput && results.shuffledC && results.shuffledD && results.fingerprintStable && results.time_420_30==='4:50' && results.time_835_30==='9:05' && results.reportFpStable && results.heroStable && results.skillsStable;
+  return results;
+};
+/* V96.7: expose cache helpers for console debugging and the E2E regression test. */
+window.v967Fingerprint=v967Fingerprint;
+window.v967CacheGet=v967CacheGet;
+window.v967CachePut=v967CachePut;
+/* V96.10: expose normalization helpers for debugging. */
+window.v9610ReportFingerprint=v9610ReportFingerprint;
+window.v9610NormalizeEvidence=v9610NormalizeEvidence;
+window.v9610NormalizeQuestion=v9610NormalizeQuestion;
+/* V96.11: expose single-source-of-truth helpers for debugging. */
+window.v9611NormalizedReport=v9611NormalizedReport;
+window.v9611Counts=v9611Counts;
+window.v9611Hero=v9611Hero;
+window.v9611Skills=v9611Skills;
+window.v9611ReportFp=v9611ReportFp;
 async function runHomeworkAnalysis(imagesToSend, modeLabel){
+  setHomeworkAnalyzing(true);
   const text=$('hwText').value.trim();
   const kb=Math.round(JSON.stringify(imagesToSend).length/1024);
-  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課... ${modeLabel}，約 ${kb}KB。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   const baseRecord={id:'hw_'+Date.now(),date:new Date().toISOString(),imageCount:imagesToSend.length,note:text};
+  // V96.7: if this exact photo set was already fully analysed, reuse that report so
+  // identical uploads can never produce a different parent report.
+  // V96.8: QA bypass checkbox skips the immediate cache return.
+  // V96.12: if QA runs Force Fresh again for the same fingerprint, keep the
+  // parent-facing report anchored to the first complete canonical report.
+  const bypassCache=!!($('hwBypassCache')&&$('hwBypassCache').checked);
+  const fp=v967Fingerprint(imagesToSend, app.profile&&app.profile.childName);
+  const cachedAnchor=v967CacheGet(fp);
+  const cached=bypassCache?null:cachedAnchor;
+  if(cached && cached.report){
+    const report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cached.report)));
+    report.v967Fingerprint=fp;
+    report.v967CacheVersion=V967_CACHE_VERSION;
+    report.v967CanonicalReportFp=v9611ReportFp(report);
+    if(report.runtime){ report.runtime.reusedFromCache=true; report.runtime.completedAt=new Date().toISOString(); report.runtime.cacheVersion=V967_CACHE_VERSION; }
+    app.homeworkReports.push({...baseRecord,report,offline:false,reusedFromCache:true});
+    save();
+    renderHomework();
+    setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
+    const counts=v96ReviewCounts(report);
+    const reportFp=v9611ReportFp(report);
+    const cacheParentNote=v85AdminMode()?'':'<div class="muted" style="margin-top:6px">已用之前同一批相的分析結果，所以會即時顯示。</div>';
+    $('hwStatus').innerHTML=`<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${cacheParentNote}${v85AdminMode()?`<div class="debugPills"><span class="debugPill">cache hit</span><span class="debugPill">photo: ${fp.slice(0,8)}…</span><span class="debugPill">report: ${reportFp.slice(0,8)}…</span><span class="debugPill">S${counts.stable}|W${counts.definiteWrong}|R${counts.needsReview}|M${counts.missing}</span></div>`:''}</div>`;
+    setHomeworkAnalyzing(false);
+    return;
+  }
+  $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課… ${modeLabel}，約 ${kb}KB。AI 需要一點時間，請保持此頁開啟；離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
+  // Track whether the page was hidden (user left the app) while analysis was running.
+  let wentHidden=false;
+  const onVis=()=>{ if(document.hidden) wentHidden=true; };
+  document.addEventListener('visibilitychange',onVis);
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
-    const report=normalizeHomeworkReport(data,text,imagesToSend.length);
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
+    let report=normalizeHomeworkReport(data,text,imagesToSend.length);
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
+    report.v967Fingerprint=fp;
+    if(!partial) report=v9611ApplyHomeworkCanonical(report);
+    let anchoredFresh=false;
+    if(!partial && bypassCache && cachedAnchor && cachedAnchor.report){
+      const freshRuntime=report.runtime||{};
+      report=v9611ApplyHomeworkCanonical(JSON.parse(JSON.stringify(cachedAnchor.report)));
+      report.v967Fingerprint=fp;
+      report.v967CacheVersion=V967_CACHE_VERSION;
+      report.v967CanonicalReportFp=v9611ReportFp(report);
+      report.runtime={...(report.runtime||{}),...freshRuntime,parentAnchoredToFirstComplete:true,cacheVersion:V967_CACHE_VERSION};
+      anchoredFresh=true;
+    }
+    // V96.7: only cache COMPLETE analyses, so partial/failed runs never poison reuse.
+    if(!partial && !anchoredFresh) v967CachePut(fp, report);
+    if(!partial){
+      report.v967CacheVersion=V967_CACHE_VERSION;
+      report.v967CanonicalReportFp=v9611ReportFp(report);
+      if(report.runtime) report.runtime.cacheVersion=V967_CACHE_VERSION;
+    }
     app.homeworkReports.push({...baseRecord,report,offline:false,route:data.route,model:data.model,debug:data.debug||{}});
     save();
     renderHomework();
@@ -3950,15 +4228,29 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     const partialMsg=ps.isPartial
       ? `只完成部分分析：${ps.analyzed} / ${ps.total} 張已分析，另有 ${ps.failed} 張未完成。為避免誤導，這次不會當成完整功課分析；請把未完成那幾張重新拍清楚再試。`
       : `圖片已保存，但今次 AI 未能完整完成所有分析。請看下面提示，或先用「只分析第一張」再試。`;
-    $('hwStatus').innerHTML= partial ? `<div class="notice">${partialMsg}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>` : `<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()&&data.model?(' Model: '+esc(data.model)):''}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
+    // V96.8/V96.11: show counts, cache status, and drift detection for QA
+    const counts=v96ReviewCounts(report);
+    const reportFp=v9611ReportFp(report);
+    const cacheStatusPill=anchoredFresh?'fresh + stable parent anchor':(bypassCache?'fresh (bypass)':'fresh analysis');
+    // V96.11: robust drift detection - compare all components
+    const cachedReport=v967CacheGet(fp);
+    const cachedReportFp=cachedReport&&cachedReport.report?v9611ReportFp(cachedReport.report):null;
+    const driftPill=(cachedReportFp && cachedReportFp!==reportFp)?'DRIFT':'stable';
+    $('hwStatus').innerHTML= partial ? `<div class="notice">${partialMsg}${v85AdminMode()&&dbg.length?`<div class="debugPills">${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>` : `<div class="notice good">分析完成，已保存到最近功課分析。請看下面完整 report。${v85AdminMode()?` Model: ${esc(data.model||'?')}<div class="debugPills"><span class="debugPill">${cacheStatusPill}</span><span class="debugPill">photo: ${fp.slice(0,8)}…</span><span class="debugPill">report: ${reportFp.slice(0,8)}…</span><span class="debugPill">${driftPill}</span><span class="debugPill">S${counts.stable}|W${counts.definiteWrong}|R${counts.needsReview}|M${counts.missing}</span>${dbg.map(x=>`<span class="debugPill">${esc(x)}</span>`).join('')}</div>`:''}</div>`;
   }catch(e){
+    const backgrounded=wentHidden || document.hidden;
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
-    report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
-    app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e)});
+    report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,backgrounded,completedAt:new Date().toISOString()};
+    app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e),backgrounded});
     save();
     renderHomework();
     setTimeout(()=>viewHomeworkReport(baseRecord.id, true),80);
-    $('hwStatus').innerHTML=`<div class="notice">AI 暫時未能完成分析，但圖片已保存。請先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`;
+    $('hwStatus').innerHTML= backgrounded
+      ? `<div class="notice">${V96_BACKGROUND_MSG}${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`
+      : `<div class="notice">AI 暫時未能完成分析，但圖片已保存。請先用「只分析第一張」測試；如仍失敗，請重新拍清晰一點或減少反光。${v85AdminMode()?`<div class="reliabilityWarn">${esc(e.message||String(e))}</div>`:''}</div>`;
+  }finally{
+    document.removeEventListener('visibilitychange',onVis);
+    setHomeworkAnalyzing(false);
   }
 }
 window.analyzeHomework=async()=>{
@@ -4007,20 +4299,319 @@ function v82IsTrueQuestionEvidence(e){
   return hasMath || hasChoice || specific;
 }
 function v82EvidenceSignature(e){
-  const q=v82CleanText(e.question).toLowerCase().replace(/^q\d+:\s*/,'');
-  const ans=v82CleanText(e.studentAnswer).toLowerCase();
-  const corr=v82CleanText(e.correctAnswer).toLowerCase();
+  // V96.10: use the stronger normalized signature for deterministic deduping
+  const q=v9610NormalizeQuestion(e.question||'');
+  const ans=v9610NormalizeAnswer(e.studentAnswer||'');
+  const corr=v9610NormalizeAnswer(e.correctAnswer||'');
   const sub=v82CleanText(e.subSkill).toLowerCase();
+  const page=v96PageOf(e);
   // For reading, one card per real question / focus / answer.
   if(e.skill==='Reading Comprehension'){
     if(ans && ans!=='-' && corr && corr!=='-') return `reading|${sub}|${ans}|${corr}`;
     return `reading|${sub}|${q.slice(0,80)}`;
   }
-  return `${e.skill}|${sub}|${q}|${ans}|${corr}`;
+  return `${page}|${e.skill}|${sub}|${q}|${ans}|${corr}`;
 }
+/* V96.10: stronger question/answer normalization for determinism.
+   The AI often returns the same question with slightly different wording
+   (e.g. "12 + 7" vs "12+7", "4:20" vs "4:20 pm"). This normalizer produces
+   a canonical form so identical mathematical questions merge. */
+function v9610NormalizeQuestion(q){
+  let s=String(q||'');
+  // strip debug-row structure
+  s=v96CleanParentQuestion(s);
+  // lowercase, collapse whitespace
+  s=s.toLowerCase().replace(/\s+/g,' ').trim();
+  // normalize operators and punctuation
+  s=s.replace(/\s*([+\-×x*÷\/=])\s*/g,'$1');
+  // normalize time formats: "4 : 20" → "4:20"
+  s=s.replace(/(\d)\s*:\s*(\d)/g,'$1:$2');
+  // strip trailing punctuation
+  s=s.replace(/[.?？。！!,，]+$/,'');
+  return s;
+}
+function v9610NormalizeAnswer(a){
+  let s=String(a||'').trim();
+  // strip common noise
+  s=s.replace(/^(answer|ans|correct answer|student answer|child answer|答案)[:\s]*/i,'');
+  // normalize time formats
+  s=s.replace(/(\d)\s*:\s*(\d)/g,'$1:$2');
+  // normalize operators
+  s=s.replace(/\s*([+\-×x*÷\/=])\s*/g,'$1');
+  // lowercase, collapse whitespace
+  s=s.toLowerCase().replace(/\s+/g,' ').trim();
+  return s;
+}
+/* V96.10: stronger evidence signature using normalized fields. */
+function v9610EvidenceSignature(e){
+  const q=v9610NormalizeQuestion(e.question||'');
+  const stu=v9610NormalizeAnswer(e.studentAnswer||'');
+  const exp=v9610NormalizeAnswer(e.correctAnswer||'');
+  const page=v96PageOf(e);
+  return `${page}|${q}|${stu}|${exp}`;
+}
+/* V96.10: dedupe and normalize evidence with stronger rules. This runs on raw
+   AI evidence BEFORE v82CleanEvidence and produces a more stable item list. */
+function v9610NormalizeEvidence(rawEvidence){
+  const arr=(rawEvidence||[]).slice();
+  // sort by page, then question text for deterministic ordering
+  arr.sort((a,b)=>{
+    const pa=v96PageOf(a), pb=v96PageOf(b);
+    if(pa!==pb) return pa-pb;
+    const qa=v9610NormalizeQuestion(a.question||''), qb=v9610NormalizeQuestion(b.question||'');
+    if(qa<qb) return -1; if(qa>qb) return 1;
+    return 0;
+  });
+  // dedupe by normalized signature, keeping the first occurrence
+  const seen=new Set(); const out=[];
+  arr.forEach(e=>{
+    const sig=v9610EvidenceSignature(e);
+    if(seen.has(sig)) return;
+    seen.add(sig);
+    out.push(e);
+  });
+  return out;
+}
+/* V96.10: compute a fingerprint of the normalized report for drift detection. */
+function v9610ReportFingerprint(report){
+  const counts=v96ReviewCounts(report);
+  const items=counts.rows.slice(0,10).map(e=>v9610EvidenceSignature(e)).join('|');
+  return v967HashString(`${counts.stable}|${counts.definiteWrong}|${counts.needsReview}|${counts.missing}|${items}`);
+}
+
+/* V96.11: SINGLE SOURCE OF TRUTH architecture.
+   The AI is inherently non-deterministic. To produce deterministic parent reports,
+   we normalize the raw AI output into a canonical form ONCE, then derive ALL
+   report components (hero, skill tags, growth memory, cards, counts) from that
+   single normalized object. This ensures the same normalized report always
+   produces the same parent-facing output. */
+
+// V96.11: normalize skill tag text for deterministic comparison
+function v9611NormalizeSkillTag(tag){
+  let s=String(tag||'').trim();
+  // strip leading emoji/numbers
+  s=s.replace(/^[⚠️✅🧠💬📌🌟✨🏷️🔎0-9.\s]+/,'');
+  // normalize common variants
+  s=s.replace(/addition|加法|加數/gi,'Addition')
+     .replace(/subtraction|減法|減數/gi,'Subtraction')
+     .replace(/multiplication|乘法|乘數/gi,'Multiplication')
+     .replace(/division|除法|除數/gi,'Division')
+     .replace(/time|時間|clock/gi,'Time')
+     .replace(/reading comprehension|閱讀理解/gi,'Reading Comprehension')
+     .replace(/spelling|拼字/gi,'Spelling')
+     .replace(/place value|位值/gi,'Place Value');
+  // lowercase, collapse whitespace, trim
+  s=s.toLowerCase().replace(/\s+/g,' ').trim();
+  if(s==='additio') s='addition';
+  if(/^(ad|n\/?a|na|none|null|undefined)$/.test(s)) return '';
+  return s;
+}
+
+// V96.11: extract skill tags deterministically from evidence only
+function v9611SkillsFromEvidence(rows){
+  const strong=new Set(), review=new Set();
+  rows.forEach(e=>{
+    const skill=v9611NormalizeSkillTag(e.skill||e.subSkill||'');
+    if(!skill || skill.length<2) return;
+    const ds=v96DisplayStatus(e);
+    if(ds==='ok') strong.add(skill);
+    else if(ds==='wrong'||ds==='review'||ds==='missing') review.add(skill);
+  });
+  // remove from strong if also in review
+  review.forEach(s=>strong.delete(s));
+  return {
+    strong:Array.from(strong).sort().slice(0,5),
+    review:Array.from(review).sort().slice(0,5)
+  };
+}
+
+function v9615ArithmeticFacts(question){
+  const q=String(question||'');
+  const m=q.match(/(\d+)\s*([+\-xX*×÷\/])\s*(\d+)/);
+  if(!m) return null;
+  const a=parseInt(m[1],10), b=parseInt(m[3],10), op=m[2];
+  const twoDigit=(a>=10?1:0)+(b>=10?1:0);
+  return {a,b,op,twoDigit,carry:/[+]/.test(op) && (a%10)+(b%10)>=10,borrow:/-/.test(op) && (a%10)<(b%10)};
+}
+
+function v9615TonightScore(e){
+  const d=v96DisplayStatus(e);
+  const q=v96CleanParentQuestion(e?.question||'');
+  let score=0;
+  if(d==='wrong') score+=100;
+  else if(d==='review') score+=70;
+  else if(d==='missing') score+=35;
+  if(v96QType(e)==='arith') score+=35;
+  const f=v9615ArithmeticFacts(q);
+  if(f){
+    score+=20+f.twoDigit*18;
+    if(f.carry||f.borrow) score+=35;
+    if(/[xX*×]/.test(f.op) && f.a>1 && f.b>1) score+=18;
+    if((f.a<=2||f.b<=2) && f.twoDigit<2 && !f.carry && !f.borrow) score-=20;
+  }
+  if(/place value|carry|carrying|位值|進位/i.test([q,e?.skill,e?.subSkill].join(' '))) score+=25;
+  if(q.length>8) score+=Math.min(15,Math.floor(q.length/8));
+  return score;
+}
+
+function v9615PickTonightRow(rows){
+  const candidates=(rows||[]).filter(e=>v96DisplayStatus(e)!=='ok');
+  if(!candidates.length) return null;
+  return candidates.slice().sort((a,b)=>v9615TonightScore(b)-v9615TonightScore(a))[0];
+}
+
+// V96.11: the single normalized report object, cached per report instance
+const _v9611Cache=new WeakMap();
+function v9611NormalizedReport(report){
+  if(!report) return null;
+  if(_v9611Cache.has(report)) return _v9611Cache.get(report);
+  
+  // 1. Get the normalized, deduped, sorted evidence rows
+  const rows=v96VisibleRows(report);
+  
+  // 2. Count by display status, all from ONE deduped normalized item list.
+  const counts={stable:0, wrong:0, review:0, missing:0, total:0};
+  const allEvidence=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  // V96.21: derive the stable (做得穩) count from the SAME deduped item list as
+  // the review rows, via v96StableKey, instead of the raw un-deduped evidence
+  // list. Counting raw evidence let duplicate "correct" lines inflate the total
+  // (e.g. 27/28 stable on a 26-question worksheet). Now stable, wrong, review and
+  // missing all come from one grounded, deduped question list.
+  counts.stable=v96StableCount(report);
+  rows.forEach(e=>{
+    const ds=v96DisplayStatus(e);
+    if(ds==='wrong') counts.wrong++;
+    else if(ds==='review') counts.review++;
+    else if(ds==='missing') counts.missing++;
+    counts.total++;
+  });
+  
+  // 3. Derive skill tags deterministically from evidence only
+  const skills=v9611SkillsFromEvidence([...allEvidence,...rows]);
+  
+  // 4. Generate hero summary deterministically from counts
+  const subject=String(report?.growth?.subject||'');
+  const isMath=/Math|數學|Addition|Multiplication/i.test(subject) || 
+               allEvidence.some(x=>/[+\-xX*×÷\/]/.test(x.question||''));
+  let hero='';
+  if(counts.total){
+    if(isMath){
+      hero=`今日最值得留意：${v92ChildLabel()} 有 ${counts.stable} 題做得穩，${counts.total} 個位值得覆核；今晚集中講一題代表性題目就夠。`;
+    }else{
+      hero=`今日最值得留意：AI 找到 ${counts.total} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
+    }
+  }else if(counts.stable){
+    if(isMath){
+      hero=`今日最值得留意：${v92ChildLabel()} 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
+    }else if(skills.strong.length){
+      hero=`今日最值得留意：${v92ChildLabel()} 在 ${skills.strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
+    }else{
+      hero='今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
+    }
+  }else{
+    hero='今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
+  }
+  
+  // 5. Generate tonight task from the most educationally representative item.
+  let tonight='今晚只揀一題最有代表性的題目慢慢講解。';
+  if(rows.length){
+    const first=v9615PickTonightRow(rows)||rows[0];
+    tonight=`今晚只做一題：${v96CleanParentQuestion(first.question||'')||'選一題'}。先讀題目要求，再講 ${v92ChildLabel()} 答案同正確答案有咩分別。`;
+  }
+  
+  // 6. Compute report fingerprint from ALL normalized outputs
+  const itemSigs=rows.slice(0,15).map(e=>v9610EvidenceSignature(e)).join('|');
+  const skillSigs=[...skills.strong,...skills.review].sort().join('|');
+  const fpInput=`${counts.stable}|${counts.wrong}|${counts.review}|${counts.missing}|${itemSigs}|${skillSigs}|${hero.slice(0,50)}`;
+  const reportFp=v967HashString(fpInput);
+  
+  const normalized={
+    rows,
+    counts,
+    skills,
+    hero,
+    tonight,
+    reportFp,
+    subject,
+    isMath
+  };
+  
+  _v9611Cache.set(report, normalized);
+  return normalized;
+}
+
+// V96.11: get counts from the single source
+function v9611Counts(report){
+  const n=v9611NormalizedReport(report);
+  return n?n.counts:{stable:0,wrong:0,review:0,missing:0,total:0};
+}
+
+// V96.11: get hero summary from the single source
+function v9611Hero(report){
+  const n=v9611NormalizedReport(report);
+  return n?n.hero:'';
+}
+
+// V96.11: get skill tags from the single source
+function v9611Skills(report){
+  const n=v9611NormalizedReport(report);
+  return n?n.skills:{strong:[],review:[]};
+}
+
+// V96.11: get report fingerprint from the single source
+function v9611ReportFp(report){
+  const n=v9611NormalizedReport(report);
+  return n?n.reportFp:'';
+}
+function v9611IsIncompleteCanonicalReport(report){
+  const rt=report?.runtime||{};
+  const debug=rt.debug||report?.debug||{};
+  return rt.partial===true ||
+    rt.incomplete===true ||
+    rt.success===false ||
+    !!rt.error ||
+    report?.reportQuality?.checks?.analysisComplete===false ||
+    (Array.isArray(debug.errors) && debug.errors.length>0);
+}
+/* Beta stability: freeze parent-facing fields from v9611 before save/display so
+   hero, tonight task, skill tags and strengths stay aligned with evidence counts. */
+function v9611ApplyHomeworkCanonical(report){
+  if(!report) return report;
+  if(_v9611Cache.has(report)) _v9611Cache.delete(report);
+  const n=v9611NormalizedReport(report);
+  if(!n) return report;
+  const incomplete=v9611IsIncompleteCanonicalReport(report);
+  if(!incomplete){
+    report.wowSummary=n.hero;
+    report.nextStep=n.tonight;
+    report.shortSummary=String(n.hero||'').slice(0,180);
+  }
+  report.growth=report.growth||{};
+  report.growth.skillsStrong=n.skills.strong.slice();
+  report.growth.skillsToReview=n.skills.review.slice();
+  const stableEv=(v82CleanEvidence(report.engineV2?.evidence||[])||[])
+    .filter(e=>v96DisplayStatus(e)==='ok');
+  const strengthLines=[];
+  stableEv.slice(0,5).forEach(e=>{
+    const q=v96CleanParentQuestion(e.question||'');
+    if(q) strengthLines.push(`在 ${q} 答得正確。`);
+  });
+  if(!strengthLines.length && n.skills.strong.length){
+    n.skills.strong.forEach(s=>{
+      const zh=v96ZhSkill(s)||s;
+      strengthLines.push(`在 ${zh} 方面有穩定表現。`);
+    });
+  }
+  if(!incomplete && strengthLines.length) report.strengths=v84Unique(strengthLines).slice(0,6);
+  report.v9611AppliedAt=new Date().toISOString();
+  return report;
+}
+window.v9611ApplyHomeworkCanonical=v9611ApplyHomeworkCanonical;
 function v82CleanEvidence(evidence){
+  // V96.10: apply stronger normalization first for deterministic deduping
+  const normalized=v9610NormalizeEvidence(evidence||[]);
   const out=[]; const seen=new Set();
-  (v80FilterEvidence(evidence||[])||[]).forEach(e=>{
+  (v80FilterEvidence(normalized)||[]).forEach(e=>{
     if(!v82IsTrueQuestionEvidence(e)) return;
     const fixed={...e};
     if(fixed.skill==='Reading Comprehension' && (!fixed.studentAnswer || fixed.studentAnswer==='all answered')){
@@ -4033,6 +4624,29 @@ function v82CleanEvidence(evidence){
     out.push(fixed);
   });
   return out.slice(0,60);
+}
+function v9611ReviewDedupeKey(e){
+  const q=v9610NormalizeQuestion(e?.question||'');
+  const topic=v9618ReviewTopicKey(e);
+  let corr=v9610NormalizeAnswer(e?.correctAnswer||'');
+  const exp=v96ArithExpected(e);
+  const ref=v96RefNumber(e);
+  if(exp!==null && isFinite(exp)) corr=String(exp);
+  else if(ref!==null && isFinite(ref)) corr=String(ref);
+  return `${v96DisplayStatus(e)}|p${v96PageOf(e)}|${topic||q}|${corr}`;
+}
+function v9618ReviewTopicKey(e){
+  const q=String(e?.question||'').toLowerCase().replace(/\s+/g,' ');
+  const skill=String(e?.skill||e?.subSkill||'').toLowerCase();
+  const text=`${q} ${skill}`;
+  const time=text.match(/(\d{1,2})\s*[:：]\s*(\d{2}).{0,30}30\s*(?:mins?|minutes?|分)/i);
+  if(time) return `time-plus-30-${parseInt(time[1],10)}:${time[2]}`;
+  if(/2\s*days?.{0,20}hours?/.test(text)) return 'unit-2-days-hours';
+  if(/jane/.test(text) && /(save|saves|saving|spend|spent|half|儲|半)/.test(text)) return 'jane-saves-half';
+  if(/justin/.test(text) && /(age|歲|mum|媽媽|爸爸|father|dad)/.test(text)) return 'justin-age';
+  if(/shape|1-d|2-d|1d|2d|圖形|circle/.test(text) && /(classif|圈|circle|draw)/.test(text)) return 'shape-classification';
+  if(/taylah|temperature|溫度/.test(text)) return 'temperature-taylah';
+  return '';
 }
 function v79SkillTrend(evidence){
   const map={};
@@ -4200,8 +4814,8 @@ function v84ReportQA(report, record={}){
   if(contradictions===0){score+=15; reasons.push(['pass','未見分類矛盾']);} else reasons.push(['fail',`發現 ${contradictions} 個分類矛盾`]);
   if(hasStrong){score+=10; reasons.push(['pass','有具體 strong skill / 做得好位置']);} else reasons.push(['warn','strong skill 不夠具體']);
   if(trueReview.length || v82ReviewList(report).some(x=>/暫未見明確錯題/.test(x))){score+=10; reasons.push(['pass','覆核區有清楚規則']);} else reasons.push(['warn','覆核區未夠乾淨']);
-  if(hasParent){score+=10; reasons.push(['pass','有家長可讀解讀']);} else reasons.push(['warn','缺少家長解讀']);
-  if(hasNext){score+=10; reasons.push(['pass','有今晚可做的一件事']);} else reasons.push(['warn','缺少具體 next step']);
+  if(hasParent){score+=10; reasons.push(['pass','有家長可讀解讀']);} else reasons.push(['warn','缺乏家長解讀']);
+  if(hasNext){score+=10; reasons.push(['pass','有今晚可做嘅一件事']);} else reasons.push(['warn','缺少具體 next step']);
   if(noisyRaw<=3){score+=5; reasons.push(['pass','technical noise 已控制']);} else reasons.push(['warn',`仍有 ${noisyRaw} 條 evidence 被清走`]);
   if(low){score=Math.min(score,78); reasons.push(['warn','Confidence Low：trial 時要小心解讀']);}
   score=Math.max(0,Math.min(95,Math.round(score)));
@@ -4211,28 +4825,12 @@ function v84ReportQA(report, record={}){
   return {score,label,cls,reasons,incomplete,confidence,evidenceCount:e.length,readingCount:reading.length,contradictions,noisyRaw};
 }
 function v84WowSummary(report, record={}){
-  if(report?.wowSummary) return String(report.wowSummary).trim();
   if(v84IsIncompleteReport(report,record)){
     const n=record?.imageCount||report?.growth?.imageCount||0;
     return `已收到${n?` ${n} 張`:''}功課圖片，但 AI 未完成分析；今次只作 upload 保存，請稍後重試或先分析第一張。`;
   }
-  const e=v82CleanEvidence(report?.engineV2?.evidence||[]);
-  const reading=v82ReadingRows(e);
-  const review=v82TrueReviewEvidence(report);
-  const strong=v84CleanSkills(report?.growth?.skillsStrong||[]);
-  const subject=String(report?.growth?.subject||'');
-  if(reading.length>=3 && reading.every(x=>x.status==='correct')){
-    const skills=v84Unique(reading.map(x=>v82NiceFocus(x).replace(/ \/ .*/,'')).filter(Boolean)).slice(0,4).join('、');
-    return `今日最值得留意：${v92ChildLabel()} 能處理${report?.growth?.worksheetLevel||'這份'}英文閱讀，${skills||'reading detail'} 都答得穩，顯示佢開始掌握題目重點。`;
-  }
-  if(/Math|數學|Addition|Multiplication/i.test(subject) || e.some(x=>/[+\-xX*×÷\/]/.test(x.question||''))){
-    const correct=e.filter(x=>x.status==='correct').length, wrong=e.filter(x=>x.status==='wrong').length;
-    if(wrong) return `今日最值得留意：${v92ChildLabel()} 有 ${correct} 題做得穩，但有 ${wrong} 個位值得覆核；今晚集中講一題代表性錯題就夠。`;
-    if(correct) return `今日最值得留意：${v92ChildLabel()} 今次數學題大多能完成，暫未見明確錯題，可以請佢講一次計算步驟。`;
-  }
-  if(review.length) return `今日最值得留意：AI 找到 ${review.length} 個需要覆核的位置；先不要急住做多，今晚只揀一題慢慢講解。`;
-  if(strong.length) return `今日最值得留意：${v92ChildLabel()} 在 ${strong.slice(0,3).join('、')} 有正面表現；下一步是請佢用一句說話解釋點解。`;
-  return v82ParentInsight(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
+  // V96.11 / beta stability: parent hero always from normalized evidence (not raw AI wowSummary).
+  return v9611Hero(report) || '今日最值得留意：已完成功課分析，可用下面 next step 做一個小練習。';
 }
 function v84QAHTML(report, record={}){
   const qa=v84ReportQA(report,record);
@@ -4258,15 +4856,52 @@ function v84TrialChecklistHTML(){
 }
 
 
+/* V96.17: explicit admin mode only. Admin/QA tools appear only when the
+   current URL has ?admin=1. Normal links, ?admin=0, and Home Screen launches
+   stay parent-clean, including the Janice test profile. */
+let _v85AdminSource='none';
+function v85AdminModeInit(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    if(qs.get('admin')==='1'){
+      localStorage.removeItem('childGrowthAdminMode');
+      _v85AdminSource='query';
+    }else{
+      localStorage.removeItem('childGrowthAdminMode');
+      _v85AdminSource='none';
+    }
+  }catch(e){}
+}
+function v85IsHomeScreenOrAdmin(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    if(qs.get('admin')==='1') return true;
+    return qs.get('homescreen')==='1' || (typeof v89IsStandalone==='function' && v89IsStandalone());
+  }catch(e){return false;}
+}
+v85AdminModeInit();
 function v85AdminMode(){
   try{
     const qs=new URLSearchParams(location.search);
-    return qs.get('admin')==='1' || localStorage.getItem('childGrowthAdminMode')==='1';
+    return qs.get('admin')==='1';
   }catch(e){return false;}
+}
+function v85HomeScreenJaniceAdmin(){
+  try{
+    const qs=new URLSearchParams(location.search);
+    const homescreen=qs.get('homescreen')==='1' || (typeof v89IsStandalone==='function' && v89IsStandalone());
+    const done=app?.settings?.betaOnboardingDone===true;
+    const child=String(app?.profile?.childName||'').trim();
+    return homescreen && done && /^janice$/i.test(child);
+  }catch(e){return false;}
+}
+function v85AdminSource(){
+  return v85AdminMode()?_v85AdminSource:'none';
 }
 function v85NormalizeSkillTag(x){
   if(v85IsSectionHeadingLine && v85IsSectionHeadingLine(x)) return '';
   let s=String(x||'').trim().toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ');
+  if(s==='additio') return 'Addition';
   if(!s || /需要覆核的位置|已做得好的地方|可能出錯原因|給家長的簡短解讀|今晚只做一件事/.test(s)) return '';
   if(/present|past|tense|verb tense|時態/.test(s)) return 'present vs past tense';
   if(/instruction|讀題|question requirement|題目要求/.test(s)) return 'reading instructions';
@@ -4279,17 +4914,8 @@ function v85NormalizeSkillTag(x){
   return String(x||'').trim();
 }
 function v85ResolvedSkillSets(report){
-  const ev=v82CleanEvidence(report?.engineV2?.evidence||[]);
-  const trueReview=v82TrueReviewEvidence(report);
-  const strongFromEvidence=ev.filter(e=>e.status==='correct').map(e=>v85NormalizeSkillTag(e.subSkill||e.skill)).filter(Boolean);
-  const reviewFromEvidence=trueReview.map(e=>v85NormalizeSkillTag(e.subSkill||e.skill)).filter(Boolean);
-  const strongRaw=[...(report?.growth?.skillsStrong||[]),...(report?.strengths||[])].map(v85NormalizeSkillTag).filter(Boolean);
-  const reviewRaw=[...(report?.growth?.skillsToReview||[]),...(report?.growth?.errorTypes||[]),...(report?.checkPoints||[])].map(v85NormalizeSkillTag).filter(Boolean);
-  let strong=v84Unique([...strongFromEvidence,...strongRaw]);
-  let review=v84Unique([...reviewFromEvidence,...reviewRaw]);
-  review=review.filter(x=>!strong.includes(x) || reviewFromEvidence.includes(x));
-  strong=strong.filter(x=>!reviewFromEvidence.includes(x));
-  return {strong:strong.slice(0,5), review:review.slice(0,5)};
+  // V96.11: use the single source of truth for deterministic skill tags
+  return v9611Skills(report);
 }
 function v85ParentModeTags(report){
   const sets=v85ResolvedSkillSets(report);
@@ -4300,16 +4926,10 @@ function v85ParentModeTags(report){
   </div>`;
 }
 function v85ConcreteNextStep(report){
-  const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
-  if(/past|present|tense|時態|rided|rides|played|plays|cooked|cooks|drives|drove/i.test(txt)){
-    return '今晚只做第 1 題：先問「題目要你寫 past/present，定係要你改動詞？」再圈出 rides，判斷這句是 present。';
-  }
-  const review=v82TrueReviewEvidence(report);
-  if(review.length){
-    const e=review[0];
-    return `今晚只做一題：${e.question||'選一題'}。先讀題目要求，再講 ${v92ChildLabel()} 答案同正確答案有咩分別。`;
-  }
-  return v82NextStep(report);
+  // V96.11: use the single source of truth for deterministic tonight task
+  const n=v9611NormalizedReport(report);
+  if(n && n.tonight) return n.tonight;
+  return '今晚只揀一題最有代表性的題目慢慢講解。';
 }
 function v85ParentInsight(report){
   const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
@@ -4324,9 +4944,22 @@ function v85CleanReviewList(report){
   return clean.length?clean:['暫未見明確錯題。'];
 }
 function v85ParentStrengths(report){
-  const arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認/.test(x));
+  let arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認|暫時未有足夠|insufficient/i.test(x));
+  if(!arr.length){
+    const sets=v85ResolvedSkillSets(report);
+    if(sets.strong.length){
+      arr=sets.strong.map(s=>`在 ${v96ZhSkill(s)||s} 方面有穩定表現。`);
+    }
+    const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
+      .filter(e=>v96DisplayStatus(e)==='ok').slice(0,4);
+    stableEv.forEach(e=>{
+      const q=v96CleanParentQuestion(e.question||'');
+      if(q && !arr.some(x=>x.includes(q))) arr.push(`在 ${q} 答得正確。`);
+    });
+  }
   const txt=[report?.summary,report?.rawAnalysis].join(' ');
-  if(/word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
+  const isMathReport=!!(v9611NormalizedReport(report)?.isMath);
+  if(!isMathReport && /word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
     if(!arr.some(x=>/word search|拼字|單字/.test(x))) arr.unshift('Word search / spelling 部分能找到多個目標單字，拼字搜尋能力不錯。');
   }
   return arr;
@@ -4334,8 +4967,22 @@ function v85ParentStrengths(report){
 
 
 /* V92 Review Detail Drilldown */
+/* V96: never surface placeholder / test profile names in the parent report.
+   Falls back to a neutral label (小朋友 / Student) when the stored name looks
+   like a test or demo value. */
+function v96IsPlaceholderName(name){
+  const s=String(name||'').trim().toLowerCase();
+  if(!s) return true;
+  return /^(test|tester|test child|demo|sample|child|student|kid|user|untitled|n\/?a|na|none|null|undefined|小朋友|學生|小朋友名|測試)$/i.test(s)
+    || /\btest\b/i.test(s);
+}
+function v96ChildLabel(lang){
+  const raw=String(app?.profile?.childName||'').trim();
+  if(!v96IsPlaceholderName(raw)) return raw;
+  return (lang==='en') ? 'Student' : '小朋友';
+}
 function v92ChildLabel(){
-  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+  return v96ChildLabel();
 }
 function v92ReviewStatusLabel(status){
   if(status==='wrong') return '明確錯';
@@ -4378,6 +5025,14 @@ function v92ParseReviewLine(line){
   }
   return {status, question:q, studentAnswer:ans, correctAnswer:corr, skill:'', subSkill:'', confidence:'low', source:'checkpoint'};
 }
+function v9616IsConcreteReviewItem(x){
+  const q=String(x?.question||'');
+  const ans=String(x?.studentAnswer||'').trim();
+  const corr=String(x?.correctAnswer||'').trim();
+  if(ans || corr) return true;
+  if(/\d+\s*[+\-xX*×÷\/]\s*\d+|\d+\s*(kg|g|hours?|days?|minutes?|mins?|°|degrees?)|clock|time|perimeter|temperature|shape|money|age|question|題|page/i.test(q)) return true;
+  return false;
+}
 function v92ReviewEvidence(report){
   const ev=(typeof v82TrueReviewEvidence==='function'?v82TrueReviewEvidence(report):[])
     .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
@@ -4391,7 +5046,7 @@ function v92ReviewEvidence(report){
       confidence:e.confidence||'',
       source:e.source||'evidence'
     }));
-  const parsed=(report?.checkPoints||[]).map(v92ParseReviewLine).filter(Boolean);
+  const parsed=(report?.checkPoints||[]).map(v92ParseReviewLine).filter(Boolean).filter(v9616IsConcreteReviewItem);
   const all=[...ev,...parsed].filter(x=>x.question && !v92LineLooksPositive([x.question,x.studentAnswer,x.correctAnswer].join(' ')));
   const seen=new Set(), out=[];
   all.forEach(x=>{
@@ -4434,15 +5089,16 @@ function v92ReviewDetailHTML(report){
 
 
 /* V93: parent fail-safe + clean report integrity */
-function v93TechRegex(){
-  return /(V\d+|JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|timeout|retry|responses|chat-fallback|maxTokens|frontend|HTTP|function 已正常|回傳 JSON)/i;
-}
-function v93ParentCleanText(input, max=0){
+  function v93TechRegex(){
+  return /(V\d+|JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|timeout|retry|responses|chat-fallback|maxTokens|frontend|HTTP|function 已正常|回傳 JSON|Status\s*[:：]|Correct\s*Answer|Sub-?skill\s*[:：])/i;
+  }
+  function v93ParentCleanText(input, max=0){
   let s=String(input||'');
+  s=v96StripEvidenceDebris(s); // V96.4: remove raw "Page|Q|Student|Correct|Status|Skill" debug rows
   s=s.replace(/第\s*\d+\s*張[：:][^。！？\n]*(JSON|function|V\d+|retry|timeout|逾時|API|OpenAI)[^。！？\n]*[。！？]?/gi,'部分圖片未能清楚完成分析。');
   s=s.replace(/AI\s*function[^。！？\n]*[。！？]?/gi,'AI 暫時未能完成完整分析。');
   s=s.replace(/function\s*已正常回傳\s*JSON/gi,'AI 連線已回應，但分析未完整');
-  s=s.replace(/V\d+\s*會[^。！？\n]*[。！？]?/gi,'');
+  s=s.replace(/V\d+\s*版[^。！？\n]*[。！？]?/gi,'');
   s=s.replace(/(JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|responses|chat-fallback|maxTokens|frontend)/gi,'');
   s=s.replace(/\s+/g,' ').trim();
   if(max && s.length>max) s=s.slice(0,max).replace(/[，,][^，,]*$/,'')+'…';
@@ -4491,15 +5147,16 @@ function v93IncompleteReportHTML(report, record={}){
           <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
         </div>
       </div>
-      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最不肯定的題目，慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
+      <div class="reportBlock"><b>今晚做一件事</b><div class="muted">先用肉眼揀一題孩子最唔肯定的題目，慢慢讀題目要求，再請孩子講一次答案點樣得出。</div></div>
       ${v85AdminMode()?`<details class="technicalDetails"><summary>Admin debug</summary><pre>${esc(JSON.stringify(report.runtime||record.debug||{},null,2))}</pre></details>`:''}
     </div>`;
   }
+  const backgrounded=!!(report?.runtime?.backgrounded || record?.backgrounded);
   return `<div class="card" style="box-shadow:none">
     <h2>📚 功課圖片已保存</h2>
     <div class="v93FailSafeCard">
       <h2>⚠️ AI 今次未能完整分析</h2>
-      <div>${n?`已收到 ${n} 張功課圖片，`:''}但今次 AI 未能完成完整 report。為避免誤導，這次不會當成正式功課分析。</div>
+      <div>${backgrounded?`${n?`已收到 ${n} 張功課圖片，圖片已保留。`:'圖片已保留。'}AI 分析期間請保持此頁開啟；如離開 App，iPhone 可能會中斷分析，可重新按分析。`:`${n?`已收到 ${n} 張功課圖片，`:''}但今次 AI 未能完成完整 report。為避免誤導，這次不會當成正式功課分析。`}</div>
       <div class="v93FailGrid">
         <div class="v93FailTile"><b>建議下一步</b>先按「只分析第一張」確認連線和圖片清晰度；成功後再試 2–3 張。</div>
         <div class="v93FailTile"><b>拍攝提示</b>盡量平放、避免陰影和反光，字跡要佔畫面大部分。</div>
@@ -4573,61 +5230,508 @@ function v93ReviewEvidence(report){
     .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
     .map(v93NormalizeReviewEvidence)
     .filter(e=>v93QuestionLooksSpecific(e.question,e));
-  const parsed=(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
+  const parsed=ev.length?[]:(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
+  // V96.13: use the same normalized dedupe key as v96VisibleRows so
+  // semantically identical items from slightly different AI wording merge.
   const out=[]; const seen=new Set();
   [...ev,...parsed].forEach(e=>{
     if(!v93QuestionLooksSpecific(e.question,e)) return;
-    const key=[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
+    const key=typeof v9611ReviewDedupeKey==='function'?v9611ReviewDedupeKey(e):[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
     if(seen.has(key)) return;
     seen.add(key); out.push(e);
   });
   return out.slice(0,30);
 }
-function v93StatusLabel(status){
-  if(status==='wrong') return '明確錯';
+function v93StatusLabel(status, confidence){
+  // V96: only call something a definite mistake when AI is highly confident.
+  // Anything uncertain is framed as "needs review", never a confirmed error.
+  const conf=String(confidence||'').toLowerCase();
   if(status==='missing') return '未完成 / 漏做';
-  return '需家長確認';
+  if(status==='wrong') return (conf==='high') ? '明確錯' : '需要覆核';
+  return '需要覆核';
 }
 function v93StatusClass(status){
   if(status==='wrong') return 'v93Wrong';
   if(status==='missing') return 'v93Missing';
   return 'v93Unclear';
 }
+/* V96.1: light Traditional-Chinese labels for common skill names so the main
+   parent explanation reads naturally. English names still appear as small tags. */
+function v96ZhSkill(name){
+  const s=String(name||'').trim().toLowerCase();
+  if(!s) return '';
+  const map=[
+    [/3-?digit|three[- ]?digit|三位數/, '三位數加法'],
+    [/two[- ]?digit|2-?digit|兩位數/, '兩位數加法'],
+    [/carry|carrying|進位/, '進位加法'],
+    [/multi[- ]?term|multiple addends|多項/, '多項相加'],
+    [/basic addition|simple addition|基礎加法/, '基礎加法'],
+    [/\baddition\b|加法/, '加法'],
+    [/times table|multiplication facts|乘數表|乘法表/, '乘數表'],
+    [/multiplication|乘法/, '乘法'],
+    [/subtraction|減法/, '減法'],
+    [/division|除法/, '除法'],
+    [/perimeter|周界/, '周界'],
+    [/measurement|unit|單位|換算/, '單位換算'],
+    [/temperature|溫度/, '溫度題'],
+    [/clock|time|時間|時鐘/, '時間題'],
+    [/circle|greatest value|圈選|圈/, '需要圈選答案的題目'],
+    [/word problem|worded|應用題/, '應用題'],
+    [/pattern|規律/, '數列規律'],
+    [/shape|2-?dimensional|1-?dimensional|圖形/, '圖形'],
+  ];
+  for(const [re,zh] of map){ if(re.test(s)) return zh; }
+  return String(name||'').trim();
+}
+/* V96.3: detect the question type so we can use safer parent wording and
+   stricter classification. Order matters (most specific first). */
+function v96QType(e){
+  // V96.3: classify on the CLEANED question so debug debris like "Page 2 Q1:"
+  // can't cause false positives (e.g. "Page" contains "age", "Q1: 23" looks like a time).
+  const q=v96CleanParentQuestion(String(e&&e.question||''));
+  const t=[q,e&&e.skill,e&&e.subSkill].join(' ').toLowerCase();
+  // pure arithmetic first: the question is essentially a number/operator chain
+  // (single "a op b" OR multi-step like "7 + 5 - 3"), optionally with "= answer".
+  const core=String(q).replace(/\s+/g,'').replace(/=.*$/,'');
+  if(/^\d+([+\-xX*×÷\/]\d+)+$/.test(core)) return 'arith';
+  if(/greatest value|circle the equation|circle the|圈選|圈出|圈/.test(t)) return 'circle';
+  if(/temperature|degrees?|°|cooler|warmer|溫度|度數|taylah|james/.test(t)) return 'temperature';
+  if(/clock|clockface|o'clock|\btime\b|minutes after|past the hour|to the hour|分鐘|時鐘|時間/.test(t) || /\b\d{1,2}\s*[:：]\s*\d{2}\b/.test(t)) return 'time';
+  if(/half|fraction|quarter|third|pocket money|saves?|spend|spent|money|一半|分數|四分|三分|儲|零用|\$/.test(t)) return 'money';
+  if(/\b(cm|mm|km|kg|grams?|metres?|meters?|litres?|liters?|ml)\b|convert|conversion|單位|換算|公分|公斤|公升|毫升/.test(t)) return 'unit';
+  if(/word problem|worded|altogether|how many|how much|years?\s+old|older than|younger than|應用題|多少|幾多|幾歲|年齡/.test(t)) return 'word';
+  return 'general';
+}
+function v96IsTimeQuestion(e){ return v96QType(e)==='time'; }
+/* V96.1: turn a compact time answer (e.g. 450, 285, 865) into real H:MM with carrying. */
+function v96FormatTimeAnswer(val){
+  let s=String(val||'').trim();
+  if(!s) return s;
+  let h,mm;
+  const m=s.match(/^(\d{1,2})\s*[:：.]\s*(\d{1,2})$/);
+  if(m){ h=+m[1]; mm=+m[2]; }
+  else if(/^\d{3,4}$/.test(s)){ h=+s.slice(0,s.length-2); mm=+s.slice(-2); }
+  else return s;
+  h += Math.floor(mm/60); mm = mm%60;
+  if(h>=24) h=h%24;
+  return h + ':' + String(mm).padStart(2,'0');
+}
+/* V96.5: compute the answer to a clock-arithmetic question like
+   "4:20 + 30 minutes" → "4:50" or "8:35 + 30 minutes" → "9:05". Returns a fully
+   formatted h:mm string, or null when it can't be confidently computed (so we
+   never show partial leftovers like 0 / 5 / 50). */
+function v96ComputeTimeAnswer(e){
+  const q=String(e&&e.question||'');
+  const tm=q.match(/(\d{1,2})\s*[:：.]\s*(\d{2})/); // base time
+  if(!tm) return null;
+  let h=+tm[1], mm=+tm[2];
+  if(h>23 || mm>59) return null;
+  // added/subtracted minutes (English or Chinese)
+  const dm=q.match(/([+\-加減])?\s*(\d{1,3})\s*(?:mins?|minutes?|分鐘?)/i);
+  if(!dm) return null;
+  let delta=+dm[2];
+  if(dm[1]==='-'||dm[1]==='減') delta=-delta;
+  let total=h*60+mm+delta;
+  total=((total%1440)+1440)%1440;
+  const oh=Math.floor(total/60), om=total%60;
+  return oh + ':' + String(om).padStart(2,'0');
+}
+/* V96.5: detect an explicit "no answer" student response (未寫 / no answer / etc.)
+   so it is counted as 未完成 / 漏做 rather than only 需要覆核. Empty strings are
+   left ambiguous (handled elsewhere) so unclear-photo items aren't misclassified. */
+function v96IsNoAnswer(e){
+  const s=String(e&&e.studentAnswer||'').trim();
+  if(!s) return false;
+  return /^(未寫|冇寫|無寫|沒寫|未做|冇做|沒做|未答|無作答|未填|留空|空白|blank|no\s*answer|no\s*clear\s*answer|not\s*answered|unanswered|n\/?a|none|nil)$/i.test(s);
+}
+/* V96.2: safely evaluate a single binary arithmetic expression like "4 x 6". */
+function v96EvalExpr(expr){
+  const m=String(expr||'').match(/(\d+)\s*([+\-xX*×÷\/])\s*(\d+)/);
+  if(!m) return null;
+  const a=+m[1], b=+m[3], op=m[2];
+  if(op==='+') return a+b;
+  if(op==='-') return a-b;
+  if(op==='÷'||op==='/') return b===0?null:a/b;
+  return a*b; // x X * ×
+}
+/* V96.4: evaluate a multi-step arithmetic chain like "7 + 5 - 3" with correct
+   operator precedence (× ÷ before + −), left to right. Returns null if it is
+   not a clean number/operator chain (so we never guess on messy input). */
+function v96EvalChain(expr){
+  let s=String(expr||'').replace(/=.*$/,'').trim();
+  s=s.replace(/[xX×]/g,'*').replace(/÷/g,'/').replace(/[–—−]/g,'-');
+  if(!s || !/^\s*\d/.test(s)) return null;
+  // tokenise; only digits, spaces and + - * / allowed
+  if(/[^0-9+\-*/.\s]/.test(s)) return null;
+  const tokens=s.match(/\d+(?:\.\d+)?|[+\-*/]/g);
+  if(!tokens || tokens.length<3 || tokens.length%2===0) return null;
+  // first pass: * and /
+  const pass1=[tokens[0]];
+  for(let i=1;i<tokens.length;i+=2){
+    const op=tokens[i], n=parseFloat(tokens[i+1]);
+    if(isNaN(n)) return null;
+    if(op==='*'){ pass1[pass1.length-1]=parseFloat(pass1[pass1.length-1])*n; }
+    else if(op==='/'){ if(n===0) return null; pass1[pass1.length-1]=parseFloat(pass1[pass1.length-1])/n; }
+    else { pass1.push(op, n); }
+  }
+  // second pass: + and -
+  let acc=parseFloat(pass1[0]);
+  for(let i=1;i<pass1.length;i+=2){
+    const op=pass1[i], n=parseFloat(pass1[i+1]);
+    if(op==='+') acc+=n; else if(op==='-') acc-=n; else return null;
+  }
+  return isFinite(acc)?acc:null;
+}
+/* V96.4: the reference answer as a number (from correctAnswer), if available. */
+function v96RefNumber(e){
+  const m=String(e&&e.correctAnswer||'').match(/-?\d+(?:\.\d+)?/);
+  return m?parseFloat(m[0]):null;
+}
+/* V96.2: for "circle the equation with the greatest value" questions, compute
+   every option locally and return the genuinely greatest value (+ which option),
+   so the parent never sees a wrong reference answer from the AI. */
+function v96GreatestValue(e){
+  const txt=String(e.question||'');
+  const exprs=txt.match(/\d+\s*[+\-xX*×÷\/]\s*\d+/g);
+  if(!exprs || exprs.length<2) return null;
+  let best=null;
+  exprs.forEach(x=>{
+    const v=v96EvalExpr(x);
+    if(v!==null && isFinite(v) && (best===null || v>best.value)) best={value:v, expr:x.replace(/\s+/g,' ').trim()};
+  });
+  return best;
+}
+/* V96.4: the child's FINAL numeric answer. Priority:
+   1. number after "=" in the student answer (e.g. "7 + 5 - 3 = 9" → 9)
+   2. evaluate the student's own expression chain if they wrote working only
+   3. the last standalone number in the student answer
+   4. number after "=" in the question.
+   This avoids the old bug of grabbing the first operand (e.g. 7) as the answer. */
+function v96StudentNumber(e){
+  const s=String(e&&e.studentAnswer||'').trim();
+  if(s){
+    const eq=s.match(/=\s*(-?\d+(?:\.\d+)?)\s*$/) || s.match(/=\s*(-?\d+(?:\.\d+)?)/);
+    if(eq) return parseFloat(eq[1]);
+    const chain=v96EvalChain(s);
+    if(chain!==null) return chain;
+    const all=s.match(/-?\d+(?:\.\d+)?/g);
+    if(all && all.length) return parseFloat(all[all.length-1]);
+  }
+  const q=String(e&&e.question||'');
+  const qeq=q.match(/=\s*(-?\d+(?:\.\d+)?)/);
+  if(qeq) return parseFloat(qeq[1]);
+  return null;
+}
+/* V96.4: locally computed expected value of the question's expression — supports
+   multi-step chains ("7 + 5 - 3") as well as single "a op b". */
+function v96ArithExpected(e){
+  const q=String(e&&e.question||'').replace(/=.*$/,'');
+  const chain=v96EvalChain(q);
+  if(chain!==null) return chain;
+  return v96EvalExpr(q);
+}
+/* V96.4: a raw AI evidence/debug row (e.g. "Page 1 | Q: ... | Student: ... |
+   Correct: ... | Status: ... | Skill: ...") that must never reach parents.
+   Two or more "Label:" tokens = a structured debug row, not parent prose. */
+function v96IsEvidenceRow(s){
+  const labels=(String(s||'').match(/\b(Page\s*\d+|Q(?:uestion)?|Student|Correct|Status|Skill|Sub-?skill|Confidence)\s*[:：]/gi)||[]).length;
+  return labels>=2;
+}
+/* V96.4: strip raw AI evidence/debug fragments from ANY parent-facing text.
+   Central cleaner shared by the question cleaner, the bullet cleaner and the
+   parent-text cleaner so debug rows never leak into any report section. */
+function v96StripEvidenceDebris(input){
+  let s=String(input||'');
+  if(v96IsEvidenceRow(s)){
+    // Confirmed debug row: remove every "Label: value" chunk up to the next pipe,
+    // including the student-answer label (Student or the child's own name).
+    s=s.replace(/\b(?:Page\s*\d+|Q(?:uestion)?|Student|Correct(?:\s*Answer)?|Status|Skill|Sub-?skill|Confidence)\s*[:：][^|｜\n]*/gi,'');
+    try{
+      const cn=(window.app&&app.profile&&app.profile.childName)||'';
+      if(cn && cn.length>=2 && cn.length<=12){
+        s=s.replace(new RegExp('\\b'+cn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[:：][^|｜\\n]*','g'),'');
+      }
+    }catch(_){}
+    s=s.replace(/[|｜]+/g,' ');
+  }
+  // Always remove stray standalone evidence markers.
+  s=s.replace(/\bPage\s*\d+\b/gi,'').replace(/\bQ\s*\d+\s*[:：]/gi,'');
+  s=s.replace(/\s{2,}/g,' ').replace(/^[\s,，。:：;；、\-–—|｜]+/,'').replace(/[\s|｜]+$/,'').trim();
+  return s;
+}
+/* V96.2: strip raw/debug wording from any parent-facing question text.
+   Removes evidence markers (Page 1 Q3), Status:/Skill:/Sub-skill:/confidence:
+   labels and English debug fragments. Data keeps them; parents see clean text. */
+function v96CleanParentQuestion(q){
+  let s=String(q||'');
+  s=v96StripEvidenceDebris(s); // V96.4: drop full pipe-delimited debug rows first
+  s=s.replace(/\bPage\s*\d+\b/gi,'');
+  s=s.replace(/\bQ\s*\d+\b/gi,'');
+  s=s.replace(/\b(Status|狀態)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
+  s=s.replace(/\b(Sub[-\s]?skill|Skill|學習位|理解位)\s*[:：]\s*/gi,'');
+  s=s.replace(/\b(confidence|信心)\s*[:：]\s*[A-Za-z\u4e00-\u9fff]+/gi,'');
+  // V96.3: remove English debug fragments that sometimes leak from the model.
+  s=s.replace(/\b(actual logic|correction|corrected|raw ocr|debug|unknown|unclear)\b\s*[:：]?/gi,'');
+  s=v93ParentCleanText(s,0);
+  s=s.replace(/^[\s,，。:：;；\-–—|、]+/,'');
+  s=s.replace(/\s{2,}/g,' ').trim();
+  return s;
+}
+/* V96.3: collapse many temperature-table rows (one weekday each) into a single
+   grouped review card so parents don't see repeated near-identical cards. */
+function v96GroupTemperature(rows){
+  const temps=rows.filter(e=>v96QType(e)==='temperature');
+  if(temps.length<2) return rows;
+  const answers=v84Unique(temps.map(e=>String(e.studentAnswer||'').trim()).filter(Boolean));
+  const grouped={
+    status:'unclear', confidence:'low',
+    question:'溫度表：Taylah 的讀數',
+    studentAnswer: answers.join('、'),
+    correctAnswer:'每格 = James − 8 度',
+    skill:'溫度題', __group:'temperature'
+  };
+  const out=[]; let inserted=false;
+  rows.forEach(e=>{
+    if(v96QType(e)==='temperature'){ if(!inserted){ out.push(grouped); inserted=true; } }
+    else out.push(e);
+  });
+  return out;
+}
+/* V96.6: page number for an evidence item (from an explicit field or the
+   question text), used for a stable dedupe key and ordering. 0 when unknown. */
+function v96PageOf(e){
+  if(e && (e.page||e.page===0)){ const n=parseInt(e.page,10); if(!isNaN(n)) return n; }
+  const m=String(e&&e.question||'').match(/\bpage\s*(\d+)\b|第\s*(\d+)\s*[頁页張张]/i);
+  if(m){ const n=parseInt(m[1]||m[2],10); if(!isNaN(n)) return n; }
+  return 0;
+}
+/* V96.6: stable, normalized dedupe key = cleaned question + page + expected answer.
+   Same question at the same worksheet location with the same expected answer is
+   one item; the same expression on different pages stays distinct. */
+function v96StableKey(e){
+  const q=v96CleanParentQuestion(String(e&&e.question||'')).toLowerCase().replace(/\s+/g,'');
+  const page=v96PageOf(e);
+  const expN=v96ArithExpected(e); const ref=v96RefNumber(e);
+  const exp=(expN!==null)?('n'+expN):(ref!==null?('r'+ref):String(e&&e.correctAnswer||'').toLowerCase().replace(/\s+/g,''));
+  return q+'|p'+page+'|'+exp;
+}
+/* V96.6: deterministic ordering — wrong first, then review, then missing; within
+   each group by page, then question text, then a stable original index. This makes
+   the visible list (and therefore every count) independent of AI response order. */
+function v96StatusRank(d){ return d==='wrong'?0:(d==='review'?1:(d==='missing'?2:3)); }
+function v96SortItems(rows){
+  return rows.map((e,i)=>({e,i}))
+    .sort((a,b)=>{
+      const ra=v96StatusRank(v96DisplayStatus(a.e)), rb=v96StatusRank(v96DisplayStatus(b.e));
+      if(ra!==rb) return ra-rb;
+      const pa=v96PageOf(a.e), pb=v96PageOf(b.e);
+      if(pa!==pb) return pa-pb;
+      const qa=v96CleanParentQuestion(String(a.e.question||'')), qb=v96CleanParentQuestion(String(b.e.question||''));
+      if(qa<qb) return -1; if(qa>qb) return 1;
+      return a.i-b.i;
+    })
+    .map(x=>x.e);
+}
+/* V96.3/V96.6: the rows parents actually see — verified-correct items removed,
+   stably deduped (question+page+expected), deterministically ordered, and
+   temperature rows grouped. SINGLE source used by every count and the card list. */
+function v96VisibleRows(report){
+  const candidates=v93ReviewEvidence(report).filter(e=>v96DisplayStatus(e)!=='ok');
+  // stable dedupe: keep the first occurrence per normalized key
+  const seen=new Set(); const deduped=[];
+  candidates.forEach(e=>{ const k=v9611ReviewDedupeKey(e); if(seen.has(k)) return; seen.add(k); deduped.push(e); });
+  const ordered=v96SortItems(deduped);
+  return v96GroupTemperature(ordered);
+}
+/* V96.6: count of items the child clearly got right (做得穩), derived from the
+   SAME evidence the review list uses — AI-correct items plus any review
+   candidates we locally verified as correct — deduped with the stable key. */
+function v96StableCount(report){
+  const seen=new Set(); let stable=0;
+  (v82CleanEvidence(report?.engineV2?.evidence||[])||[]).forEach(e=>{
+    if(String(e&&e.status||'').toLowerCase()!=='correct') return;
+    const k=v96StableKey(e); if(seen.has(k)) return; seen.add(k); stable++;
+  });
+  v93ReviewEvidence(report).forEach(e=>{
+    if(v96DisplayStatus(e)!=='ok') return;
+    const k=v96StableKey(e); if(seen.has(k)) return; seen.add(k); stable++;
+  });
+  return stable;
+}
+/* V96.2: translate skill tags to natural Chinese and drop debug/unclear ones. */
+function v96CleanSkillTags(e){
+  return v84Unique([e.skill,e.subSkill].filter(Boolean).map(v96ZhSkill).filter(Boolean))
+    .filter(t=>!/^(unclear|none|n\/?a|na|null|undefined|status|skill|sub[-\s]?skill|page|q\d+)/i.test(t)
+      && !/handwriting|photo unclear|careless|rushing|看不清|不清楚|未能辨認/i.test(t));
+}
+/* V96.3: the status parents actually see. Returns 'ok' for items we can locally
+   verify as correct (excluded from the list), 'wrong' only when we are certain,
+   otherwise 'review' (需要覆核). Interpretation-heavy question types are never
+   marked a definite mistake. */
+function v96DisplayStatus(e){
+  if(e.status==='missing') return 'missing';
+  if(v96IsNoAnswer(e)) return 'missing'; // V96.5: 未寫 / no answer → 未完成 / 漏做
+  const type=v96QType(e);
+  const stu=v96StudentNumber(e);
+  const ref=v96RefNumber(e);
+  const exp=v96ArithExpected(e); // locally computed answer, when the question is arithmetic
+  // V96.4 universal guard: if the child's FINAL numeric answer matches either the
+  // reference answer or our locally computed answer, it is correct — NEVER 明確錯.
+  if(stu!==null){
+    if(exp!==null && Math.abs(stu-exp)<1e-9) return 'ok';
+    if(ref!==null && Math.abs(stu-ref)<1e-9) return 'ok';
+  }
+  // Pure arithmetic: trust local computation over the AI.
+  if(type==='arith'){
+    // definite error only when we have a trusted target AND the child's final
+    // number clearly differs from it.
+    const target = (exp!==null)?exp:ref;
+    if(stu!==null && target!==null && Math.abs(stu-target)>=1e-9) return 'wrong';
+    return 'review';
+  }
+  // Questions that need human interpretation are never auto-marked 明確錯.
+  if(type==='circle'||type==='money'||type==='time'||type==='temperature'||type==='unit'||type==='word') return 'review';
+  // Generic: definite error only when AI is highly confident, we have both the
+  // child's answer and a reference answer, AND (when both are numeric) the final
+  // numbers genuinely differ.
+  const conf=String(e.confidence||'').toLowerCase();
+  const hasStudent=String(e.studentAnswer||'').trim()!=='';
+  const hasCorrect=String(e.correctAnswer||'').trim()!=='';
+  if(e.status==='wrong' && conf==='high' && hasStudent && hasCorrect){
+    if(stu!==null && ref!==null && Math.abs(stu-ref)<1e-9) return 'review'; // numbers actually match → not a definite error
+    return 'wrong';
+  }
+  return 'review';
+}
+function v96StatusLabelFromDisplay(d){
+  if(d==='wrong') return '明確錯';
+  if(d==='missing') return '未完成 / 漏做';
+  return '需要覆核';
+}
+function v96StatusClassFromDisplay(d){
+  if(d==='wrong') return 'v93Wrong';
+  if(d==='missing') return 'v93Missing';
+  return 'v93Unclear';
+}
+/* V96.3: parent-facing suggestion line per question type. */
+function v96Suggestion(e, d){
+  const type=v96QType(e);
+  if(d==='missing') return '這題似乎未完成，請家長陪孩子一齊補做。';
+  if(type==='circle') return '未能清楚看到孩子圈選了哪一個，請家長對照原圖確認。';
+  if(type==='temperature') return '這是溫度表題，規則為 Taylah 比 James 低 8 度（James − 8）。建議家長對照原圖逐格確認。';
+  if(type==='time') return '時間題請家長對照時鐘圖再確認；如圖片不清楚，建議重影一張。';
+  if(type==='money'||type==='word'||type==='unit') return '題目資料未完整顯示，建議家長先確認題目和孩子答案，再陪孩子重做一次。';
+  if(type==='arith' && d==='wrong') return '計算結果與正確答案不同，建議家長陪孩子重新計一次。';
+  return '請家長陪孩子重讀題目，確認圖片是否清晰，再做一題類似題。';
+}
+/* V96.3/V96.11: single source of truth for review counts — uses the V96.11
+   normalized report so all counts are deterministic and consistent. */
+function v96ReviewCounts(report){
+  const n=v9611NormalizedReport(report);
+  if(!n) return {rows:[],definiteWrong:0,needsReview:0,missing:0,total:0,stable:0};
+  return {
+    rows:n.rows,
+    definiteWrong:n.counts.wrong,
+    needsReview:n.counts.review,
+    missing:n.counts.missing,
+    total:n.counts.total,
+    stable:n.counts.stable
+  };
+}
 function v93ReviewItemHTML(e,i){
-  const child=v93ChildName();
-  const skill=[e.skill,e.subSkill].filter(Boolean).join(' · ');
-  return `<div class="v93ReviewItem">
-    <div class="v93ReviewHead"><span class="v93Pill ${v93StatusClass(e.status)}">${v93StatusLabel(e.status)}</span><span class="v93Pill">#${i+1}</span>${e.confidence?`<span class="v93Pill">confidence: ${esc(e.confidence)}</span>`:''}</div>
-    <div class="v93Question">${esc(e.question||'需要查看原圖')}</div>
-    ${(e.studentAnswer||e.correctAnswer)?`<div class="v93AnswerPair">
-      <div class="v93Answer"><b>${esc(child)} 答案</b>${esc(e.studentAnswer||'未能清楚看到')}</div>
-      <div class="v93Answer"><b>正確 / 期望答案</b>${esc(e.correctAnswer||'需家長確認')}</div>
-    </div>`:''}
-    ${skill?`<div class="v93Skill">學習位：${esc(skill)}</div>`:''}
+  const d=v96DisplayStatus(e);
+  const label=v96StatusLabelFromDisplay(d);
+  const cls=v96StatusClassFromDisplay(d);
+  const type=v96QType(e);
+  const isTime=type==='time';
+  // V96.2: parent-facing question text only (no Page/Q/Status/Skill debug debris).
+  const question=v96CleanParentQuestion(e.question)||'需要查看原圖';
+  const stuRaw=String(e.studentAnswer||'').trim();
+  const corRaw=String(e.correctAnswer||'').trim();
+  const stu=stuRaw?(isTime?v96FormatTimeAnswer(stuRaw):stuRaw):'';
+  // V96.2/3: recompute the reference answer locally where math is certain, so a
+  // wrong AI reference answer (e.g. 27 instead of 24) is overridden.
+  let cor=corRaw?(isTime?v96FormatTimeAnswer(corRaw):corRaw):'';
+  let corLbl='參考答案';
+  if(type==='circle'){
+    // V96.4: only show a circle "greatest" answer we computed locally; never fall
+    // back to the AI's possibly-wrong reference answer.
+    const gv=v96GreatestValue(e);
+    cor = gv ? `${gv.value}（${gv.expr}）` : ''; corLbl='最大值';
+  } else if(isTime){
+    // V96.5: never show partial numeric leftovers (0 / 5 / 50) for time questions.
+    // Prefer a locally computed full time; else only show a clean h:mm reference;
+    // otherwise tell the parent to confirm.
+    const ct=v96ComputeTimeAnswer(e);
+    if(ct) cor=ct;
+    else if(/^\s*\d{1,2}\s*[:：.]\s*\d{2}\s*$/.test(corRaw)) cor=v96FormatTimeAnswer(corRaw);
+    else cor='需要家長確認';
+  } else if(type==='arith'){
+    const exp=v96ArithExpected(e);
+    if(exp!==null && isFinite(exp)) cor=String(exp);
+  }
+  const tags=v96CleanSkillTags(e);
+  return `<div class="v96ReviewCard ${cls}">
+    <div class="v96CardHead"><span class="v96StatusTag ${cls}">${label}</span><span class="v96NumTag">#${i+1}</span></div>
+    <div class="v96Field"><span class="v96Lbl">題目</span><span class="v96Val">${esc(question)}</span></div>
+    ${stu?`<div class="v96Field"><span class="v96Lbl">孩子寫了</span><span class="v96Val">${esc(stu)}</span></div>`:''}
+    ${cor?`<div class="v96Field"><span class="v96Lbl">${corLbl}</span><span class="v96Val">${esc(cor)}</span></div>`:''}
+    <div class="v96Suggest"><span class="v96SuggestLbl">建議</span>${esc(v96Suggestion(e,d))}</div>
+    ${tags.length?`<div class="v96SkillTags">${tags.map(s=>`<span class="v96SkillTag">${esc(s)}</span>`).join('')}</div>`:''}
   </div>`;
 }
 function v93ChildName(){
-  return String(app?.profile?.childName||'小朋友').trim() || '小朋友';
+  return v96ChildLabel();
+}
+/* V96: build a concise, complementary hero sub-line so the top of the report
+   never repeats the same paragraph twice. Prefers a strengths + review snapshot
+   built from resolved skills; only falls back to the parent insight when it is
+   clearly different from the headline. */
+function v96NormText(s){ return String(s||'').toLowerCase().replace(/[\s，。、,.!！?？:：;；]/g,''); }
+function v96HeroSub(report, headline){
+  // V96.3: one warm, honest, parent-friendly learning-focus sentence.
+  // Strengths first, then the next focus — skills translated to short Chinese tags.
+  const child=v96ChildLabel();
+  const sets=(typeof v85ResolvedSkillSets==='function')?v85ResolvedSkillSets(report):{strong:[],review:[]};
+  const strong=v84Unique((sets.strong||[]).map(v96ZhSkill).filter(Boolean)).slice(0,3);
+  const review=v84Unique((sets.review||[]).map(v96ZhSkill).filter(Boolean)).slice(0,3);
+  let s='';
+  if(strong.length) s=`${child} 在 ${strong.join('、')} 有不少穩定表現`;
+  if(review.length){
+    s += s ? `；下一步最值得集中的是 ${review.join('、')}。` : `${child} 下一步最值得集中的是 ${review.join('、')}。`;
+  } else if(s){
+    s += '，可以再加一題挑戰題鞏固。';
+  }
+  if(s && v96NormText(s)!==v96NormText(headline)) return s;
+  const insight=v93ParentCleanText(v85ParentInsight(report),300);
+  if(v96NormText(insight) && v96NormText(insight)!==v96NormText(headline)) return insight;
+  return '';
 }
 function v93ReviewDetailHTML(report){
-  const rows=v93ReviewEvidence(report);
+  const c=v96ReviewCounts(report);
+  const rows=c.rows;
   if(!rows.length) return `<div class="v93GoodEmpty">暫未見明確錯題。若圖片有陰影、反光或手寫不清，建議家長對照原圖再確認。</div>`;
-  const wrong=rows.filter(x=>x.status==='wrong').length;
-  const unclear=rows.filter(x=>x.status==='unclear').length;
-  const missing=rows.filter(x=>x.status==='missing').length;
-  const first=rows.slice(0,5).map(v93ReviewItemHTML).join('');
-  const rest=rows.slice(5).map((x,i)=>v93ReviewItemHTML(x,i+5)).join('');
-  return `<div class="v93ReviewSummaryGrid">
-      <div class="v93ReviewCount"><b>${wrong}</b>明確錯</div>
-      <div class="v93ReviewCount"><b>${unclear}</b>需家長確認</div>
-      <div class="v93ReviewCount"><b>${missing}</b>未完成 / 漏做</div>
+  // Beta stability (B-11): always show every clearly-wrong item up front so parents
+  // never miss a confirmed mistake; only the remaining review/missing items collapse.
+  const wrongRows=rows.filter(e=>v96DisplayStatus(e)==='wrong');
+  const otherRows=rows.filter(e=>v96DisplayStatus(e)!=='wrong');
+  const headRows=[...wrongRows, ...otherRows.slice(0, Math.max(0, 3-wrongRows.length))];
+  const restRows=rows.filter(e=>!headRows.includes(e));
+  const cardAt=(e)=>v93ReviewItemHTML(e, rows.indexOf(e));
+  const head=headRows.map(cardAt).join('');
+  const rest=restRows.map(cardAt).join('');
+  return `<div class="v96CountRow">
+      <div class="v96Count v93Wrong"><b>${c.definiteWrong}</b>明確錯</div>
+      <div class="v96Count v93Unclear"><b>${c.needsReview}</b>需要覆核</div>
+      <div class="v96Count v93Missing"><b>${c.missing}</b>未完成 / 漏做</div>
     </div>
-    ${first}
-    ${rest?`<details class="v93Details"><summary>查看全部 ${rows.length} 個覆核位置</summary><div class="v93DetailsBody">${rest}</div></details>`:''}`;
+    <div class="v96ReviewList">${head}</div>
+    ${rest?`<details class="v96RawDetails"><summary>展開其餘 ${restRows.length} 個需要覆核的位置</summary><div class="v96ReviewList">${rest}</div></details>`:''}`;
 }
 
 function homeworkReportHTML(r, record={}){
   r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  r=v9611ApplyHomeworkCanonical(r);
   r=v93SanitizeReport(r);
   if(v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
   // Rebuild clean engine view using V82 filters.
@@ -4652,8 +5756,7 @@ function homeworkReportHTML(r, record={}){
 
   <div class="wowHero">
     <h2>✨ 今日最值得留意</h2>
-    <div class="wowSentence">${esc(v93ParentCleanText(v84WowSummary(r,record),240))}</div>
-    <div class="wowSub">${esc(v93ParentCleanText(v85ParentInsight(r),360))}</div>
+    ${(()=>{const headline=v93ParentCleanText(v84WowSummary(r,record),240);const sub=v96HeroSub(r,headline);return `<div class="wowSentence">${esc(headline)}</div>${sub?`<div class="wowSub">${esc(sub)}</div>`:''}`;})()}
     <div class="parentMiniGrid">
       <div class="parentMini"><b>今晚做一件事</b>${esc(v93ParentCleanText(v85ConcreteNextStep(r),180))}</div>
       <div class="parentMini"><b>學習重點</b>先看需要覆核的位置，再做一題代表性練習。</div>
@@ -4681,7 +5784,9 @@ function homeworkReportHTML(r, record={}){
     <h2>🧠 Parent-facing Homework Engine v2.3</h2>
     <div class="v79Note">V84：家長先睇 wow summary；QA / technical evidence 收起；未完整分析時顯示 fail-safe，不扮完整 report。</div>
     ${v80ReadingTableHTML(r.engineV2?.evidence||[])}
-    <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
+    <div class="reportBlock"><b>Skill Status（evidence-level / QA only）</b>
+    <div class="v79Note">V96.25：呢度係 raw evidence-level 觀察（每個 sub-skill 觀察點都計），唔係去重後嘅題目數。多部份題目（例如溫度差題）可能拆成幾個觀察點，所以呢度數字可以高過上面 Summary 嘅題目數。家長見到嘅題目級數（做得穩 / 覆核 / 錯 / 漏）以上面 Summary 為準；Weekly / Growth 亦只用去重後嘅 skill tags，唔會用呢度嘅 raw count。</div>
+    ${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
 
   <div class="reportBlock highlight"><b>程度觀察</b><div class="muted">${esc(v93ParentCleanText(r.levelAwareness||'按目前年級和題目難度作觀察。',520))}</div></div>
@@ -4692,6 +5797,7 @@ function homeworkReportHTML(r, record={}){
   <div class="reportBlock"><b>5. 給家長的簡短解讀</b><div class="muted v93ShortParentText">${esc(v93ParentCleanText(v85ParentInsight(r),420))}</div></div>
   <div class="reportBlock"><b>6. 今晚只做一件事</b><div class="muted">${esc(v93ParentCleanText(v85ConcreteNextStep(r),220))}</div></div>
 
+  ${v85AdminMode()?(()=>{const nc=v9611NormalizedReport(r)||{counts:{}};const c=nc.counts;return `<div class="reportBlock" style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:10px;margin:12px 0;font-size:13px"><b>✅ Source of truth check</b> Parent Mode and Admin Mode use the same <code>v9611NormalizedReport</code> object. The counts below (S${c.stable}|W${c.wrong}|R${c.review}|M${c.missing}) are identical in both modes. Any difference you see comes from different AI analysis runs, not different rendering paths.</div>`})():''}
   ${v85AdminMode()?v84QAHTML(r,record):''}
   <details class="technicalDetails" style="${v85AdminMode()?'':'display:none'}">
     <summary>Technical evidence（平時可不用看）</summary>
@@ -4757,7 +5863,7 @@ function weeklyReportHTML(){
     openNotices.length?`仍有 ${openNotices.length} 個未完成學校通知，需要檢查準備物品 / 付款 / deadline。`:'暫時沒有未完成學校通知。'
   ];
   const actions=[
-    latestHW?.nextStep || '先累積 2–3 份功課分析，Report Engine 才能更準確。',
+    latestHW?.nextStep || '先累積 2-3 份功課分析，Report Engine 才能更準確。',
     topReview[0]?`今週只揀一個重點練：${topReview[0].replace(/ ×\d+$/,'')}。每次 10–15 分鐘。`:'今週先保持穩定記錄，不需要加太多任務。',
     st.tired?'Tired / frustrated 日子只做 reading log 或簡短練習，不安排深度數學。':'活動多日仍建議短練習，避免一次做太多。'
   ];
@@ -4979,7 +6085,7 @@ function renderRoutineSheet(){
   ${app.routines.filter(x=>!x.oneOffDate).sort((a,b)=>DAYS.indexOf(a.day)-DAYS.indexOf(b.day)||sortByTime(a,b)).map(routineManageRow).join('')||'<div class="notice bluebox">未有固定行程。</div>'}`;
   setTimeout(v61BindSmartPrep,80);
 }
-function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提���：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
+function routineManageRow(r){return rowHTML(`${esc(r.day)} ${[r.start,r.end].filter(Boolean).join(' – ')} · ${esc(r.name)}`,`${r.prep?'準備：'+esc(r.prep)+'<br>':''}提醒：${esc(r.reminder||'前一晚 8:00 PM')}<br>功課安排：${esc(r.impact||'正常')}`,`<button class="btn calendarBtn" onclick="calendarForRoutine('${esc(r.id)}')">Calendar</button><button class="btn" onclick="editRoutine('${esc(r.id)}')">修改</button><button class="btn danger" onclick="deleteRoutine('${esc(r.id)}')">刪除</button>`)}
 window.prefill=(n,s,e,p,i)=>{$('rName').value=n;$('rStart').value=timeInputValue(s);$('rEnd').value=timeInputValue(e);$('rPrep').value=p;$('rImpact').value=i;setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.prefillSchool=()=>{$('rName').value='🏫 Oakleigh South Primary School';$('rStart').value=timeInputValue('8:45 AM');$('rEnd').value=timeInputValue('3:30 PM');$('rPrep').value='書包、lunch box、水樽、帽、reader bag';$('rReminder').value='前一晚 8:00 PM';$('rImpact').value='正常';$('rDay').value='Monday–Friday';setTimeout(()=>v61ApplyPrepSuggestion(false),50)}
 window.saveRoutineFromForm=()=>{
@@ -5092,7 +6198,7 @@ setTimeout(v78BootReady,800);
     var active=document.querySelector('.page.active');
     var target=active || home;
     if(target && !String(target.innerHTML||'').trim()){
-      target.innerHTML='<div class="bootError">⚠️ App 已停止喺 loading 畫面，V52 已自動放行。若首頁仍然空白，請重新整理或重新 upload V52 package。</div>';
+      target.innerHTML='<div class="bootError">⚠️ App 已停止喺 loading 畫面，V52 已自動放行。如首頁仍然空白，請重新整理或重新 upload V52 package。</div>';
     }
   }
   window.addEventListener('load', function(){
