@@ -4054,7 +4054,10 @@ function v967HashString(str){
 function v967Fingerprint(images, childName){
   const imgs=(images||[]).map(x=>String(x||''));
   // length-prefix each image so concatenation can't collide across boundaries
-  const joined=imgs.map(s=>s.length+':'+s).join('\u0001');
+  // V96.23: sort the per-image keys so the SAME photo set yields the SAME
+  // fingerprint regardless of upload order, letting repeated multi-photo uploads
+  // (any order) reuse the same canonical report / anchor like single-photo does.
+  const joined=imgs.map(s=>s.length+':'+s).sort().join('\u0001');
   return v967HashString((childName||'')+'\u0002'+imgs.length+'\u0002'+joined);
 }
 /* V96.7: per-browser cache of fully-analysed photo sets, keyed by fingerprint.
