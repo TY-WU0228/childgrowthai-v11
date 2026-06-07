@@ -5784,7 +5784,9 @@ function homeworkReportHTML(r, record={}){
     <h2>🧠 Parent-facing Homework Engine v2.3</h2>
     <div class="v79Note">V84：家長先睇 wow summary；QA / technical evidence 收起；未完整分析時顯示 fail-safe，不扮完整 report。</div>
     ${v80ReadingTableHTML(r.engineV2?.evidence||[])}
-    <div class="reportBlock"><b>Skill Status</b>${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
+    <div class="reportBlock"><b>Skill Status（evidence-level / QA only）</b>
+    <div class="v79Note">V96.25：呢度係 raw evidence-level 觀察（每個 sub-skill 觀察點都計），唔係去重後嘅題目數。多部份題目（例如溫度差題）可能拆成幾個觀察點，所以呢度數字可以高過上面 Summary 嘅題目數。家長見到嘅題目級數（做得穩 / 覆核 / 錯 / 漏）以上面 Summary 為準；Weekly / Growth 亦只用去重後嘅 skill tags，唔會用呢度嘅 raw count。</div>
+    ${v79SkillTrendHTML(r.engineV2?.summary||[])}</div>
   </div>
 
   <div class="reportBlock highlight"><b>程度觀察</b><div class="muted">${esc(v93ParentCleanText(r.levelAwareness||'按目前年級和題目難度作觀察。',520))}</div></div>
