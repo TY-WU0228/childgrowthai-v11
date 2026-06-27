@@ -3253,6 +3253,47 @@ function v80FilterEvidence(evidence){
   });
   return out;
 }
+function v96EvidenceSourceType(source){
+  const s=String(source||'').toLowerCase();
+  if(s==='extract') return 'primary_worksheet';
+  if(s==='strength'||s==='review') return 'derived_report_text';
+  if(s==='reason') return 'reason';
+  if(s==='summary') return 'summary';
+  if(s==='parent') return 'parent_interpretation';
+  if(s==='raw') return 'raw_analysis';
+  return s || 'unknown';
+}
+function v96ConfirmedEvidenceForGrowth(e){
+  if(!e) return false;
+  if(e.sourceType && e.sourceType!=='primary_worksheet') return false;
+  return e.status==='correct' || e.status==='wrong';
+}
+function v96NormalizeEngineEvidence(e,lineSource){
+  if(!e) return null;
+  const fixed={...e};
+  fixed.source=fixed.source||lineSource||'unknown';
+  fixed.sourceType=v96EvidenceSourceType(lineSource||fixed.source);
+  fixed.status=String(fixed.status||'unclear').toLowerCase();
+  if(/correct|right|正確|答對/.test(fixed.status)) fixed.status='correct';
+  else if(/wrong|incorrect|錯/.test(fixed.status)) fixed.status='wrong';
+  else if(/missing|blank|未完成|漏做|空白/.test(fixed.status)) fixed.status='missing';
+  else fixed.status='unclear';
+  const text=[fixed.question,fixed.studentAnswer,fixed.correctAnswer,fixed.reason].filter(Boolean).join(' ');
+  const hasPositive=/正確|答對|correct|right|無錯|暫無錯|掌握/i.test(text);
+  const hasNegative=/錯|wrong|incorrect|應為|應該|mistake|error/i.test(text);
+  if(hasPositive&&hasNegative){
+    fixed.status='unclear';
+    fixed.needsReview=true;
+    fixed.contradiction=true;
+    fixed.confidence='low';
+  }
+  if(fixed.sourceType!=='primary_worksheet'&&fixed.status==='wrong'){
+    fixed.status='unclear';
+    fixed.needsReview=true;
+    fixed.confidence='low';
+  }
+  return fixed;
+}
 function v80ReadingTableHTML(evidence){
   const rows=(evidence||[]).filter(e=>e.skill==='Reading Comprehension').slice(0,8);
   if(!rows.length) return '';
@@ -3339,21 +3380,23 @@ function v79EvidenceFromLine(line, source='raw'){
 }
 function v79BuildEngineFromReport(r){
   const evidence=[];
-  const texts=[
-    ...(Array.isArray(r?.strengths)?r.strengths:[]).map(x=>({x,source:'strength'})),
-    ...(Array.isArray(r?.checkPoints)?r.checkPoints:[]).map(x=>({x,source:'review'})),
-    ...(Array.isArray(r?.reasons)?r.reasons:[]).map(x=>({x,source:'reason'})),
-    {x:r?.summary||'',source:'summary'},
-    {x:r?.parentInterpretation||'',source:'parent'},
-    {x:r?.rawAnalysis||'',source:'raw'}
-  ];
+  const extractedEvidence=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:[];
+  const texts=extractedEvidence.length
+    ? extractedEvidence.map(x=>({x,source:'extract'}))
+    : [
+      ...(Array.isArray(r?.strengths)?r.strengths:[]).map(x=>({x,source:'strength'})),
+      ...(Array.isArray(r?.checkPoints)?r.checkPoints:[]).map(x=>({x,source:'review'}))
+    ];
   texts.forEach(({x,source})=>{
-    String(x||'').split(/\n|。|；/).forEach(line=>{
-      v79EvidenceFromLine(line,source).forEach(e=>v79AddEvidence(evidence,e));
+    String(x||'').split(/\n|\u3002|\uff1b/).forEach(line=>{
+      v79EvidenceFromLine(line,source).forEach(e=>{
+        const fixed=v96NormalizeEngineEvidence(e,source);
+        if(fixed) v79AddEvidence(evidence,fixed);
+      });
     });
   });
   evidence.forEach(e=>{
-    if(e.question && e.studentAnswer && /[+\-xX*×÷\/]/.test(e.question)){
+    if(e.sourceType==='primary_worksheet' && e.question && e.studentAnswer && /[+\-xX*\u00d7\u00f7\/]/.test(e.question)){
       const correct=(typeof v76CalcExpression==='function')?v76CalcExpression(e.question):null;
       if(correct!==null){
         e.correctAnswer=String(correct);
@@ -3364,11 +3407,11 @@ function v79BuildEngineFromReport(r){
     }
   });
   const cleanEvidence=v80FilterEvidence(evidence).slice(0,60);
-  return {version:'v2.1',flow:'Extract → Mark → Report → Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence)};
+  return {version:'v2.1',flow:'Extract -> Mark -> Report -> Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence)};
 }
 function v79SkillTrend(evidence){
   const map={};
-  (evidence||[]).forEach(e=>{
+  (evidence||[]).filter(v96ConfirmedEvidenceForGrowth).forEach(e=>{
     const key=(e.skill||'General Learning')+'|'+(e.subSkill||'general');
     if(!map[key]) map[key]={skill:e.skill||'General Learning',subSkill:e.subSkill||'general',correct:0,wrong:0,unclear:0,total:0,examples:[]};
     const row=map[key];
@@ -3618,9 +3661,6 @@ function v76HardGuardHomeworkReport(r){
     if(v76IsPositiveOnlyLine(s)){good.push(v77CleanGoodLine(s)); return;}
     review.push(s);
   });
-  // Also scan reasons/rawAnalysis: if AI says "18+13寫咗21" there, add it to Review.
-  const scanText=[...(Array.isArray(r.reasons)?r.reasons:[]),r.parentInterpretation,r.rawAnalysis].filter(Boolean).join(' ');
-  review.push(...v76ExtractArithmeticErrors(scanText));
   r.strengths=v70Unique? v70Unique(good).slice(0,6):Array.from(new Set(good)).slice(0,6);
   r.checkPoints=v70Unique? v70Unique(review).slice(0,6):Array.from(new Set(review)).slice(0,6);
   return r;
@@ -3716,20 +3756,24 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
   report.engineV2 = v79BuildEngineFromReport(report);
-  const v79Strong = (report.engineV2.evidence||[]).filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
-  const v79Review = (report.engineV2.evidence||[]).filter(e=>e.status==='wrong'||e.status==='unclear').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const confirmedEngineEvidence = v82CleanEvidence(report.engineV2.evidence||[]).filter(v96ConfirmedEvidenceForGrowth);
+  const hasConfirmedEngineEvidence = confirmedEngineEvidence.length>0;
+  const v79Strong = confirmedEngineEvidence.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const v79Review = confirmedEngineEvidence.filter(e=>e.status==='wrong').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
   report.growth={
     engineVersion:'v2.1',
     subject:v74DetectSubject(allText),
     worksheetLevel:v74DetectWorksheetLevel(allText),
     childYear:app?.profile?.year || '',
-    skillsStrong:(v79Strong.length?v79Strong:strongSkills).slice(0,6),
-    skillsToReview:(v79Review.length?v79Review:reviewSkills).slice(0,6),
-    errorTypes:errorTypes.slice(0,6),
+    skillsStrong:(hasConfirmedEngineEvidence?v79Strong:strongSkills).slice(0,6),
+    skillsToReview:(hasConfirmedEngineEvidence?v79Review:reviewSkills).slice(0,6),
+    errorTypes:(hasConfirmedEngineEvidence?v79Review:errorTypes).slice(0,6),
     confidence,
     imageCount,
     nextStep:report.nextStep || '',
-    trendTags:[...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)].slice(0,12)
+    trendTags:(hasConfirmedEngineEvidence
+      ? [...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)]
+      : [...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)]).slice(0,12)
   };
   report.reportQuality={
     score:qualityScore,
@@ -3830,6 +3874,7 @@ function normalizeHomeworkReport(data, text, imageCount){
     const content=sectionBetween(raw,['📌 1. 我大約睇到嘅功課內容','1. 我大約睇到嘅功課內容','我大約睇到嘅功課內容'],['⚠️ 2.','✅ 2b.','🧠 3.']);
     const check=sectionBetween(raw,['⚠️ 2. 需要覆核的位置','2. 需要覆核的位置','需要覆核的位置'],['✅ 2b.','🧠 3.','💬 4.']);
     const good=sectionBetween(raw,['✅ 2b. 已做得好的地方','2b. 已做得好的地方','已做得好的地方'],['🧠 3.','💬 4.','📈 5.']);
+    const extracted=sectionBetween(raw,['Engine v2 Extracted Evidence','Extracted Evidence'],['0. Learning level awareness','Learning level awareness']);
     const reason=sectionBetween(raw,['🧠 3. 可能出錯原因','3. 可能出錯原因','可能出錯原因'],['💬 4.','📈 5.','✅ 6.']);
     const parent=sectionBetween(raw,['💬 4. 給家長的簡短解讀','4. 給家長的簡短解讀','給家長的簡短解讀'],['📈 5.','✅ 6.']);
     const tips=sectionBetween(raw,['✅ 6. 下次做題小貼士','6. 下次做題小貼士','下次做題小貼士'],[]);
@@ -3840,6 +3885,7 @@ function normalizeHomeworkReport(data, text, imageCount){
       levelAwareness:level || '已按圖片內容和目前年級作初步觀察；詳情見完整分析。',
       strengths:bulletsFrom(good,4),
       checkPoints:bulletsFrom(check,6),
+      extractedEvidence:bulletsFrom(extracted,60),
       reasons:bulletsFrom(reason,5),
       parentInterpretation:parent,
       nextStep:firstUsefulLine(tips)||'今晚只揀一題最有代表性的題目慢慢講解。',
@@ -4650,7 +4696,7 @@ function v9618ReviewTopicKey(e){
 }
 function v79SkillTrend(evidence){
   const map={};
-  v82CleanEvidence(evidence||[]).forEach(e=>{
+  v82CleanEvidence(evidence||[]).filter(v96ConfirmedEvidenceForGrowth).forEach(e=>{
     const key=(e.skill||'General Learning')+'|'+(e.subSkill||'general');
     if(!map[key]) map[key]={skill:e.skill||'General Learning',subSkill:e.subSkill||'general',correct:0,wrong:0,unclear:0,total:0,examples:[]};
     const row=map[key];
@@ -4688,6 +4734,7 @@ function v82AnswerLine(e){
   const c=e.correctAnswer&&e.correctAnswer!=='-'?e.correctAnswer:'未提供';
   return `${v92ChildLabel()}：${a}${c&&c!=='未提供'?`｜正確：${c}`:''}`;
 }
+
 function v80ReadingTableHTML(evidence){
   const rows=v82ReadingRows(evidence);
   if(!rows.length) return '';
@@ -4780,6 +4827,7 @@ function v82ParentStrengths(report){
   }
   return report.strengths||[];
 }
+
 
 
 function v84Unique(arr){
