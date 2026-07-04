@@ -3273,6 +3273,7 @@ function v96NormalizeEngineEvidence(e,lineSource){
   const fixed={...e};
   fixed.source=fixed.source||lineSource||'unknown';
   fixed.sourceType=v96EvidenceSourceType(lineSource||fixed.source);
+  if(fixed.sourceType!=='primary_worksheet') return null;
   fixed.status=String(fixed.status||'unclear').toLowerCase();
   if(/correct|right|正確|答對/.test(fixed.status)) fixed.status='correct';
   else if(/wrong|incorrect|錯/.test(fixed.status)) fixed.status='wrong';
@@ -3285,11 +3286,6 @@ function v96NormalizeEngineEvidence(e,lineSource){
     fixed.status='unclear';
     fixed.needsReview=true;
     fixed.contradiction=true;
-    fixed.confidence='low';
-  }
-  if(fixed.sourceType!=='primary_worksheet'&&fixed.status==='wrong'){
-    fixed.status='unclear';
-    fixed.needsReview=true;
     fixed.confidence='low';
   }
   return fixed;
@@ -3381,12 +3377,7 @@ function v79EvidenceFromLine(line, source='raw'){
 function v79BuildEngineFromReport(r){
   const evidence=[];
   const extractedEvidence=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:[];
-  const texts=extractedEvidence.length
-    ? extractedEvidence.map(x=>({x,source:'extract'}))
-    : [
-      ...(Array.isArray(r?.strengths)?r.strengths:[]).map(x=>({x,source:'strength'})),
-      ...(Array.isArray(r?.checkPoints)?r.checkPoints:[]).map(x=>({x,source:'review'}))
-    ];
+  const texts=extractedEvidence.map(x=>({x,source:'extract'}));
   texts.forEach(({x,source})=>{
     String(x||'').split(/\n|\u3002|\uff1b/).forEach(line=>{
       v79EvidenceFromLine(line,source).forEach(e=>{
@@ -3406,8 +3397,9 @@ function v79BuildEngineFromReport(r){
       }
     }
   });
-  const cleanEvidence=v80FilterEvidence(evidence).slice(0,60);
-  return {version:'v2.1',flow:'Extract -> Mark -> Report -> Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence)};
+  const cleanEvidence=v80FilterEvidence(evidence).filter(e=>e.sourceType==='primary_worksheet').slice(0,60);
+  const evidenceStatus=cleanEvidence.length?'confirmed_worksheet_evidence':'insufficient_confirmed_evidence';
+  return {version:'v2.1',flow:'Extract -> Mark -> Report -> Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence),evidenceStatus,needsReview:!cleanEvidence.length};
 }
 function v79SkillTrend(evidence){
   const map={};
@@ -3760,20 +3752,23 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
   const hasConfirmedEngineEvidence = confirmedEngineEvidence.length>0;
   const v79Strong = confirmedEngineEvidence.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
   const v79Review = confirmedEngineEvidence.filter(e=>e.status==='wrong').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const evidenceStatus=hasConfirmedEngineEvidence?'confirmed_worksheet_evidence':'insufficient_confirmed_evidence';
+  const explicitWorksheetLevel=String(report.worksheetLevel||report.worksheet_level||'').trim();
+  const levelAwarenessText=String(report.levelAwareness||'');
+  const worksheetLevelFromAwareness=/above|higher|extension|challenge|高一級|高過|挑戰/i.test(levelAwarenessText)?'Extension / above current year':'Unknown';
   report.growth={
     engineVersion:'v2.1',
-    subject:v74DetectSubject(allText),
-    worksheetLevel:v74DetectWorksheetLevel(allText),
+    subject:hasConfirmedEngineEvidence?v74DetectSubject(confirmedEngineEvidence.map(e=>[e.skill,e.subSkill,e.question].join(' ')).join(' ')):'General Learning',
+    worksheetLevel:hasConfirmedEngineEvidence?(explicitWorksheetLevel||worksheetLevelFromAwareness):'Unknown',
     childYear:app?.profile?.year || '',
-    skillsStrong:(hasConfirmedEngineEvidence?v79Strong:strongSkills).slice(0,6),
-    skillsToReview:(hasConfirmedEngineEvidence?v79Review:reviewSkills).slice(0,6),
-    errorTypes:(hasConfirmedEngineEvidence?v79Review:errorTypes).slice(0,6),
-    confidence,
+    skillsStrong:hasConfirmedEngineEvidence?v79Strong.slice(0,6):[],
+    skillsToReview:hasConfirmedEngineEvidence?v79Review.slice(0,6):['insufficient_confirmed_evidence'],
+    errorTypes:hasConfirmedEngineEvidence?v79Review.slice(0,6):['needs_review'],
+    confidence:hasConfirmedEngineEvidence?confidence:'Low',
     imageCount,
     nextStep:report.nextStep || '',
-    trendTags:(hasConfirmedEngineEvidence
-      ? [...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)]
-      : [...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)]).slice(0,12)
+    trendTags:hasConfirmedEngineEvidence?[...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)].slice(0,12):[],
+    evidenceStatus
   };
   report.reportQuality={
     score:qualityScore,
@@ -4633,21 +4628,20 @@ function v9611ApplyHomeworkCanonical(report){
     report.shortSummary=String(n.hero||'').slice(0,180);
   }
   report.growth=report.growth||{};
-  report.growth.skillsStrong=n.skills.strong.slice();
-  report.growth.skillsToReview=n.skills.review.slice();
   const stableEv=(v82CleanEvidence(report.engineV2?.evidence||[])||[])
-    .filter(e=>v96DisplayStatus(e)==='ok');
+    .filter(e=>v96ConfirmedEvidenceForGrowth(e)&&v96DisplayStatus(e)==='ok');
+  report.growth.skillsStrong=stableEv.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x)).slice(0,6);
+  report.growth.skillsToReview=stableEv.filter(e=>e.status==='wrong').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x)).slice(0,6);
+  if(!stableEv.length){
+    report.growth.skillsStrong=[];
+    report.growth.skillsToReview=['insufficient_confirmed_evidence'];
+    report.growth.evidenceStatus='insufficient_confirmed_evidence';
+  }
   const strengthLines=[];
   stableEv.slice(0,5).forEach(e=>{
     const q=v96CleanParentQuestion(e.question||'');
     if(q) strengthLines.push(`在 ${q} 答得正確。`);
   });
-  if(!strengthLines.length && n.skills.strong.length){
-    n.skills.strong.forEach(s=>{
-      const zh=v96ZhSkill(s)||s;
-      strengthLines.push(`在 ${zh} 方面有穩定表現。`);
-    });
-  }
   if(!incomplete && strengthLines.length) report.strengths=v84Unique(strengthLines).slice(0,6);
   report.v9611AppliedAt=new Date().toISOString();
   return report;
@@ -4660,6 +4654,9 @@ function v82CleanEvidence(evidence){
   (v80FilterEvidence(normalized)||[]).forEach(e=>{
     if(!v82IsTrueQuestionEvidence(e)) return;
     const fixed={...e};
+    const sourceType=fixed.sourceType||v96EvidenceSourceType(fixed.source);
+    if(sourceType!=='primary_worksheet') return;
+    fixed.sourceType=sourceType;
     if(fixed.skill==='Reading Comprehension' && (!fixed.studentAnswer || fixed.studentAnswer==='all answered')){
       // Keep only if it is a real question; otherwise skip summary rows.
       if(!/[?？]|Q\d|第\s*\d+\s*題/i.test(fixed.question)) return;
@@ -4776,20 +4773,16 @@ function v82ReviewList(report){
       return `【需家長確認】${e.question}`;
     });
   }
-  const cps=(report.checkPoints||[]).filter(x=>{
-    const s=String(x||'');
-    if(/暫未見|未見明確|無需覆核|正確|全部答對|全部正確/.test(s)) return false;
-    if(/粗心|心急|做題狀態|可能出錯原因|閱讀題目|理解位|請家長確認/.test(s) && !(s.includes('明確錯')||s.includes('看不清')||s.includes('未完成'))) return false;
-    return /明確錯|看不清|未完成|漏做|需家長確認/.test(s);
-  });
-  return cps.length?cps.slice(0,4):['暫未見明確錯題。'];
+  return ['needs_review: insufficient_confirmed_evidence'];
 }
 function v82ParentInsight(report){
-  const interp=v82CleanText(report.parentInterpretation);
-  if(interp) return interp;
-  const rows=v82ReadingRows(report.engineV2?.evidence||[]);
-  if(rows.length && rows.every(e=>e.status==='correct')) return `${v92ChildLabel()} 今次閱讀理解表現穩定，能分辨題目重點並選出正確答案。`;
-  return report.shortSummary || '已完成功課分析。';
+  const evidence=v82CleanEvidence(report?.engineV2?.evidence||[]).filter(v96ConfirmedEvidenceForGrowth);
+  if(!evidence.length) return 'needs_review: insufficient_confirmed_evidence';
+  const wrong=evidence.filter(e=>e.status==='wrong').length;
+  const correct=evidence.filter(e=>e.status==='correct').length;
+  if(wrong>0) return `${v92ChildLabel()} 今次有 ${wrong} 個由 worksheet evidence 確認的 review item，建議先逐題核對題目要求和答案。`;
+  if(correct>0) return `${v92ChildLabel()} 今次有 ${correct} 個由 worksheet evidence 確認的穩定表現。`;
+  return 'needs_review: insufficient_confirmed_evidence';
 }
 function v82NextStep(report){
   const review=v82TrueReviewEvidence(report);
@@ -4980,10 +4973,6 @@ function v85ConcreteNextStep(report){
   return '今晚只揀一題最有代表性的題目慢慢講解。';
 }
 function v85ParentInsight(report){
-  const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
-  if(/past|present|tense|時態|rided|rides|played|plays|cooked|cooks|drives|drove/i.test(txt)){
-    return `${v92ChildLabel()} 不是完全不懂英文，而是今次在「讀題指令」和「判斷 past / present」之間有混淆：題目要她寫 past 或 present，但她似乎嘗試改寫動詞。這是 Year 2 常見、也很值得練的位。`;
-  }
   return v82ParentInsight(report);
 }
 function v85CleanReviewList(report){
@@ -4992,24 +4981,14 @@ function v85CleanReviewList(report){
   return clean.length?clean:['暫未見明確錯題。'];
 }
 function v85ParentStrengths(report){
-  let arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認|暫時未有足夠|insufficient/i.test(x));
-  if(!arr.length){
-    const sets=v85ResolvedSkillSets(report);
-    if(sets.strong.length){
-      arr=sets.strong.map(s=>`在 ${v96ZhSkill(s)||s} 方面有穩定表現。`);
-    }
-    const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
-      .filter(e=>v96DisplayStatus(e)==='ok').slice(0,4);
-    stableEv.forEach(e=>{
-      const q=v96CleanParentQuestion(e.question||'');
-      if(q && !arr.some(x=>x.includes(q))) arr.push(`在 ${q} 答得正確。`);
-    });
-  }
-  const txt=[report?.summary,report?.rawAnalysis].join(' ');
-  const isMathReport=!!(v9611NormalizedReport(report)?.isMath);
-  if(!isMathReport && /word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
-    if(!arr.some(x=>/word search|拼字|單字/.test(x))) arr.unshift('Word search / spelling 部分能找到多個目標單字，拼字搜尋能力不錯。');
-  }
+  const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
+    .filter(e=>v96ConfirmedEvidenceForGrowth(e)&&v96DisplayStatus(e)==='ok')
+    .slice(0,6);
+  const arr=[];
+  stableEv.forEach(e=>{
+    const q=v96CleanParentQuestion(e.question||'');
+    if(q) arr.push(`在 ${q} 答得正確。`);
+  });
   return arr;
 }
 
@@ -5278,11 +5257,10 @@ function v93ReviewEvidence(report){
     .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
     .map(v93NormalizeReviewEvidence)
     .filter(e=>v93QuestionLooksSpecific(e.question,e));
-  const parsed=ev.length?[]:(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
-  // V96.13: use the same normalized dedupe key as v96VisibleRows so
-  // semantically identical items from slightly different AI wording merge.
+  // Do not parse report.checkPoints here: those are generated report prose, not worksheet evidence.
+  // If confirmed engine evidence is absent, downstream code must surface insufficient_confirmed_evidence.
   const out=[]; const seen=new Set();
-  [...ev,...parsed].forEach(e=>{
+  ev.forEach(e=>{
     if(!v93QuestionLooksSpecific(e.question,e)) return;
     const key=typeof v9611ReviewDedupeKey==='function'?v9611ReviewDedupeKey(e):[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
     if(seen.has(key)) return;

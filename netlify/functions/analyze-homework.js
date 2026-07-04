@@ -677,6 +677,7 @@ function normalizeEngineEvidenceV96(e, lineSource){
   const fixed={...e};
   fixed.source=fixed.source||lineSource||'unknown';
   fixed.sourceType=evidenceSourceTypeV96(lineSource||fixed.source);
+  if(fixed.sourceType!=='primary_worksheet') return null;
   fixed.status=String(fixed.status||'unclear').toLowerCase();
   if(/correct|right|正確|答對/.test(fixed.status)) fixed.status='correct';
   else if(/wrong|incorrect|錯/.test(fixed.status)) fixed.status='wrong';
@@ -690,10 +691,6 @@ function normalizeEngineEvidenceV96(e, lineSource){
     fixed.status='unclear';
     fixed.confidence='low';
     fixed.contradiction=true;
-  }
-  if(fixed.sourceType!=='primary_worksheet' && fixed.status==='wrong'){
-    fixed.status='unclear';
-    fixed.confidence='low';
   }
   return fixed;
 }
@@ -788,20 +785,16 @@ function skillTrendV79(evidence) {
 function buildEngineV2FromReportV79(report) {
   const evidence = [];
   const extractedEvidence = Array.isArray(report.extractedEvidence) ? report.extractedEvidence : [];
-  const sources = extractedEvidence.length
-    ? extractedEvidence.map(x => ({ x, source: 'extract' }))
-    : [
-    ...(Array.isArray(report.strengths) ? report.strengths : []).map(x => ({ x, source: 'strength' })),
-    ...(Array.isArray(report.checkPoints) ? report.checkPoints : []).map(x => ({ x, source: 'review' }))
-  ];
+  const sources = extractedEvidence.map(x => ({ x, source: 'extract' }));
   sources.forEach(({ x, source }) => {
     String(x || '').split(/\n|\u3002|\uff1b/).forEach(line => evidenceFromLineV79(line, source).forEach(e => {
       const fixed = normalizeEngineEvidenceV96(e, source);
       if (fixed) addEvidenceV79(evidence, fixed);
     }));
   });
-  const cleanEvidence = filterEvidenceV80(evidence).slice(0, 60);
-  return { version: 'v2.1', flow: 'Extract → Mark → Report → Skill Trend', evidence: cleanEvidence, summary: skillTrendV79(cleanEvidence) };
+  const cleanEvidence = filterEvidenceV80(evidence).filter(e => e.sourceType === 'primary_worksheet').slice(0, 60);
+  const evidenceStatus = cleanEvidence.length ? 'confirmed_worksheet_evidence' : 'insufficient_confirmed_evidence';
+  return { version: 'v2.1', flow: 'Extract -> Mark -> Report -> Skill Trend', evidence: cleanEvidence, summary: skillTrendV79(cleanEvidence), evidenceStatus, needsReview: !cleanEvidence.length };
 }
 function addEvidenceLineV79(arr, line) {
   const s = normalizeReportLine(line);
@@ -809,11 +802,19 @@ function addEvidenceLineV79(arr, line) {
 }
 function applyEngineV2ToReportV79(report) {
   report.engineV2 = buildEngineV2FromReportV79(report);
-  const good = Array.isArray(report.strengths) ? [...report.strengths] : [];
-  const review = Array.isArray(report.checkPoints) ? [...report.checkPoints] : [];
-  (report.engineV2.evidence || []).forEach(e => {
-    if (e.status === 'wrong' && e.sourceType === 'primary_worksheet') addEvidenceLineV79(review, `【明確錯】${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''}${e.correctAnswer ? '，正確應為 ' + e.correctAnswer : ''}`);
-    if (e.status === 'correct' && e.sourceType === 'primary_worksheet') addEvidenceLineV79(good, `${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''} 正確`);
+  const confirmedEvidence = (report.engineV2.evidence || []).filter(confirmedEvidenceForGrowthV96);
+  if(!confirmedEvidence.length){
+    report.strengths = [];
+    report.checkPoints = ['needs_review: insufficient_confirmed_evidence'];
+    report.reasons = [];
+    report.confidence = 'low';
+    return report;
+  }
+  const good = [];
+  const review = [];
+  confirmedEvidence.forEach(e => {
+    if (e.status === 'wrong') addEvidenceLineV79(review, `【明確錯】${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''}${e.correctAnswer ? '，正確應為 ' + e.correctAnswer : ''}`);
+    if (e.status === 'correct') addEvidenceLineV79(good, `${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''} 正確`);
   });
   report.strengths = uniqueLinesV70(good).slice(0, 6);
   report.checkPoints = uniqueLinesV70(review).filter(x => !clearlyCorrectReviewLineV78(x)).slice(0, 30);
