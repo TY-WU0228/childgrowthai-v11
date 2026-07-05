@@ -3374,7 +3374,75 @@ function v79EvidenceFromLine(line, source='raw'){
   }
   return v80FilterEvidence(out);
 }
+function cgEvidenceTraceSample(x){
+  try{
+    if(x===undefined || x===null) return null;
+    return (typeof x==='string'?x:JSON.stringify(x)).slice(0,500);
+  }catch(e){
+    return String(x).slice(0,500);
+  }
+}
+function cgEvidenceTrace(stage,obj,extra={}){
+  try{
+    const hasObj=obj&&typeof obj==='object';
+    const hasProp=!!(hasObj&&Object.prototype.hasOwnProperty.call(obj,'extractedEvidence'));
+    const arr=Array.isArray(obj?.extractedEvidence)?obj.extractedEvidence:null;
+    const raw=obj?.rawAnalysis||obj?.fullAnalysis||obj?.analysis||obj?.output||obj?.summary||'';
+    console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
+      stage,
+      timestamp:new Date().toISOString(),
+      ...extra,
+      hasExtractedEvidenceProperty:hasProp,
+      hasExtractedEvidence:Array.isArray(obj?.extractedEvidence),
+      extractedEvidenceCount:arr?arr.length:null,
+      sampleFirstRow:arr&&arr.length?cgEvidenceTraceSample(arr[0]):null,
+      hasRawAnalysis:!!String(raw||''),
+      rawAnalysisLength:String(raw||'').length,
+      keys:hasObj?Object.keys(obj).slice(0,40):[]
+    }));
+  }catch(e){
+    console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
+  }
+}
+function cgEvidenceTraceCollection(stage,reports,extra={}){
+  try{
+    console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
+      stage,
+      timestamp:new Date().toISOString(),
+      ...extra,
+      reportCount:(reports||[]).length,
+      reports:(reports||[]).map((r,i)=>{
+        const arr=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:null;
+        return {
+          index:i+1,
+          hasExtractedEvidenceProperty:!!(r&&Object.prototype.hasOwnProperty.call(r,'extractedEvidence')),
+          hasExtractedEvidence:Array.isArray(r?.extractedEvidence),
+          extractedEvidenceCount:arr?arr.length:null,
+          sampleFirstRow:arr&&arr.length?cgEvidenceTraceSample(arr[0]):null
+        };
+      })
+    }));
+  }catch(e){
+    console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
+  }
+}
+function cgEvidenceTraceEngine(stage,engine,extra={}){
+  try{
+    const arr=Array.isArray(engine?.evidence)?engine.evidence:null;
+    console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
+      stage,
+      timestamp:new Date().toISOString(),
+      ...extra,
+      engineEvidenceCount:arr?arr.length:null,
+      evidenceStatus:engine?.evidenceStatus||'',
+      sampleFirstEvidence:arr&&arr.length?cgEvidenceTraceSample(arr[0]):null
+    }));
+  }catch(e){
+    console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
+  }
+}
 function v79BuildEngineFromReport(r){
+  cgEvidenceTrace('5.v79BuildEngineFromReport.start',r);
   const evidence=[];
   const extractedEvidence=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:[];
   const texts=extractedEvidence.map(x=>({x,source:'extract'}));
@@ -3744,6 +3812,7 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
   report.engineV2 = v79BuildEngineFromReport(report);
+  cgEvidenceTraceEngine('6.v79BuildEngineFromReport.after',report.engineV2);
   report=v9626ApplyInsufficientEvidenceBoundary(report);
   const confirmedEngineEvidence = v82CleanEvidence(report.engineV2.evidence||[]).filter(v96ConfirmedEvidenceForGrowth);
   const hasConfirmedEngineEvidence = confirmedEngineEvidence.length>0;
@@ -3902,6 +3971,7 @@ function v81UniqueLines(arr){
 }
 function v81MergeHomeworkReports(reports, imageCount){
   const cleanReports=(reports||[]).filter(Boolean);
+  cgEvidenceTraceCollection('2.v81MergeHomeworkReports.before',cleanReports,{imageCount});
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
   const strengths=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.strengths)?r.strengths:[]))
     .filter(x=>!/暫未見明確錯題|未見明確錯|無需覆核/.test(x)).slice(0,8);
@@ -4007,7 +4077,9 @@ async function sendHomeworkToAIChunked(imagesToSend){
     if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。</div>`;
     try{
       const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
+      cgEvidenceTrace('0.sendHomeworkToAIChunked.rawResponse',data?.report||data,{imageIndex:batchNo,batchNo,totalBatches:total});
       const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+      cgEvidenceTrace('1.normalizeHomeworkReport.perImage.after',report,{imageIndex:batchNo,batchNo,totalBatches:total});
       all.push(report);
       analyses.push(data.analysis||report.rawAnalysis||'');
       model=data.model||model;
@@ -4021,6 +4093,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     throw new Error('所有圖片分析都逾時或失敗：'+errors.join('；'));
   }
   const merged=v81MergeHomeworkReports(all, imagesToSend.length);
+  cgEvidenceTrace('3.v81MergeHomeworkReports.after',merged,{imageCount:imagesToSend.length});
   if(errors.length){
     merged.parentInterpretation=(merged.parentInterpretation||'')+' 部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。';
     merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。'];
@@ -4237,6 +4310,7 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     const data=await sendHomeworkToAIChunked(imagesToSend);
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
     let report=normalizeHomeworkReport(data,text,imagesToSend.length);
+    cgEvidenceTrace('4.normalizeHomeworkReport.merged.after',report,{imageCount:imagesToSend.length});
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     report.v967Fingerprint=fp;
     if(!partial) report=v9611ApplyHomeworkCanonical(report);
