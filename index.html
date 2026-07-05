@@ -3744,6 +3744,7 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
   report.engineV2 = v79BuildEngineFromReport(report);
+  report=v9626ApplyInsufficientEvidenceBoundary(report);
   const confirmedEngineEvidence = v82CleanEvidence(report.engineV2.evidence||[]).filter(v96ConfirmedEvidenceForGrowth);
   const hasConfirmedEngineEvidence = confirmedEngineEvidence.length>0;
   const v79Strong = confirmedEngineEvidence.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
@@ -3762,7 +3763,7 @@ function v74EnrichHomeworkReport(report, note='', imageCount=0){
     errorTypes:hasConfirmedEngineEvidence?v79Review.slice(0,6):['needs_review'],
     confidence:hasConfirmedEngineEvidence?confidence:'Low',
     imageCount,
-    nextStep:report.nextStep || '',
+    nextStep:hasConfirmedEngineEvidence?(report.nextStep||''):'needs_review: insufficient_confirmed_evidence',
     trendTags:hasConfirmedEngineEvidence?[...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)].slice(0,12):[],
     evidenceStatus
   };
@@ -4525,13 +4526,16 @@ function v9611NormalizedReport(report){
   
   // 3. Derive skill tags deterministically from evidence only
   const skills=v9611SkillsFromEvidence([...allEvidence,...rows]);
+  const confirmedEvidence=(allEvidence||[]).filter(v96ConfirmedEvidenceForGrowth);
   
   // 4. Generate hero summary deterministically from counts
   const subject=String(report?.growth?.subject||'');
   const isMath=/Math|數學|Addition|Multiplication/i.test(subject) || 
                allEvidence.some(x=>/[+\-xX*×÷\/]/.test(x.question||''));
   let hero='';
-  if(counts.total){
+  if(!confirmedEvidence.length){
+    hero='needs_review: insufficient_confirmed_evidence';
+  }else if(counts.total){
     if(isMath){
       hero=`今日最值得留意：${v92ChildLabel()} 有 ${counts.stable} 題做得穩，${counts.total} 個位值得覆核；今晚集中講一題代表性題目就夠。`;
     }else{
@@ -4550,8 +4554,8 @@ function v9611NormalizedReport(report){
   }
   
   // 5. Generate tonight task from the most educationally representative item.
-  let tonight='今晚只揀一題最有代表性的題目慢慢講解。';
-  if(rows.length){
+  let tonight=confirmedEvidence.length?'今晚只揀一題最有代表性的題目慢慢講解。':'needs_review: insufficient_confirmed_evidence';
+  if(confirmedEvidence.length && rows.length){
     const first=v9615PickTonightRow(rows)||rows[0];
     tonight=`今晚只做一題：${v96CleanParentQuestion(first.question||'')||'選一題'}。先讀題目要求，再講 ${v92ChildLabel()} 答案同正確答案有咩分別。`;
   }
@@ -4610,10 +4614,49 @@ function v9611IsIncompleteCanonicalReport(report){
     report?.reportQuality?.checks?.analysisComplete===false ||
     (Array.isArray(debug.errors) && debug.errors.length>0);
 }
+function v9626HasConfirmedWorksheetEvidence(report){
+  const ev=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  return ev.some(v96ConfirmedEvidenceForGrowth);
+}
+function v9626ApplyInsufficientEvidenceBoundary(report){
+  if(!report) return report;
+  report.engineV2=report.engineV2||{};
+  const hasConfirmed=v9626HasConfirmedWorksheetEvidence(report);
+  if(hasConfirmed && report.engineV2.evidenceStatus!=='insufficient_confirmed_evidence') return report;
+  const childYear=app?.profile?.year||report?.growth?.childYear||'';
+  report.engineV2.evidence=[];
+  report.engineV2.summary=[];
+  report.engineV2.evidenceStatus='insufficient_confirmed_evidence';
+  report.engineV2.needsReview=true;
+  report.summary='needs_review: insufficient_confirmed_evidence';
+  report.shortSummary='needs_review: insufficient_confirmed_evidence';
+  report.wowSummary='needs_review: insufficient_confirmed_evidence';
+  report.parentInterpretation='needs_review: insufficient_confirmed_evidence';
+  report.levelAwareness=`worksheetLevel: Unknown; childYear: ${childYear}; needs_review: insufficient_confirmed_evidence`;
+  report.strengths=[];
+  report.checkPoints=['needs_review: insufficient_confirmed_evidence'];
+  report.reasons=[];
+  report.nextStep='needs_review: insufficient_confirmed_evidence';
+  report.growth={
+    ...(report.growth||{}),
+    subject:'General Learning',
+    worksheetLevel:'Unknown',
+    childYear,
+    skillsStrong:[],
+    skillsToReview:['insufficient_confirmed_evidence'],
+    errorTypes:['needs_review'],
+    confidence:'Low',
+    nextStep:'needs_review: insufficient_confirmed_evidence',
+    trendTags:[],
+    evidenceStatus:'insufficient_confirmed_evidence'
+  };
+  return report;
+}
 /* Beta stability: freeze parent-facing fields from v9611 before save/display so
    hero, tonight task, skill tags and strengths stay aligned with evidence counts. */
 function v9611ApplyHomeworkCanonical(report){
   if(!report) return report;
+  report=v9626ApplyInsufficientEvidenceBoundary(report);
   if(_v9611Cache.has(report)) _v9611Cache.delete(report);
   const n=v9611NormalizedReport(report);
   if(!n) return report;
@@ -4632,6 +4675,7 @@ function v9611ApplyHomeworkCanonical(report){
     report.growth.skillsStrong=[];
     report.growth.skillsToReview=['insufficient_confirmed_evidence'];
     report.growth.evidenceStatus='insufficient_confirmed_evidence';
+    report.growth.nextStep='needs_review: insufficient_confirmed_evidence';
   }
   const strengthLines=[];
   stableEv.slice(0,5).forEach(e=>{
