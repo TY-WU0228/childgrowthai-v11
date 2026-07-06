@@ -4132,6 +4132,20 @@ async function sendHomeworkToAIChunked(imagesToSend){
     try{
       const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
       cgEvidenceTrace('0.sendHomeworkToAIChunked.rawResponse',data?.report||data,{imageIndex:batchNo,batchNo,totalBatches:total});
+      if(data&&data.debug&&(data.debug.rawOutputTextSample||data.debug.cleanedOutputTextSample)){
+        try{
+          console.log('[CG_RAW_OUTPUT_TRACE]',JSON.stringify({
+            stage:'rawOutput.beforeCleanParentText',
+            imageIndex:batchNo,
+            batchNo,
+            totalBatches:total,
+            route:data.route||'',
+            model:data.model||'',
+            rawOutputTextSample:data.debug.rawOutputTextSample||'',
+            cleanedOutputTextSample:data.debug.cleanedOutputTextSample||''
+          }));
+        }catch(e){}
+      }
 
       let report;
 

@@ -49,7 +49,7 @@ exports.handler = async function(event) {
     if (first.ok) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
       const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens} });
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens,rawOutputTextSample:text,cleanedOutputTextSample:analysis} });
     }
 
     const firstErr = first.data?.error?.message || first.error || '';
@@ -78,7 +78,7 @@ exports.handler = async function(event) {
     if (second.ok) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
       const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)} });
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200),rawOutputTextSample:text,cleanedOutputTextSample:analysis} });
     }
 
     return json(second.status || first.status || 500, {
