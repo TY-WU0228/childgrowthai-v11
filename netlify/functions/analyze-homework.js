@@ -290,9 +290,22 @@ function extractResponsesText(data) {
 }
 
 function cleanParentText(text) {
+  const isEngineEvidenceMarker = line => /Engine\s+v2\s+Extracted\s+Evidence/i.test(String(line || ''));
+  const isInternalDebugLine = line => {
+    const s = String(line || '').trim();
+    if (!s) return false;
+    if (isEngineEvidenceMarker(s)) return false;
+    return (
+      /^\s*V\d+\b/i.test(s) ||
+      /^\s*(model|route|debug|schema|maxTokens|responses|chat-fallback)\s*[:：]/i.test(s) ||
+      /\b(JSON|function|OpenAI|API-only|API|Netlify|serverless|technical evidence)\b/i.test(s) ||
+      /\bresponses-v\d+\b/i.test(s) ||
+      /\bchat-fallback-v?\d*\b/i.test(s)
+    );
+  };
   return String(text || '')
     .split(/\n+/)
-    .filter(line => !/(JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|maxTokens|responses|chat-fallback|technical evidence)/i.test(line) && !/^\s*V\d+\b/i.test(line))
+    .filter(line => !isInternalDebugLine(line))
     .join('\n')
     .replace(/confidence_signal/gi, '答題狀態')
     .replace(/fatigue_signal/gi, '精神狀態')
