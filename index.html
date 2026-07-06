@@ -3382,20 +3382,61 @@ function cgEvidenceTraceSample(x){
     return String(x).slice(0,500);
   }
 }
+
+function cgEvidenceTraceHash(value){
+  try{
+    const text=typeof value==='string'?value:JSON.stringify(value);
+    let hash=2166136261;
+    for(let i=0;i<text.length;i++){
+      hash^=text.charCodeAt(i);
+      hash=Math.imul(hash,16777619);
+    }
+    return (hash>>>0).toString(16).padStart(8,'0');
+  }catch(e){
+    return null;
+  }
+}
+function cgEvidenceTraceRows(arr){
+  const rows=Array.isArray(arr)?arr.slice(0,3):[];
+  let rowsJson='';
+  try{
+    rowsJson=JSON.stringify(rows);
+  }catch(e){
+    rowsJson=String(rows);
+  }
+  return {
+    sampleFirstRow:rows.length?cgEvidenceTraceSample(rows[0]):null,
+    sampleFirstRows:rows.map(cgEvidenceTraceSample),
+    firstThreeRowsJson:rowsJson.slice(0,1500),
+    extractedEvidenceFingerprint:Array.isArray(arr)?cgEvidenceTraceHash(arr):null,
+    firstThreeRowsFingerprint:rows.length?cgEvidenceTraceHash(rowsJson):null
+  };
+}
+function cgEvidenceTraceImageIndex(extra={}){
+  if(extra&&Object.prototype.hasOwnProperty.call(extra,'imageIndex')) return extra.imageIndex;
+  if(typeof window!=='undefined'&&Object.prototype.hasOwnProperty.call(window,'__cgEvidenceTraceImageIndex')) return window.__cgEvidenceTraceImageIndex;
+  return null;
+}
 function cgEvidenceTrace(stage,obj,extra={}){
   try{
     const hasObj=obj&&typeof obj==='object';
     const hasProp=!!(hasObj&&Object.prototype.hasOwnProperty.call(obj,'extractedEvidence'));
     const arr=Array.isArray(obj?.extractedEvidence)?obj.extractedEvidence:null;
     const raw=obj?.rawAnalysis||obj?.fullAnalysis||obj?.analysis||obj?.output||obj?.summary||'';
+    const rowTrace=cgEvidenceTraceRows(arr);
     console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
       stage,
       timestamp:new Date().toISOString(),
       ...extra,
+      imageIndex:cgEvidenceTraceImageIndex(extra),
       hasExtractedEvidenceProperty:hasProp,
       hasExtractedEvidence:Array.isArray(obj?.extractedEvidence),
       extractedEvidenceCount:arr?arr.length:null,
-      sampleFirstRow:arr&&arr.length?cgEvidenceTraceSample(arr[0]):null,
+      sampleFirstRow:rowTrace.sampleFirstRow,
+      sampleFirstRows:rowTrace.sampleFirstRows,
+      firstThreeRowsJson:rowTrace.firstThreeRowsJson,
+      extractedEvidenceFingerprint:rowTrace.extractedEvidenceFingerprint,
+      firstThreeRowsFingerprint:rowTrace.firstThreeRowsFingerprint,
       hasRawAnalysis:!!String(raw||''),
       rawAnalysisLength:String(raw||'').length,
       keys:hasObj?Object.keys(obj).slice(0,40):[]
@@ -3410,15 +3451,22 @@ function cgEvidenceTraceCollection(stage,reports,extra={}){
       stage,
       timestamp:new Date().toISOString(),
       ...extra,
+      imageIndex:cgEvidenceTraceImageIndex(extra),
       reportCount:(reports||[]).length,
       reports:(reports||[]).map((r,i)=>{
         const arr=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:null;
+        const rowTrace=cgEvidenceTraceRows(arr);
         return {
           index:i+1,
+          imageIndex:i+1,
           hasExtractedEvidenceProperty:!!(r&&Object.prototype.hasOwnProperty.call(r,'extractedEvidence')),
           hasExtractedEvidence:Array.isArray(r?.extractedEvidence),
           extractedEvidenceCount:arr?arr.length:null,
-          sampleFirstRow:arr&&arr.length?cgEvidenceTraceSample(arr[0]):null
+          sampleFirstRow:rowTrace.sampleFirstRow,
+          sampleFirstRows:rowTrace.sampleFirstRows,
+          firstThreeRowsJson:rowTrace.firstThreeRowsJson,
+          extractedEvidenceFingerprint:rowTrace.extractedEvidenceFingerprint,
+          firstThreeRowsFingerprint:rowTrace.firstThreeRowsFingerprint
         };
       })
     }));
@@ -3429,13 +3477,19 @@ function cgEvidenceTraceCollection(stage,reports,extra={}){
 function cgEvidenceTraceEngine(stage,engine,extra={}){
   try{
     const arr=Array.isArray(engine?.evidence)?engine.evidence:null;
+    const rowTrace=cgEvidenceTraceRows(arr);
     console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
       stage,
       timestamp:new Date().toISOString(),
       ...extra,
+      imageIndex:cgEvidenceTraceImageIndex(extra),
       engineEvidenceCount:arr?arr.length:null,
       evidenceStatus:engine?.evidenceStatus||'',
-      sampleFirstEvidence:arr&&arr.length?cgEvidenceTraceSample(arr[0]):null
+      sampleFirstEvidence:rowTrace.sampleFirstRow,
+      sampleFirstEvidenceRows:rowTrace.sampleFirstRows,
+      evidenceRowsJson:rowTrace.firstThreeRowsJson,
+      evidenceFingerprint:rowTrace.extractedEvidenceFingerprint,
+      firstThreeEvidenceRowsFingerprint:rowTrace.firstThreeRowsFingerprint
     }));
   }catch(e){
     console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
@@ -4078,7 +4132,20 @@ async function sendHomeworkToAIChunked(imagesToSend){
     try{
       const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
       cgEvidenceTrace('0.sendHomeworkToAIChunked.rawResponse',data?.report||data,{imageIndex:batchNo,batchNo,totalBatches:total});
-      const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+
+      let report;
+
+      window.__cgEvidenceTraceImageIndex=batchNo;
+
+      try{
+
+        report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+
+      }finally{
+
+        window.__cgEvidenceTraceImageIndex=null;
+
+      }
       cgEvidenceTrace('1.normalizeHomeworkReport.perImage.after',report,{imageIndex:batchNo,batchNo,totalBatches:total});
       all.push(report);
       analyses.push(data.analysis||report.rawAnalysis||'');
@@ -4093,7 +4160,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     throw new Error('所有圖片分析都逾時或失敗：'+errors.join('；'));
   }
   const merged=v81MergeHomeworkReports(all, imagesToSend.length);
-  cgEvidenceTrace('3.v81MergeHomeworkReports.after',merged,{imageCount:imagesToSend.length});
+  cgEvidenceTrace('3.v81MergeHomeworkReports.after',merged,{imageIndex:'merged',imageCount:imagesToSend.length});
   if(errors.length){
     merged.parentInterpretation=(merged.parentInterpretation||'')+' 部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。';
     merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。'];
@@ -4309,8 +4376,21 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
-    let report=normalizeHomeworkReport(data,text,imagesToSend.length);
-    cgEvidenceTrace('4.normalizeHomeworkReport.merged.after',report,{imageCount:imagesToSend.length});
+
+    let report;
+
+    window.__cgEvidenceTraceImageIndex='merged';
+
+    try{
+
+      report=normalizeHomeworkReport(data,text,imagesToSend.length);
+
+    }finally{
+
+      window.__cgEvidenceTraceImageIndex=null;
+
+    }
+    cgEvidenceTrace('4.normalizeHomeworkReport.merged.after',report,{imageIndex:'merged',imageCount:imagesToSend.length});
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     report.v967Fingerprint=fp;
     if(!partial) report=v9611ApplyHomeworkCanonical(report);
