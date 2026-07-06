@@ -292,7 +292,7 @@ function extractResponsesText(data) {
 function cleanParentText(text) {
   return String(text || '')
     .split(/\n+/)
-    .filter(line => !/(JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|maxTokens|responses|chat-fallback|V\d+|technical evidence)/i.test(line))
+    .filter(line => !/(JSON|function|model|route|debug|schema|OpenAI|API|Netlify|serverless|maxTokens|responses|chat-fallback|technical evidence)/i.test(line) && !/^\s*V\d+\b/i.test(line))
     .join('\n')
     .replace(/confidence_signal/gi, '答題狀態')
     .replace(/fatigue_signal/gi, '精神狀態')
