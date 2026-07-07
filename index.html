@@ -3865,6 +3865,8 @@ function v81UniqueLines(arr){
 function v81MergeHomeworkReports(reports, imageCount){
   const cleanReports=(reports||[]).filter(Boolean);
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
+  const rcATraceInputCounts=cleanReports.map(r=>Array.isArray(r.extractedEvidence)?r.extractedEvidence.length:0);
+  const rcATraceInputTotal=rcATraceInputCounts.reduce((sum,n)=>sum+n,0);
   const extractedEvidence=cleanReports.flatMap(r=>
     Array.isArray(r.extractedEvidence)
       ? r.extractedEvidence.map(x=>String(x||'').trim()).filter(Boolean)
@@ -3876,7 +3878,7 @@ function v81MergeHomeworkReports(reports, imageCount){
     .filter(x=>!/^\s*暫未見明確錯題/.test(x)).slice(0,8);
   if(!checkPoints.length) checkPoints=['暫未見明確錯題。'];
   const reasons=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.reasons)?r.reasons:[])).slice(0,6);
-  return {
+  const mergedReport={
     title:'AI 功課分析',
     shortSummary: cleanReports.map(r=>r.shortSummary).filter(Boolean)[0] || '已分批完成分析。',
     summary: joined('summary') || '已分批讀取功課圖片。',
@@ -3891,6 +3893,22 @@ function v81MergeHomeworkReports(reports, imageCount){
     extractedEvidence,
     imageCount
   };
+  try{
+    const rcATrace={
+      stage:'v81MergeHomeworkReports',
+      inputCounts:rcATraceInputCounts,
+      inputTotal:rcATraceInputTotal,
+      outputCount:Array.isArray(mergedReport.extractedEvidence)?mergedReport.extractedEvidence.length:0,
+      imageCount,
+      timestamp:new Date().toISOString()
+    };
+    window.__qaRcATrace=Array.isArray(window.__qaRcATrace)?window.__qaRcATrace:[];
+    window.__qaRcATrace.push(rcATrace);
+    console.log('[QA_RC_A_TRACE]', JSON.stringify(rcATrace));
+  }catch(e){
+    console.log('[QA_RC_A_TRACE_ERROR]', String(e&&e.message||e));
+  }
+  return mergedReport;
 }
 
 function v83IsTimeoutError(msg){
