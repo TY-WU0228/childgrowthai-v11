@@ -3865,6 +3865,11 @@ function v81UniqueLines(arr){
 function v81MergeHomeworkReports(reports, imageCount){
   const cleanReports=(reports||[]).filter(Boolean);
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
+  const qaRcAPerImage=cleanReports.map((r,index)=>{
+    const rows=Array.isArray(r.extractedEvidence)?r.extractedEvidence.slice():[];
+    return {index, count:rows.length, extractedEvidence:rows};
+  });
+  const qaRcAStage2Rows=qaRcAPerImage.flatMap(r=>r.extractedEvidence);
   const extractedEvidence=cleanReports.flatMap(r=>
     Array.isArray(r.extractedEvidence)
       ? r.extractedEvidence.map(x=>String(x||'').trim()).filter(Boolean)
@@ -3876,7 +3881,7 @@ function v81MergeHomeworkReports(reports, imageCount){
     .filter(x=>!/^\s*暫未見明確錯題/.test(x)).slice(0,8);
   if(!checkPoints.length) checkPoints=['暫未見明確錯題。'];
   const reasons=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.reasons)?r.reasons:[])).slice(0,6);
-  return {
+  const mergedReport={
     title:'AI 功課分析',
     shortSummary: cleanReports.map(r=>r.shortSummary).filter(Boolean)[0] || '已分批完成分析。',
     summary: joined('summary') || '已分批讀取功課圖片。',
@@ -3891,6 +3896,23 @@ function v81MergeHomeworkReports(reports, imageCount){
     extractedEvidence,
     imageCount
   };
+  try{
+    if(typeof window!=='undefined'){
+      window.__qaRcATrace={
+        branch:'codex/rc-a-cctv-v2',
+        previewBuildSha:new URLSearchParams(location.search||'').get('codex_build')||'unknown',
+        timestamp:new Date().toISOString(),
+        imageOrder:qaRcAPerImage.map(r=>r.index),
+        stage2PerImage:qaRcAPerImage,
+        stage2FlattenedRows:qaRcAStage2Rows,
+        stage2Total:qaRcAStage2Rows.length,
+        stage3Rows:Array.isArray(mergedReport.extractedEvidence)?mergedReport.extractedEvidence.slice():[],
+        stage3Total:Array.isArray(mergedReport.extractedEvidence)?mergedReport.extractedEvidence.length:null
+      };
+      console.log('[QA_RC_A_TRACE]',JSON.stringify(window.__qaRcATrace));
+    }
+  }catch(_){}
+  return mergedReport;
 }
 
 function v83IsTimeoutError(msg){
