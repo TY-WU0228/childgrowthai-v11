@@ -3865,6 +3865,11 @@ function v81UniqueLines(arr){
 function v81MergeHomeworkReports(reports, imageCount){
   const cleanReports=(reports||[]).filter(Boolean);
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
+  const extractedEvidence=cleanReports.flatMap(r=>
+    Array.isArray(r.extractedEvidence)
+      ? r.extractedEvidence.map(x=>String(x||'').trim()).filter(Boolean)
+      : []
+  );
   const strengths=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.strengths)?r.strengths:[]))
     .filter(x=>!/暫未見明確錯題|未見明確錯|無需覆核/.test(x)).slice(0,8);
   let checkPoints=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.checkPoints)?r.checkPoints:[]))
@@ -3883,6 +3888,7 @@ function v81MergeHomeworkReports(reports, imageCount){
     nextStep: cleanReports.map(r=>r.nextStep).find(Boolean) || '今晚只揀一題最有代表性的題目慢慢講解。',
     confidence: cleanReports.some(r=>String(r.confidence||'').toLowerCase()==='low')?'medium':'medium',
     rawAnalysis: joined('rawAnalysis'),
+    extractedEvidence,
     imageCount
   };
 }
