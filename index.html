@@ -3876,7 +3876,7 @@ function v81MergeHomeworkReports(reports, imageCount){
     .filter(x=>!/^\s*暫未見明確錯題/.test(x)).slice(0,8);
   if(!checkPoints.length) checkPoints=['暫未見明確錯題。'];
   const reasons=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.reasons)?r.reasons:[])).slice(0,6);
-  return {
+  const mergedReport={
     title:'AI 功課分析',
     shortSummary: cleanReports.map(r=>r.shortSummary).filter(Boolean)[0] || '已分批完成分析。',
     summary: joined('summary') || '已分批讀取功課圖片。',
@@ -3891,6 +3891,31 @@ function v81MergeHomeworkReports(reports, imageCount){
     extractedEvidence,
     imageCount
   };
+  try{
+    const clone=x=>JSON.parse(JSON.stringify(x));
+    const stage2Inputs=cleanReports.map((r,i)=>({
+      imageIndex:i+1,
+      extractedEvidence:Array.isArray(r.extractedEvidence)?r.extractedEvidence.slice():[],
+      markerRows:r.__qaCctv&&Array.isArray(r.__qaCctv.markerRows)?r.__qaCctv.markerRows.slice():[],
+      report:clone(r)
+    }));
+    const trace={
+      scope:'rc-em-rc-a-full-row-chain',
+      capturedAt:new Date().toISOString(),
+      href:location.href,
+      codexBuild:new URLSearchParams(location.search).get('codex_build')||'',
+      imageCount,
+      stage2Inputs,
+      stage2Rows:extractedEvidence.slice(),
+      stage3Rows:Array.isArray(mergedReport.extractedEvidence)?mergedReport.extractedEvidence.slice():[]
+    };
+    window.__qaRcEmRcAFullRowTrace=trace;
+    window.__qaRcEmRcAFullRowTraces=Array.isArray(window.__qaRcEmRcAFullRowTraces)?window.__qaRcEmRcAFullRowTraces:[];
+    window.__qaRcEmRcAFullRowTraces.push(trace);
+  }catch(e){
+    window.__qaRcEmRcAFullRowTraceError=String(e&&e.message?e.message:e);
+  }
+  return mergedReport;
 }
 
 function v83IsTimeoutError(msg){

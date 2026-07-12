@@ -847,7 +847,13 @@ function buildStructuredHomeworkReport(raw) {
     nextStep: firstUsefulLine(tips) || '今晚只揀一題最有代表性的題目慢慢講解。',
     confidence: 'medium',
     extractedEvidence,
-    rawAnalysis: text
+    rawAnalysis: text,
+    __qaCctv: {
+      scope: 'rc-em-marker-materialization',
+      marker: ENGINE_V2_EVIDENCE_MARKER,
+      markerRows: extractedEvidence.slice(),
+      extractedEvidenceRowsAtBuild: extractedEvidence.slice()
+    }
   };
   return applyEngineV2ToReportV79(hardGuardReportV76(sanitizeStructuredReportV70(report)));
 }
