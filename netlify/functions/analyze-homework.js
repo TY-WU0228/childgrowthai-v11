@@ -320,6 +320,43 @@ function sectionBetween(raw, startMarkers, endMarkers) {
   }
   return text.slice(from, end).replace(/^[:：\s-]+/, '').trim();
 }
+const ENGINE_V2_EVIDENCE_MARKER = 'Engine v2 Extracted Evidence';
+const ENGINE_V2_EVIDENCE_END_MARKERS = [
+  'Learning level awareness',
+  '我大約睇到嘅功課內容',
+  '已做得好的地方',
+  '需要覆核的位置',
+  '可能出錯原因',
+  '給家長的簡短解讀',
+  '長期觀察重點',
+  '今晚只做一件事',
+  '下次做題小貼士'
+];
+function extractEngineV2EvidenceRows(text) {
+  const raw = String(text || '');
+  const start = raw.indexOf(ENGINE_V2_EVIDENCE_MARKER);
+  if (start < 0) return [];
+  const from = start + ENGINE_V2_EVIDENCE_MARKER.length;
+  let end = -1;
+  for (const marker of ENGINE_V2_EVIDENCE_END_MARKERS) {
+    const i = raw.indexOf(marker, from);
+    if (i >= 0 && (end < 0 || i < end)) end = i;
+  }
+  if (end < 0) return [];
+  return raw.slice(from, end)
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(line => {
+      const candidate = line.replace(/^[\s\-•*]+/, '').trim();
+      return candidate.includes('|') &&
+        /\bPage\s*\d+/i.test(candidate) &&
+        /(?:\bQ\s*:|\bQ\d+\b|\bQuestion\s*:)/i.test(candidate) &&
+        /\bStudent\s*:/i.test(candidate) &&
+        /\bCorrect\s*:/i.test(candidate) &&
+        /\bStatus\s*:/i.test(candidate) &&
+        /\bSkill\s*:/i.test(candidate);
+    });
+}
 function bulletsFrom(section, max = 5) {
   return String(section || '')
     .split(/\n+/)
@@ -784,6 +821,7 @@ function applyEngineV2ToReportV79(report) {
 
 function buildStructuredHomeworkReport(raw) {
   const text = cleanParentText(raw || '');
+  const extractedEvidence = extractEngineV2EvidenceRows(text);
   const wow = sectionBetween(text, ['✨ Parent Wow Summary','Parent Wow Summary'], ['🔎 Engine v2','🌟 0.']);
   const level = sectionBetween(text, ['🌟 0. Learning level awareness', '0. Learning level awareness', 'Learning level awareness'], ['📌 1.', '1. 我大約', '✅ 2.']);
   const content = sectionBetween(text, ['📌 1. 我大約睇到嘅功課內容', '1. 我大約睇到嘅功課內容', '我大約睇到嘅功課內容'], ['✅ 2.', '2. 已做得好', '⚠️ 3.']);
@@ -808,6 +846,7 @@ function buildStructuredHomeworkReport(raw) {
     longTermFocus: bulletsFrom(longTerm, 4),
     nextStep: firstUsefulLine(tips) || '今晚只揀一題最有代表性的題目慢慢講解。',
     confidence: 'medium',
+    extractedEvidence,
     rawAnalysis: text
   };
   return applyEngineV2ToReportV79(hardGuardReportV76(sanitizeStructuredReportV70(report)));
