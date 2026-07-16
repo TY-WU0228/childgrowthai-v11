@@ -3253,6 +3253,43 @@ function v80FilterEvidence(evidence){
   });
   return out;
 }
+function v96EvidenceSourceType(source){
+  const s=String(source||'').toLowerCase();
+  if(s==='extract') return 'primary_worksheet';
+  if(s==='strength'||s==='review') return 'derived_report_text';
+  if(s==='reason') return 'reason';
+  if(s==='summary') return 'summary';
+  if(s==='parent') return 'parent_interpretation';
+  if(s==='raw') return 'raw_analysis';
+  return s || 'unknown';
+}
+function v96ConfirmedEvidenceForGrowth(e){
+  if(!e) return false;
+  if(e.sourceType && e.sourceType!=='primary_worksheet') return false;
+  return e.status==='correct' || e.status==='wrong';
+}
+function v96NormalizeEngineEvidence(e,lineSource){
+  if(!e) return null;
+  const fixed={...e};
+  fixed.source=fixed.source||lineSource||'unknown';
+  fixed.sourceType=v96EvidenceSourceType(lineSource||fixed.source);
+  if(fixed.sourceType!=='primary_worksheet') return null;
+  fixed.status=String(fixed.status||'unclear').toLowerCase();
+  if(/correct|right|正確|答對/.test(fixed.status)) fixed.status='correct';
+  else if(/wrong|incorrect|錯/.test(fixed.status)) fixed.status='wrong';
+  else if(/missing|blank|未完成|漏做|空白/.test(fixed.status)) fixed.status='missing';
+  else fixed.status='unclear';
+  const text=[fixed.question,fixed.studentAnswer,fixed.correctAnswer,fixed.reason].filter(Boolean).join(' ');
+  const hasPositive=/正確|答對|correct|right|無錯|暫無錯|掌握/i.test(text);
+  const hasNegative=/錯|wrong|incorrect|應為|應該|mistake|error/i.test(text);
+  if(hasPositive&&hasNegative){
+    fixed.status='unclear';
+    fixed.needsReview=true;
+    fixed.contradiction=true;
+    fixed.confidence='low';
+  }
+  return fixed;
+}
 function v80ReadingTableHTML(evidence){
   const rows=(evidence||[]).filter(e=>e.skill==='Reading Comprehension').slice(0,8);
   if(!rows.length) return '';
@@ -3337,23 +3374,142 @@ function v79EvidenceFromLine(line, source='raw'){
   }
   return v80FilterEvidence(out);
 }
+function cgEvidenceTraceSample(x){
+  try{
+    if(x===undefined || x===null) return null;
+    return (typeof x==='string'?x:JSON.stringify(x)).slice(0,500);
+  }catch(e){
+    return String(x).slice(0,500);
+  }
+}
+
+function cgEvidenceTraceHash(value){
+  try{
+    const text=typeof value==='string'?value:JSON.stringify(value);
+    let hash=2166136261;
+    for(let i=0;i<text.length;i++){
+      hash^=text.charCodeAt(i);
+      hash=Math.imul(hash,16777619);
+    }
+    return (hash>>>0).toString(16).padStart(8,'0');
+  }catch(e){
+    return null;
+  }
+}
+function cgEvidenceTraceRows(arr){
+  const rows=Array.isArray(arr)?arr.slice(0,3):[];
+  let rowsJson='';
+  try{
+    rowsJson=JSON.stringify(rows);
+  }catch(e){
+    rowsJson=String(rows);
+  }
+  return {
+    sampleFirstRow:rows.length?cgEvidenceTraceSample(rows[0]):null,
+    sampleFirstRows:rows.map(cgEvidenceTraceSample),
+    firstThreeRowsJson:rowsJson.slice(0,1500),
+    extractedEvidenceFingerprint:Array.isArray(arr)?cgEvidenceTraceHash(arr):null,
+    firstThreeRowsFingerprint:rows.length?cgEvidenceTraceHash(rowsJson):null
+  };
+}
+function cgEvidenceTraceImageIndex(extra={}){
+  if(extra&&Object.prototype.hasOwnProperty.call(extra,'imageIndex')) return extra.imageIndex;
+  if(typeof window!=='undefined'&&Object.prototype.hasOwnProperty.call(window,'__cgEvidenceTraceImageIndex')) return window.__cgEvidenceTraceImageIndex;
+  return null;
+}
+function cgEvidenceTrace(stage,obj,extra={}){
+  try{
+    const hasObj=obj&&typeof obj==='object';
+    const hasProp=!!(hasObj&&Object.prototype.hasOwnProperty.call(obj,'extractedEvidence'));
+    const arr=Array.isArray(obj?.extractedEvidence)?obj.extractedEvidence:null;
+    const raw=obj?.rawAnalysis||obj?.fullAnalysis||obj?.analysis||obj?.output||obj?.summary||'';
+    const rowTrace=cgEvidenceTraceRows(arr);
+    console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
+      stage,
+      timestamp:new Date().toISOString(),
+      ...extra,
+      imageIndex:cgEvidenceTraceImageIndex(extra),
+      hasExtractedEvidenceProperty:hasProp,
+      hasExtractedEvidence:Array.isArray(obj?.extractedEvidence),
+      extractedEvidenceCount:arr?arr.length:null,
+      sampleFirstRow:rowTrace.sampleFirstRow,
+      sampleFirstRows:rowTrace.sampleFirstRows,
+      firstThreeRowsJson:rowTrace.firstThreeRowsJson,
+      extractedEvidenceFingerprint:rowTrace.extractedEvidenceFingerprint,
+      firstThreeRowsFingerprint:rowTrace.firstThreeRowsFingerprint,
+      hasRawAnalysis:!!String(raw||''),
+      rawAnalysisLength:String(raw||'').length,
+      keys:hasObj?Object.keys(obj).slice(0,40):[]
+    }));
+  }catch(e){
+    console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
+  }
+}
+function cgEvidenceTraceCollection(stage,reports,extra={}){
+  try{
+    console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
+      stage,
+      timestamp:new Date().toISOString(),
+      ...extra,
+      imageIndex:cgEvidenceTraceImageIndex(extra),
+      reportCount:(reports||[]).length,
+      reports:(reports||[]).map((r,i)=>{
+        const arr=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:null;
+        const rowTrace=cgEvidenceTraceRows(arr);
+        return {
+          index:i+1,
+          imageIndex:i+1,
+          hasExtractedEvidenceProperty:!!(r&&Object.prototype.hasOwnProperty.call(r,'extractedEvidence')),
+          hasExtractedEvidence:Array.isArray(r?.extractedEvidence),
+          extractedEvidenceCount:arr?arr.length:null,
+          sampleFirstRow:rowTrace.sampleFirstRow,
+          sampleFirstRows:rowTrace.sampleFirstRows,
+          firstThreeRowsJson:rowTrace.firstThreeRowsJson,
+          extractedEvidenceFingerprint:rowTrace.extractedEvidenceFingerprint,
+          firstThreeRowsFingerprint:rowTrace.firstThreeRowsFingerprint
+        };
+      })
+    }));
+  }catch(e){
+    console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
+  }
+}
+function cgEvidenceTraceEngine(stage,engine,extra={}){
+  try{
+    const arr=Array.isArray(engine?.evidence)?engine.evidence:null;
+    const rowTrace=cgEvidenceTraceRows(arr);
+    console.log('[CG_EVIDENCE_TRACE]',JSON.stringify({
+      stage,
+      timestamp:new Date().toISOString(),
+      ...extra,
+      imageIndex:cgEvidenceTraceImageIndex(extra),
+      engineEvidenceCount:arr?arr.length:null,
+      evidenceStatus:engine?.evidenceStatus||'',
+      sampleFirstEvidence:rowTrace.sampleFirstRow,
+      sampleFirstEvidenceRows:rowTrace.sampleFirstRows,
+      evidenceRowsJson:rowTrace.firstThreeRowsJson,
+      evidenceFingerprint:rowTrace.extractedEvidenceFingerprint,
+      firstThreeEvidenceRowsFingerprint:rowTrace.firstThreeRowsFingerprint
+    }));
+  }catch(e){
+    console.log('[CG_EVIDENCE_TRACE_ERROR]',stage,e&&(e.message||String(e)));
+  }
+}
 function v79BuildEngineFromReport(r){
+  cgEvidenceTrace('5.v79BuildEngineFromReport.start',r);
   const evidence=[];
-  const texts=[
-    ...(Array.isArray(r?.strengths)?r.strengths:[]).map(x=>({x,source:'strength'})),
-    ...(Array.isArray(r?.checkPoints)?r.checkPoints:[]).map(x=>({x,source:'review'})),
-    ...(Array.isArray(r?.reasons)?r.reasons:[]).map(x=>({x,source:'reason'})),
-    {x:r?.summary||'',source:'summary'},
-    {x:r?.parentInterpretation||'',source:'parent'},
-    {x:r?.rawAnalysis||'',source:'raw'}
-  ];
+  const extractedEvidence=Array.isArray(r?.extractedEvidence)?r.extractedEvidence:[];
+  const texts=extractedEvidence.map(x=>({x,source:'extract'}));
   texts.forEach(({x,source})=>{
-    String(x||'').split(/\n|。|；/).forEach(line=>{
-      v79EvidenceFromLine(line,source).forEach(e=>v79AddEvidence(evidence,e));
+    String(x||'').split(/\n|\u3002|\uff1b/).forEach(line=>{
+      v79EvidenceFromLine(line,source).forEach(e=>{
+        const fixed=v96NormalizeEngineEvidence(e,source);
+        if(fixed) v79AddEvidence(evidence,fixed);
+      });
     });
   });
   evidence.forEach(e=>{
-    if(e.question && e.studentAnswer && /[+\-xX*×÷\/]/.test(e.question)){
+    if(e.sourceType==='primary_worksheet' && e.question && e.studentAnswer && /[+\-xX*\u00d7\u00f7\/]/.test(e.question)){
       const correct=(typeof v76CalcExpression==='function')?v76CalcExpression(e.question):null;
       if(correct!==null){
         e.correctAnswer=String(correct);
@@ -3363,12 +3519,13 @@ function v79BuildEngineFromReport(r){
       }
     }
   });
-  const cleanEvidence=v80FilterEvidence(evidence).slice(0,60);
-  return {version:'v2.1',flow:'Extract → Mark → Report → Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence)};
+  const cleanEvidence=v80FilterEvidence(evidence).filter(e=>e.sourceType==='primary_worksheet').slice(0,60);
+  const evidenceStatus=cleanEvidence.length?'confirmed_worksheet_evidence':'insufficient_confirmed_evidence';
+  return {version:'v2.1',flow:'Extract -> Mark -> Report -> Skill Trend',evidence:cleanEvidence,summary:v79SkillTrend(cleanEvidence),evidenceStatus,needsReview:!cleanEvidence.length};
 }
 function v79SkillTrend(evidence){
   const map={};
-  (evidence||[]).forEach(e=>{
+  (evidence||[]).filter(v96ConfirmedEvidenceForGrowth).forEach(e=>{
     const key=(e.skill||'General Learning')+'|'+(e.subSkill||'general');
     if(!map[key]) map[key]={skill:e.skill||'General Learning',subSkill:e.subSkill||'general',correct:0,wrong:0,unclear:0,total:0,examples:[]};
     const row=map[key];
@@ -3618,9 +3775,6 @@ function v76HardGuardHomeworkReport(r){
     if(v76IsPositiveOnlyLine(s)){good.push(v77CleanGoodLine(s)); return;}
     review.push(s);
   });
-  // Also scan reasons/rawAnalysis: if AI says "18+13寫咗21" there, add it to Review.
-  const scanText=[...(Array.isArray(r.reasons)?r.reasons:[]),r.parentInterpretation,r.rawAnalysis].filter(Boolean).join(' ');
-  review.push(...v76ExtractArithmeticErrors(scanText));
   r.strengths=v70Unique? v70Unique(good).slice(0,6):Array.from(new Set(good)).slice(0,6);
   r.checkPoints=v70Unique? v70Unique(review).slice(0,6):Array.from(new Set(review)).slice(0,6);
   return r;
@@ -3708,40 +3862,45 @@ function v74QualityScore(r){
 function v74EnrichHomeworkReport(report, note='', imageCount=0){
   report=v76HardGuardHomeworkReport(v70SanitizeHomeworkReport(report||{}));
   const allText=v74TextOfReport(report)+' '+String(note||'');
-  const strongText=(report.strengths||[]).join(' ');
-  const reviewText=[...(report.checkPoints||[]),...(report.reasons||[])].join(' ');
-  const strongSkills=v74DetectSkillsFromText(strongText).length?v74DetectSkillsFromText(strongText):v74DetectSkillsFromText(allText);
-  const reviewSkills=v74DetectSkillsFromText(reviewText);
-  const errorTypes=v74DetectErrorTypes(reviewText || allText);
+
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
   report.engineV2 = v79BuildEngineFromReport(report);
-  const v79Strong = (report.engineV2.evidence||[]).filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
-  const v79Review = (report.engineV2.evidence||[]).filter(e=>e.status==='wrong'||e.status==='unclear').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  cgEvidenceTraceEngine('6.v79BuildEngineFromReport.after',report.engineV2);
+  report=v9626ApplyInsufficientEvidenceBoundary(report);
+  const confirmedEngineEvidence = v82CleanEvidence(report.engineV2.evidence||[]).filter(v96ConfirmedEvidenceForGrowth);
+  const hasConfirmedEngineEvidence = confirmedEngineEvidence.length>0;
+  const v79Strong = confirmedEngineEvidence.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const v79Review = confirmedEngineEvidence.filter(e=>e.status==='wrong').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const evidenceStatus=hasConfirmedEngineEvidence?'confirmed_worksheet_evidence':'insufficient_confirmed_evidence';
+  const explicitWorksheetLevel=String(report.worksheetLevel||report.worksheet_level||'').trim();
+  const levelAwarenessText=String(report.levelAwareness||'');
+  const worksheetLevelFromAwareness=/above|higher|extension|challenge|高一級|高過|挑戰/i.test(levelAwarenessText)?'Extension / above current year':'Unknown';
   report.growth={
     engineVersion:'v2.1',
-    subject:v74DetectSubject(allText),
-    worksheetLevel:v74DetectWorksheetLevel(allText),
+    subject:hasConfirmedEngineEvidence?v74DetectSubject(confirmedEngineEvidence.map(e=>[e.skill,e.subSkill,e.question].join(' ')).join(' ')):'General Learning',
+    worksheetLevel:hasConfirmedEngineEvidence?(explicitWorksheetLevel||worksheetLevelFromAwareness):'Unknown',
     childYear:app?.profile?.year || '',
-    skillsStrong:(v79Strong.length?v79Strong:strongSkills).slice(0,6),
-    skillsToReview:(v79Review.length?v79Review:reviewSkills).slice(0,6),
-    errorTypes:errorTypes.slice(0,6),
-    confidence,
+    skillsStrong:hasConfirmedEngineEvidence?v79Strong.slice(0,6):[],
+    skillsToReview:hasConfirmedEngineEvidence?v79Review.slice(0,6):['insufficient_confirmed_evidence'],
+    errorTypes:hasConfirmedEngineEvidence?v79Review.slice(0,6):['needs_review'],
+    confidence:hasConfirmedEngineEvidence?confidence:'Low',
     imageCount,
-    nextStep:report.nextStep || '',
-    trendTags:[...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)].slice(0,12)
+    nextStep:hasConfirmedEngineEvidence?(report.nextStep||''):'needs_review: insufficient_confirmed_evidence',
+    trendTags:hasConfirmedEngineEvidence?[...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)].slice(0,12):[],
+    evidenceStatus
   };
   report.reportQuality={
     score:qualityScore,
     label:qualityScore>=85?'Wow-ready':qualityScore>=75?'Useful beta':qualityScore>=60?'Needs more evidence':'Insufficient data',
     checks:{
       levelAwareness:!!report.levelAwareness,
-      concreteSkills:strongSkills.length+reviewSkills.length>0,
-      clearStrengths:(report.strengths||[]).length>0,
-      reviewPoints:Array.isArray(report.checkPoints),
-      reasons:(report.reasons||[]).length>0,
-      nextStep:!!report.nextStep,
-      confidence:!!confidence
+      concreteSkills:v79Strong.length+v79Review.length>0,
+      clearStrengths:hasConfirmedEngineEvidence && v79Strong.length>0,
+      reviewPoints:hasConfirmedEngineEvidence ? v79Review.length>0 : report.engineV2?.needsReview===true,
+      reasons:hasConfirmedEngineEvidence && v79Review.length>0,
+      nextStep:hasConfirmedEngineEvidence && !!report.nextStep,
+      confidence:hasConfirmedEngineEvidence && !!confidence
     }
   };
   const cleanScore=v80QualityScore(report);
@@ -3830,6 +3989,7 @@ function normalizeHomeworkReport(data, text, imageCount){
     const content=sectionBetween(raw,['📌 1. 我大約睇到嘅功課內容','1. 我大約睇到嘅功課內容','我大約睇到嘅功課內容'],['⚠️ 2.','✅ 2b.','🧠 3.']);
     const check=sectionBetween(raw,['⚠️ 2. 需要覆核的位置','2. 需要覆核的位置','需要覆核的位置'],['✅ 2b.','🧠 3.','💬 4.']);
     const good=sectionBetween(raw,['✅ 2b. 已做得好的地方','2b. 已做得好的地方','已做得好的地方'],['🧠 3.','💬 4.','📈 5.']);
+    const extracted=sectionBetween(raw,['Engine v2 Extracted Evidence','Extracted Evidence'],['0. Learning level awareness','Learning level awareness']);
     const reason=sectionBetween(raw,['🧠 3. 可能出錯原因','3. 可能出錯原因','可能出錯原因'],['💬 4.','📈 5.','✅ 6.']);
     const parent=sectionBetween(raw,['💬 4. 給家長的簡短解讀','4. 給家長的簡短解讀','給家長的簡短解讀'],['📈 5.','✅ 6.']);
     const tips=sectionBetween(raw,['✅ 6. 下次做題小貼士','6. 下次做題小貼士','下次做題小貼士'],[]);
@@ -3840,6 +4000,7 @@ function normalizeHomeworkReport(data, text, imageCount){
       levelAwareness:level || '已按圖片內容和目前年級作初步觀察；詳情見完整分析。',
       strengths:bulletsFrom(good,4),
       checkPoints:bulletsFrom(check,6),
+      extractedEvidence:bulletsFrom(extracted,60),
       reasons:bulletsFrom(reason,5),
       parentInterpretation:parent,
       nextStep:firstUsefulLine(tips)||'今晚只揀一題最有代表性的題目慢慢講解。',
@@ -3864,6 +4025,7 @@ function v81UniqueLines(arr){
 }
 function v81MergeHomeworkReports(reports, imageCount){
   const cleanReports=(reports||[]).filter(Boolean);
+  cgEvidenceTraceCollection('2.v81MergeHomeworkReports.before',cleanReports,{imageCount});
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
   const extractedEvidence=cleanReports.flatMap(r=>
     Array.isArray(r.extractedEvidence)
@@ -3975,7 +4137,36 @@ async function sendHomeworkToAIChunked(imagesToSend){
     if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。</div>`;
     try{
       const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
-      const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+      cgEvidenceTrace('0.sendHomeworkToAIChunked.rawResponse',data?.report||data,{imageIndex:batchNo,batchNo,totalBatches:total});
+      if(data&&data.debug&&(data.debug.rawOutputTextSample||data.debug.cleanedOutputTextSample)){
+        try{
+          console.log('[CG_RAW_OUTPUT_TRACE]',JSON.stringify({
+            stage:'rawOutput.beforeCleanParentText',
+            imageIndex:batchNo,
+            batchNo,
+            totalBatches:total,
+            route:data.route||'',
+            model:data.model||'',
+            rawOutputTextSample:data.debug.rawOutputTextSample||'',
+            cleanedOutputTextSample:data.debug.cleanedOutputTextSample||''
+          }));
+        }catch(e){}
+      }
+
+      let report;
+
+      window.__cgEvidenceTraceImageIndex=batchNo;
+
+      try{
+
+        report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+
+      }finally{
+
+        window.__cgEvidenceTraceImageIndex=null;
+
+      }
+      cgEvidenceTrace('1.normalizeHomeworkReport.perImage.after',report,{imageIndex:batchNo,batchNo,totalBatches:total});
       all.push(report);
       analyses.push(data.analysis||report.rawAnalysis||'');
       model=data.model||model;
@@ -3989,6 +4180,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     throw new Error('所有圖片分析都逾時或失敗：'+errors.join('；'));
   }
   const merged=v81MergeHomeworkReports(all, imagesToSend.length);
+  cgEvidenceTrace('3.v81MergeHomeworkReports.after',merged,{imageIndex:'merged',imageCount:imagesToSend.length});
   if(errors.length){
     merged.parentInterpretation=(merged.parentInterpretation||'')+' 部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。';
     merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。'];
@@ -4204,7 +4396,21 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
   try{
     const data=await sendHomeworkToAIChunked(imagesToSend);
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
-    let report=normalizeHomeworkReport(data,text,imagesToSend.length);
+
+    let report;
+
+    window.__cgEvidenceTraceImageIndex='merged';
+
+    try{
+
+      report=normalizeHomeworkReport(data,text,imagesToSend.length);
+
+    }finally{
+
+      window.__cgEvidenceTraceImageIndex=null;
+
+    }
+    cgEvidenceTrace('4.normalizeHomeworkReport.merged.after',report,{imageIndex:'merged',imageCount:imagesToSend.length});
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
     report.v967Fingerprint=fp;
     if(!partial) report=v9611ApplyHomeworkCanonical(report);
@@ -4494,13 +4700,16 @@ function v9611NormalizedReport(report){
   
   // 3. Derive skill tags deterministically from evidence only
   const skills=v9611SkillsFromEvidence([...allEvidence,...rows]);
+  const confirmedEvidence=(allEvidence||[]).filter(v96ConfirmedEvidenceForGrowth);
   
   // 4. Generate hero summary deterministically from counts
   const subject=String(report?.growth?.subject||'');
   const isMath=/Math|數學|Addition|Multiplication/i.test(subject) || 
                allEvidence.some(x=>/[+\-xX*×÷\/]/.test(x.question||''));
   let hero='';
-  if(counts.total){
+  if(!confirmedEvidence.length){
+    hero='needs_review: insufficient_confirmed_evidence';
+  }else if(counts.total){
     if(isMath){
       hero=`今日最值得留意：${v92ChildLabel()} 有 ${counts.stable} 題做得穩，${counts.total} 個位值得覆核；今晚集中講一題代表性題目就夠。`;
     }else{
@@ -4519,8 +4728,8 @@ function v9611NormalizedReport(report){
   }
   
   // 5. Generate tonight task from the most educationally representative item.
-  let tonight='今晚只揀一題最有代表性的題目慢慢講解。';
-  if(rows.length){
+  let tonight=confirmedEvidence.length?'今晚只揀一題最有代表性的題目慢慢講解。':'needs_review: insufficient_confirmed_evidence';
+  if(confirmedEvidence.length && rows.length){
     const first=v9615PickTonightRow(rows)||rows[0];
     tonight=`今晚只做一題：${v96CleanParentQuestion(first.question||'')||'選一題'}。先讀題目要求，再講 ${v92ChildLabel()} 答案同正確答案有咩分別。`;
   }
@@ -4579,10 +4788,49 @@ function v9611IsIncompleteCanonicalReport(report){
     report?.reportQuality?.checks?.analysisComplete===false ||
     (Array.isArray(debug.errors) && debug.errors.length>0);
 }
+function v9626HasConfirmedWorksheetEvidence(report){
+  const ev=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  return ev.some(v96ConfirmedEvidenceForGrowth);
+}
+function v9626ApplyInsufficientEvidenceBoundary(report){
+  if(!report) return report;
+  report.engineV2=report.engineV2||{};
+  const hasConfirmed=v9626HasConfirmedWorksheetEvidence(report);
+  if(hasConfirmed && report.engineV2.evidenceStatus!=='insufficient_confirmed_evidence') return report;
+  const childYear=app?.profile?.year||report?.growth?.childYear||'';
+  report.engineV2.evidence=[];
+  report.engineV2.summary=[];
+  report.engineV2.evidenceStatus='insufficient_confirmed_evidence';
+  report.engineV2.needsReview=true;
+  report.summary='needs_review: insufficient_confirmed_evidence';
+  report.shortSummary='needs_review: insufficient_confirmed_evidence';
+  report.wowSummary='needs_review: insufficient_confirmed_evidence';
+  report.parentInterpretation='needs_review: insufficient_confirmed_evidence';
+  report.levelAwareness=`worksheetLevel: Unknown; childYear: ${childYear}; needs_review: insufficient_confirmed_evidence`;
+  report.strengths=[];
+  report.checkPoints=['needs_review: insufficient_confirmed_evidence'];
+  report.reasons=[];
+  report.nextStep='needs_review: insufficient_confirmed_evidence';
+  report.growth={
+    ...(report.growth||{}),
+    subject:'General Learning',
+    worksheetLevel:'Unknown',
+    childYear,
+    skillsStrong:[],
+    skillsToReview:['insufficient_confirmed_evidence'],
+    errorTypes:['needs_review'],
+    confidence:'Low',
+    nextStep:'needs_review: insufficient_confirmed_evidence',
+    trendTags:[],
+    evidenceStatus:'insufficient_confirmed_evidence'
+  };
+  return report;
+}
 /* Beta stability: freeze parent-facing fields from v9611 before save/display so
    hero, tonight task, skill tags and strengths stay aligned with evidence counts. */
 function v9611ApplyHomeworkCanonical(report){
   if(!report) return report;
+  report=v9626ApplyInsufficientEvidenceBoundary(report);
   if(_v9611Cache.has(report)) _v9611Cache.delete(report);
   const n=v9611NormalizedReport(report);
   if(!n) return report;
@@ -4593,21 +4841,21 @@ function v9611ApplyHomeworkCanonical(report){
     report.shortSummary=String(n.hero||'').slice(0,180);
   }
   report.growth=report.growth||{};
-  report.growth.skillsStrong=n.skills.strong.slice();
-  report.growth.skillsToReview=n.skills.review.slice();
   const stableEv=(v82CleanEvidence(report.engineV2?.evidence||[])||[])
-    .filter(e=>v96DisplayStatus(e)==='ok');
+    .filter(e=>v96ConfirmedEvidenceForGrowth(e)&&v96DisplayStatus(e)==='ok');
+  report.growth.skillsStrong=stableEv.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x)).slice(0,6);
+  report.growth.skillsToReview=stableEv.filter(e=>e.status==='wrong').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x)).slice(0,6);
+  if(!stableEv.length){
+    report.growth.skillsStrong=[];
+    report.growth.skillsToReview=['insufficient_confirmed_evidence'];
+    report.growth.evidenceStatus='insufficient_confirmed_evidence';
+    report.growth.nextStep='needs_review: insufficient_confirmed_evidence';
+  }
   const strengthLines=[];
   stableEv.slice(0,5).forEach(e=>{
     const q=v96CleanParentQuestion(e.question||'');
     if(q) strengthLines.push(`在 ${q} 答得正確。`);
   });
-  if(!strengthLines.length && n.skills.strong.length){
-    n.skills.strong.forEach(s=>{
-      const zh=v96ZhSkill(s)||s;
-      strengthLines.push(`在 ${zh} 方面有穩定表現。`);
-    });
-  }
   if(!incomplete && strengthLines.length) report.strengths=v84Unique(strengthLines).slice(0,6);
   report.v9611AppliedAt=new Date().toISOString();
   return report;
@@ -4620,6 +4868,9 @@ function v82CleanEvidence(evidence){
   (v80FilterEvidence(normalized)||[]).forEach(e=>{
     if(!v82IsTrueQuestionEvidence(e)) return;
     const fixed={...e};
+    const sourceType=fixed.sourceType||v96EvidenceSourceType(fixed.source);
+    if(sourceType!=='primary_worksheet') return;
+    fixed.sourceType=sourceType;
     if(fixed.skill==='Reading Comprehension' && (!fixed.studentAnswer || fixed.studentAnswer==='all answered')){
       // Keep only if it is a real question; otherwise skip summary rows.
       if(!/[?？]|Q\d|第\s*\d+\s*題/i.test(fixed.question)) return;
@@ -4656,7 +4907,7 @@ function v9618ReviewTopicKey(e){
 }
 function v79SkillTrend(evidence){
   const map={};
-  v82CleanEvidence(evidence||[]).forEach(e=>{
+  v82CleanEvidence(evidence||[]).filter(v96ConfirmedEvidenceForGrowth).forEach(e=>{
     const key=(e.skill||'General Learning')+'|'+(e.subSkill||'general');
     if(!map[key]) map[key]={skill:e.skill||'General Learning',subSkill:e.subSkill||'general',correct:0,wrong:0,unclear:0,total:0,examples:[]};
     const row=map[key];
@@ -4694,6 +4945,7 @@ function v82AnswerLine(e){
   const c=e.correctAnswer&&e.correctAnswer!=='-'?e.correctAnswer:'未提供';
   return `${v92ChildLabel()}：${a}${c&&c!=='未提供'?`｜正確：${c}`:''}`;
 }
+
 function v80ReadingTableHTML(evidence){
   const rows=v82ReadingRows(evidence);
   if(!rows.length) return '';
@@ -4735,20 +4987,16 @@ function v82ReviewList(report){
       return `【需家長確認】${e.question}`;
     });
   }
-  const cps=(report.checkPoints||[]).filter(x=>{
-    const s=String(x||'');
-    if(/暫未見|未見明確|無需覆核|正確|全部答對|全部正確/.test(s)) return false;
-    if(/粗心|心急|做題狀態|可能出錯原因|閱讀題目|理解位|請家長確認/.test(s) && !(s.includes('明確錯')||s.includes('看不清')||s.includes('未完成'))) return false;
-    return /明確錯|看不清|未完成|漏做|需家長確認/.test(s);
-  });
-  return cps.length?cps.slice(0,4):['暫未見明確錯題。'];
+  return ['needs_review: insufficient_confirmed_evidence'];
 }
 function v82ParentInsight(report){
-  const interp=v82CleanText(report.parentInterpretation);
-  if(interp) return interp;
-  const rows=v82ReadingRows(report.engineV2?.evidence||[]);
-  if(rows.length && rows.every(e=>e.status==='correct')) return `${v92ChildLabel()} 今次閱讀理解表現穩定，能分辨題目重點並選出正確答案。`;
-  return report.shortSummary || '已完成功課分析。';
+  const evidence=v82CleanEvidence(report?.engineV2?.evidence||[]).filter(v96ConfirmedEvidenceForGrowth);
+  if(!evidence.length) return 'needs_review: insufficient_confirmed_evidence';
+  const wrong=evidence.filter(e=>e.status==='wrong').length;
+  const correct=evidence.filter(e=>e.status==='correct').length;
+  if(wrong>0) return `${v92ChildLabel()} 今次有 ${wrong} 個由 worksheet evidence 確認的 review item，建議先逐題核對題目要求和答案。`;
+  if(correct>0) return `${v92ChildLabel()} 今次有 ${correct} 個由 worksheet evidence 確認的穩定表現。`;
+  return 'needs_review: insufficient_confirmed_evidence';
 }
 function v82NextStep(report){
   const review=v82TrueReviewEvidence(report);
@@ -4780,12 +5028,15 @@ function v82TagHTML(items,type='neutral'){
   return filtered.map(x=>`<span class="growthTag ${type}">${esc(x)}</span>`).join('');
 }
 function v82ParentStrengths(report){
-  const rows=v82ReadingRows(report.engineV2?.evidence||[]);
-  if(rows.length && rows.every(e=>e.status==='correct')){
-    return ['閱讀理解答題穩定，能根據文章內容作答。','能分辨題目焦點，例如 tone、recipients、purpose 或 instructions。'];
-  }
-  return report.strengths||[];
+  const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
+    .filter(e=>v96ConfirmedEvidenceForGrowth(e)&&v96DisplayStatus(e)==='ok')
+    .slice(0,6);
+  return stableEv.map(e=>{
+    const q=v96CleanParentQuestion(e.question||'');
+    return q?`在 ${q} 答得正確。`:'';
+  }).filter(Boolean);
 }
+
 
 
 function v84Unique(arr){
@@ -4938,10 +5189,6 @@ function v85ConcreteNextStep(report){
   return '今晚只揀一題最有代表性的題目慢慢講解。';
 }
 function v85ParentInsight(report){
-  const txt=[report?.summary,report?.checkPoints?.join(' '),report?.reasons?.join(' '),report?.parentInterpretation,report?.rawAnalysis].join(' ');
-  if(/past|present|tense|時態|rided|rides|played|plays|cooked|cooks|drives|drove/i.test(txt)){
-    return `${v92ChildLabel()} 不是完全不懂英文，而是今次在「讀題指令」和「判斷 past / present」之間有混淆：題目要她寫 past 或 present，但她似乎嘗試改寫動詞。這是 Year 2 常見、也很值得練的位。`;
-  }
   return v82ParentInsight(report);
 }
 function v85CleanReviewList(report){
@@ -4950,24 +5197,14 @@ function v85CleanReviewList(report){
   return clean.length?clean:['暫未見明確錯題。'];
 }
 function v85ParentStrengths(report){
-  let arr=v85CleanBulletArray(v82ParentStrengths(report)||[],6).filter(x=>!/需要覆核|明確錯|需家長確認|暫時未有足夠|insufficient/i.test(x));
-  if(!arr.length){
-    const sets=v85ResolvedSkillSets(report);
-    if(sets.strong.length){
-      arr=sets.strong.map(s=>`在 ${v96ZhSkill(s)||s} 方面有穩定表現。`);
-    }
-    const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
-      .filter(e=>v96DisplayStatus(e)==='ok').slice(0,4);
-    stableEv.forEach(e=>{
-      const q=v96CleanParentQuestion(e.question||'');
-      if(q && !arr.some(x=>x.includes(q))) arr.push(`在 ${q} 答得正確。`);
-    });
-  }
-  const txt=[report?.summary,report?.rawAnalysis].join(' ');
-  const isMathReport=!!(v9611NormalizedReport(report)?.isMath);
-  if(!isMathReport && /word search|Spelling|拼字|單字|ALL|whisper|sparkle|bounce|discover/i.test(txt)){
-    if(!arr.some(x=>/word search|拼字|單字/.test(x))) arr.unshift('Word search / spelling 部分能找到多個目標單字，拼字搜尋能力不錯。');
-  }
+  const stableEv=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
+    .filter(e=>v96ConfirmedEvidenceForGrowth(e)&&v96DisplayStatus(e)==='ok')
+    .slice(0,6);
+  const arr=[];
+  stableEv.forEach(e=>{
+    const q=v96CleanParentQuestion(e.question||'');
+    if(q) arr.push(`在 ${q} 答得正確。`);
+  });
   return arr;
 }
 
@@ -5010,27 +5247,6 @@ function v92CleanReviewQuestion(q){
 function v92LineLooksPositive(s){
   return /暫未見|未見明確|無需覆核|不用覆核|答案正確|目前答案正確|正確，?\s*無需|全部正確|全部答對|寫得正確/.test(String(s||'')) && !/正確應為|正確應該|應為|應是|明確錯/.test(String(s||''));
 }
-function v92ParseReviewLine(line){
-  const raw=String(line||'').trim();
-  if(!raw || v92LineLooksPositive(raw)) return null;
-  if(!/明確錯|需家長確認|需要覆核|看不清|不清楚|未完成|漏做|空白|應為|應是|正確應為|正確應該|正確是/.test(raw)) return null;
-  let status=/明確錯|正確應為|正確應該|正確是|應為|應是/.test(raw)?'wrong':(/未完成|漏做|空白/.test(raw)?'missing':'unclear');
-  let q=v92CleanReviewQuestion(raw);
-  let ans='', corr='';
-  const m1=raw.match(/(?:Janice|學生|小朋友)[：:\s]*(?:寫|答)?[：:\s]*([^，,。；;]+)/i);
-  if(m1) ans=m1[1].trim();
-  const m2=raw.match(/(?:正確|correct)[^0-9A-Da-d]{0,12}(?:應為|應該係|應該是|是|為|係)?[：:\s]*([^，,。；;]+)/i);
-  if(m2) corr=m2[1].trim();
-  const expr=raw.match(/((?:\d+\s*[+xX*×÷\/\-]\s*)+\d+)\s*(?:=|＝)\s*(\d+)/);
-  if(expr){
-    q=q || expr[1];
-    if(!ans) ans=expr[2];
-    if(!corr && typeof calcExpressionV76==='function'){
-      const c=calcExpressionV76(expr[1]); if(c!==null) corr=String(c);
-    }
-  }
-  return {status, question:q, studentAnswer:ans, correctAnswer:corr, skill:'', subSkill:'', confidence:'low', source:'checkpoint'};
-}
 function v9616IsConcreteReviewItem(x){
   const q=String(x?.question||'');
   const ans=String(x?.studentAnswer||'').trim();
@@ -5052,8 +5268,8 @@ function v92ReviewEvidence(report){
       confidence:e.confidence||'',
       source:e.source||'evidence'
     }));
-  const parsed=(report?.checkPoints||[]).map(v92ParseReviewLine).filter(Boolean).filter(v9616IsConcreteReviewItem);
-  const all=[...ev,...parsed].filter(x=>x.question && !v92LineLooksPositive([x.question,x.studentAnswer,x.correctAnswer].join(' ')));
+  // Do not rebuild review rows from report.checkPoints; they are generated prose, not worksheet evidence.
+  const all=ev.filter(x=>x.question && !v92LineLooksPositive([x.question,x.studentAnswer,x.correctAnswer].join(' ')));
   const seen=new Set(), out=[];
   all.forEach(x=>{
     const key=[x.status,x.question,x.studentAnswer,x.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
@@ -5213,34 +5429,15 @@ function v93NormalizeReviewEvidence(e){
     source:e.source||'evidence'
   };
 }
-function v93ParseReviewLine(line){
-  const raw=String(line||'').trim();
-  if(!raw || v93TechRegex().test(raw) || v93IsPositiveReviewText(raw)) return null;
-  if(!/(明確錯|需家長確認|需要覆核|看不清|不清楚|未完成|漏做|空白|應為|應是|正確應為|正確應該|正確是|Student|Correct|Janice)/i.test(raw)) return null;
-  let status=/(明確錯|正確應為|正確應該|正確是|應為|應是|Status:\s*wrong)/i.test(raw)?'wrong':(/未完成|漏做|空白|Status:\s*missing/i.test(raw)?'missing':'unclear');
-  const qMatch=raw.match(/Q[:：]\s*([^|；;\n]+)/i) || raw.match(/(?:題目|位置)[:：]\s*([^|；;\n]+)/i);
-  const qExpr=raw.match(/((?:\d+\s*[+xX*×÷\/\-]\s*)+\d+)(?:\s*=|，|,|\s)/);
-  let question=(qMatch&&qMatch[1]) || (qExpr&&qExpr[1]) || raw;
-  const sm=raw.match(/(?:Student|Janice|學生|小朋友)[：:\s]*(?:答案|寫|答)?[：:\s]*([^|，,。；;\n]+)/i);
-  const cm=raw.match(/(?:Correct|正確|期望答案)[^|，,。；;\n]{0,16}[：:\s]*([^|，,。；;\n]+)/i);
-  const ans=sm?sm[1].trim():'';
-  let corr=cm?cm[1].trim():'';
-  if(!corr && qExpr && typeof calcExpressionV76==='function'){
-    const c=calcExpressionV76(qExpr[1]); if(c!==null) corr=String(c);
-  }
-  const item={status,question,studentAnswer:ans,correctAnswer:corr,skill:'',subSkill:'',confidence:'',source:'checkpoint'};
-  return v93QuestionLooksSpecific(question,item)?item:null;
-}
 function v93ReviewEvidence(report){
   const ev=(v82CleanEvidence(report?.engineV2?.evidence||[])||[])
     .filter(e=>e && (e.status==='wrong'||e.status==='unclear'||e.status==='missing'))
     .map(v93NormalizeReviewEvidence)
     .filter(e=>v93QuestionLooksSpecific(e.question,e));
-  const parsed=ev.length?[]:(report?.checkPoints||[]).map(v93ParseReviewLine).filter(Boolean).map(v93NormalizeReviewEvidence);
-  // V96.13: use the same normalized dedupe key as v96VisibleRows so
-  // semantically identical items from slightly different AI wording merge.
+  // Do not parse report.checkPoints here: those are generated report prose, not worksheet evidence.
+  // If confirmed engine evidence is absent, downstream code must surface insufficient_confirmed_evidence.
   const out=[]; const seen=new Set();
-  [...ev,...parsed].forEach(e=>{
+  ev.forEach(e=>{
     if(!v93QuestionLooksSpecific(e.question,e)) return;
     const key=typeof v9611ReviewDedupeKey==='function'?v9611ReviewDedupeKey(e):[e.status,e.question,e.studentAnswer,e.correctAnswer].join('|').toLowerCase().replace(/\s+/g,' ');
     if(seen.has(key)) return;

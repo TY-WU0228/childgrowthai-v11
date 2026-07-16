@@ -49,7 +49,7 @@ exports.handler = async function(event) {
     if (first.ok) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
       const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens} });
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens,rawOutputTextSample:text,cleanedOutputTextSample:analysis} });
     }
 
     const firstErr = first.data?.error?.message || first.error || '';
@@ -78,7 +78,7 @@ exports.handler = async function(event) {
     if (second.ok) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
       const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)} });
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200),rawOutputTextSample:text,cleanedOutputTextSample:analysis} });
     }
 
     return json(second.status || first.status || 500, {
@@ -608,12 +608,6 @@ function hardGuardReportV76(report) {
     }
     review.push(s);
   });
-  const scanText = [
-    ...(Array.isArray(report.reasons) ? report.reasons : []),
-    report.parentInterpretation,
-    report.rawAnalysis
-  ].filter(Boolean).join(' ');
-  review.push(...extractArithmeticErrorsV76(scanText));
   report.strengths = uniqueLinesV70 ? uniqueLinesV70(good).slice(0, 6) : [...new Set(good)].slice(0, 6);
   report.checkPoints = uniqueLinesV70 ? uniqueLinesV70(review).slice(0, 6) : [...new Set(review)].slice(0, 6);
   return report;
@@ -700,6 +694,44 @@ function filterEvidenceV80(evidence){
   return out;
 }
 
+function evidenceSourceTypeV96(source){
+  const s=String(source||'').toLowerCase();
+  if(s==='extract') return 'primary_worksheet';
+  if(s==='strength'||s==='review') return 'derived_report_text';
+  if(s==='reason') return 'reason';
+  if(s==='summary') return 'summary';
+  if(s==='parent') return 'parent_summary';
+  if(s==='raw') return 'raw_analysis';
+  return s || 'unknown';
+}
+function confirmedEvidenceForGrowthV96(e){
+  if(!e) return false;
+  if(e.sourceType && e.sourceType!=='primary_worksheet') return false;
+  return e.status==='correct' || e.status==='wrong';
+}
+function normalizeEngineEvidenceV96(e, lineSource){
+  if(!e || !e.question) return null;
+  const fixed={...e};
+  fixed.source=fixed.source||lineSource||'unknown';
+  fixed.sourceType=evidenceSourceTypeV96(lineSource||fixed.source);
+  if(fixed.sourceType!=='primary_worksheet') return null;
+  fixed.status=String(fixed.status||'unclear').toLowerCase();
+  if(/correct|right|正確|答對/.test(fixed.status)) fixed.status='correct';
+  else if(/wrong|incorrect|錯/.test(fixed.status)) fixed.status='wrong';
+  else if(/missing|blank|未完成|漏做|空白/.test(fixed.status)) fixed.status='missing';
+  else fixed.status='unclear';
+
+  const combined=[fixed.question,fixed.studentAnswer,fixed.correctAnswer].join(' ');
+  const positive=/正確|答對|無需覆核|不用覆核|暫未見錯|目前答案正確|no review/i.test(combined);
+  const negative=/明確錯|錯誤|incorrect|wrong|正確應|應為|應該/i.test(combined);
+  if(positive && negative){
+    fixed.status='unclear';
+    fixed.confidence='low';
+    fixed.contradiction=true;
+  }
+  return fixed;
+}
+
 function normalizeExprV79(expr) {
   return String(expr || '').replace(/×/g, 'x').replace(/\*/g, 'x').replace(/\s+/g, '').trim();
 }
@@ -766,7 +798,7 @@ function evidenceFromLineV79(line, source = 'raw') {
 }
 function skillTrendV79(evidence) {
   const map = {};
-  (evidence || []).forEach(e => {
+  (evidence || []).filter(confirmedEvidenceForGrowthV96).forEach(e => {
     const key = (e.skill || 'General Learning') + '|' + (e.subSkill || 'general');
     if (!map[key]) map[key] = { skill: e.skill || 'General Learning', subSkill: e.subSkill || 'general', correct: 0, wrong: 0, unclear: 0, total: 0, examples: [] };
     const row = map[key];
@@ -789,18 +821,17 @@ function skillTrendV79(evidence) {
 }
 function buildEngineV2FromReportV79(report) {
   const evidence = [];
-  [
-    ...(Array.isArray(report.strengths) ? report.strengths : []).map(x => ({ x, source: 'strength' })),
-    ...(Array.isArray(report.checkPoints) ? report.checkPoints : []).map(x => ({ x, source: 'review' })),
-    ...(Array.isArray(report.reasons) ? report.reasons : []).map(x => ({ x, source: 'reason' })),
-    { x: report.summary || '', source: 'summary' },
-    { x: report.parentInterpretation || '', source: 'parent' },
-    { x: report.rawAnalysis || '', source: 'raw' }
-  ].forEach(({ x, source }) => {
-    String(x || '').split(/\n|。|；/).forEach(line => evidenceFromLineV79(line, source).forEach(e => addEvidenceV79(evidence, e)));
+  const extractedEvidence = Array.isArray(report.extractedEvidence) ? report.extractedEvidence : [];
+  const sources = extractedEvidence.map(x => ({ x, source: 'extract' }));
+  sources.forEach(({ x, source }) => {
+    String(x || '').split(/\n|\u3002|\uff1b/).forEach(line => evidenceFromLineV79(line, source).forEach(e => {
+      const fixed = normalizeEngineEvidenceV96(e, source);
+      if (fixed) addEvidenceV79(evidence, fixed);
+    }));
   });
-  const cleanEvidence = filterEvidenceV80(evidence).slice(0, 60);
-  return { version: 'v2.1', flow: 'Extract → Mark → Report → Skill Trend', evidence: cleanEvidence, summary: skillTrendV79(cleanEvidence) };
+  const cleanEvidence = filterEvidenceV80(evidence).filter(e => e.sourceType === 'primary_worksheet').slice(0, 60);
+  const evidenceStatus = cleanEvidence.length ? 'confirmed_worksheet_evidence' : 'insufficient_confirmed_evidence';
+  return { version: 'v2.1', flow: 'Extract -> Mark -> Report -> Skill Trend', evidence: cleanEvidence, summary: skillTrendV79(cleanEvidence), evidenceStatus, needsReview: !cleanEvidence.length };
 }
 function addEvidenceLineV79(arr, line) {
   const s = normalizeReportLine(line);
@@ -808,11 +839,19 @@ function addEvidenceLineV79(arr, line) {
 }
 function applyEngineV2ToReportV79(report) {
   report.engineV2 = buildEngineV2FromReportV79(report);
-  const good = Array.isArray(report.strengths) ? [...report.strengths] : [];
-  const review = Array.isArray(report.checkPoints) ? [...report.checkPoints] : [];
-  (report.engineV2.evidence || []).forEach(e => {
+  const confirmedEvidence = (report.engineV2.evidence || []).filter(confirmedEvidenceForGrowthV96);
+  if(!confirmedEvidence.length){
+    report.strengths = [];
+    report.checkPoints = ['needs_review: insufficient_confirmed_evidence'];
+    report.reasons = [];
+    report.confidence = 'low';
+    return report;
+  }
+  const good = [];
+  const review = [];
+  confirmedEvidence.forEach(e => {
     if (e.status === 'wrong') addEvidenceLineV79(review, `【明確錯】${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''}${e.correctAnswer ? '，正確應為 ' + e.correctAnswer : ''}`);
-    if (e.status === 'correct' && e.source === 'review') addEvidenceLineV79(good, `${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''} 正確`);
+    if (e.status === 'correct') addEvidenceLineV79(good, `${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''} 正確`);
   });
   report.strengths = uniqueLinesV70(good).slice(0, 6);
   report.checkPoints = uniqueLinesV70(review).filter(x => !clearlyCorrectReviewLineV78(x)).slice(0, 30);
@@ -826,6 +865,7 @@ function buildStructuredHomeworkReport(raw) {
   const level = sectionBetween(text, ['🌟 0. Learning level awareness', '0. Learning level awareness', 'Learning level awareness'], ['📌 1.', '1. 我大約', '✅ 2.']);
   const content = sectionBetween(text, ['📌 1. 我大約睇到嘅功課內容', '1. 我大約睇到嘅功課內容', '我大約睇到嘅功課內容'], ['✅ 2.', '2. 已做得好', '⚠️ 3.']);
   const good = sectionBetween(text, ['✅ 2. 已做得好的地方', '2. 已做得好的地方', '已做得好的地方'], ['⚠️ 3.', '3. 需要覆核', '🧠 4.']);
+  const extracted = sectionBetween(text, ['Engine v2 Extracted Evidence', 'Extracted Evidence'], ['0. Learning level awareness', 'Learning level awareness']);
   const check = sectionBetween(text, ['⚠️ 3. 需要覆核的位置', '3. 需要覆核的位置', '需要覆核的位置'], ['🧠 4.', '4. 可能出錯原因', '💬 5.']);
   const reason = sectionBetween(text, ['🧠 4. 可能出錯原因', '4. 可能出錯原因', '可能出錯原因'], ['💬 5.', '5. 給家長', '✅ 6.']);
   const parent = sectionBetween(text, ['💬 5. 給家長的簡短解讀', '5. 給家長的簡短解讀', '給家長的簡短解讀'], ['✅ 6.', '6. 今晚']);
@@ -841,6 +881,7 @@ function buildStructuredHomeworkReport(raw) {
     levelAwareness: level || '已按圖片內容和目前年級作初步觀察；如圖片清楚顯示 Year 3 / extension，應肯定孩子正在挑戰較高水平。',
     strengths: [...rawStrengths, ...cleanedReview.movedToGood].slice(0, 6),
     checkPoints: cleanedReview.review,
+    extractedEvidence: bulletsFrom(extracted, 60),
     reasons: bulletsFrom(reason, 5),
     parentInterpretation: parent,
     longTermFocus: bulletsFrom(longTerm, 4),
