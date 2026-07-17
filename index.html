@@ -3862,14 +3862,50 @@ function v81UniqueLines(arr){
   });
   return out;
 }
-function v81MergeHomeworkReports(reports, imageCount){
+function rcBCreateReportLineageId(){
+  const c=globalThis.crypto;
+  if(c&&typeof c.randomUUID==='function') return c.randomUUID();
+  if(c&&typeof c.getRandomValues==='function'){
+    const b=new Uint8Array(16); c.getRandomValues(b); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+    const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  }
+  throw new Error('Secure report lineage ID is unavailable');
+}
+function rcBAcceptedServerAuthority(report, requestContext){
+  const a=report?.evidenceAuthority, e=report?.engineV2, rows=report?.canonicalEvidence;
+  if(report?.reportLineageId!==requestContext.reportLineageId) return {accepted:false,errorCode:'REPORT_LINEAGE_MISMATCH'};
+  if(!Array.isArray(rows)||!rows.length) return {accepted:false,errorCode:'CANONICAL_EVIDENCE_EMPTY'};
+  if(a?.authority!=='structured_evidence'||a?.schemaVersion!==2||a?.generatedFrom!=='report.extractedEvidence') return {accepted:false,errorCode:'AUTHORITY_METADATA_INVALID'};
+  if(a.reportLineageId!==requestContext.reportLineageId||a.imageOrder!==requestContext.imageOrder||a.submittedImageCount!==requestContext.submittedImageCount) return {accepted:false,errorCode:'AUTHORITY_PROVENANCE_MISMATCH'};
+  if(!Array.isArray(a.validationErrors)||a.validationErrors.length) return {accepted:false,errorCode:a?.validationErrors?.[0]?.code||'AUTHORITY_VALIDATION_FAILED'};
+  if(a.canonicalEvidenceCount!==rows.length||a.sourceEvidenceCount!==(report.extractedEvidence||[]).length) return {accepted:false,errorCode:'AUTHORITY_COUNT_MISMATCH'};
+  if(!/^[a-f0-9]{64}$/.test(a.sourceEvidenceFingerprint||'')||!/^[a-f0-9]{64}$/.test(a.canonicalEvidenceFingerprint||'')) return {accepted:false,errorCode:'AUTHORITY_FINGERPRINT_INVALID'};
+  if(e?.authority!=='structured_evidence'||e?.schemaVersion!==2||e?.generatedFrom!=='report.canonicalEvidence'||!Array.isArray(e.evidence)||e.evidence.length!==rows.length) return {accepted:false,errorCode:'ENGINE_AUTHORITY_INVALID'};
+  if(e.reportLineageId!==requestContext.reportLineageId||e.imageOrder!==requestContext.imageOrder||e.submittedImageCount!==requestContext.submittedImageCount) return {accepted:false,errorCode:'ENGINE_PROVENANCE_MISMATCH'};
+  if(rows.some((row,i)=>row.reportLineageId!==requestContext.reportLineageId||row.imageOrder!==requestContext.imageOrder||row.sourceRowIndex!==i||e.evidence[i]?.sourceRowId!==row.sourceRowId)) return {accepted:false,errorCode:'ROW_PROVENANCE_INVALID'};
+  return {accepted:true,errorCode:null};
+}
+function rcBProcessingCoverage(processing){
+  const submitted=Number(processing?.submittedImageCount), accepted=Number(processing?.acceptedResponseCount), included=Number(processing?.includedResponseCount), failed=Number(processing?.failedResponseCount);
+  const perImage=Array.isArray(processing?.perImage)?processing.perImage:[];
+  const valid=Number.isInteger(submitted)&&submitted>0&&Number.isInteger(accepted)&&accepted>=0&&Number.isInteger(included)&&included>=0&&Number.isInteger(failed)&&failed>=0&&accepted+failed===submitted&&included<=accepted&&perImage.length===submitted;
+  if(!valid) return 'unknown';
+  if(accepted===submitted&&included===accepted&&failed===0&&perImage.every(x=>x.status==='accepted'&&x.includedInMerge===true)) return 'complete';
+  if(accepted>0&&included>0&&(failed>0||included<accepted||perImage.some(x=>x.status!=='accepted'||x.includedInMerge!==true))) return 'partial';
+  if(accepted===0&&included===0) return 'failed';
+  return 'unknown';
+}
+function v81MergeHomeworkReports(reports, imageCount, authorityRun={}){
   const cleanReports=(reports||[]).filter(Boolean);
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
   const extractedEvidence=cleanReports.flatMap(r=>
     Array.isArray(r.extractedEvidence)
-      ? r.extractedEvidence.map(x=>String(x||'').trim()).filter(Boolean)
+      ? r.extractedEvidence.filter(x=>typeof x==='string'&&x.length)
       : []
   );
+  const serverAuthorities=cleanReports.map(r=>r.rcBServerAuthority).filter(Boolean);
+  const canonicalEvidence=serverAuthorities.flatMap(x=>Array.isArray(x.canonicalEvidence)?x.canonicalEvidence:[]);
   const strengths=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.strengths)?r.strengths:[]))
     .filter(x=>!/暫未見明確錯題|未見明確錯|無需覆核/.test(x)).slice(0,8);
   let checkPoints=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.checkPoints)?r.checkPoints:[]))
@@ -3889,6 +3925,13 @@ function v81MergeHomeworkReports(reports, imageCount){
     confidence: cleanReports.some(r=>String(r.confidence||'').toLowerCase()==='low')?'medium':'medium',
     rawAnalysis: joined('rawAnalysis'),
     extractedEvidence,
+    canonicalEvidence,
+    reportLineageId: authorityRun.reportLineageId||null,
+    processing: authorityRun.processing||null,
+    contentCoverage:'unverified',
+    limitations:['QUESTION_COVERAGE_UNVERIFIED'],
+    publishable:false,
+    serverAuthorities,
     imageCount
   };
 }
@@ -3941,10 +3984,10 @@ function v83ShrinkDataUrl(dataUrl,maxDim=850,quality=0.48){
     }catch(e){resolve(dataUrl);}
   });
 }
-async function sendHomeworkToAIWithRetry(imagesToSend, label=''){
+async function sendHomeworkToAIWithRetry(imagesToSend, label='', requestContext={}){
   const originalKb=Math.round(JSON.stringify(imagesToSend||[]).length/1024);
   try{
-    return await sendHomeworkToAI(imagesToSend,{aiMode:'fast',reliabilityMode:'v83-first',originalKb});
+    return await sendHomeworkToAI(imagesToSend,{aiMode:'fast',reliabilityMode:'v83-first',originalKb,...requestContext});
   }catch(e){
     const msg=e.message||String(e);
     if(!v83IsTimeoutError(msg) || !(imagesToSend||[]).length) throw e;
@@ -3952,21 +3995,22 @@ async function sendHomeworkToAIWithRetry(imagesToSend, label=''){
     const smaller=[];
     for(const img of imagesToSend){ smaller.push(await v83ShrinkDataUrl(img,850,0.46)); }
     const retryKb=Math.round(JSON.stringify(smaller).length/1024);
-    const data=await sendHomeworkToAI(smaller,{aiMode:'fast',reliabilityMode:'v83-retry-ultra-compressed',originalKb,retryKb,retry:true});
+    const data=await sendHomeworkToAI(smaller,{aiMode:'fast',reliabilityMode:'v83-retry-ultra-compressed',originalKb,retryKb,retry:true,...requestContext});
     data.retries=(data.retries||0)+1;
     data.debug={...(data.debug||{}),originalKb,retryKb,frontendRetry:true};
     return data;
   }
 }
 
-async function sendHomeworkToAIChunked(imagesToSend){
+async function sendHomeworkToAIChunked(imagesToSend, authorityRun){
   // V83: one image per AI call is slower but much more reliable on serverless.
   const maxPerCall=1;
   const total=Math.ceil((imagesToSend||[]).length/maxPerCall);
-  if((imagesToSend||[]).length<=maxPerCall) return await sendHomeworkToAIWithRetry(imagesToSend,'單張相');
   const all=[];
   const analyses=[];
   const errors=[];
+  const perImage=[];
+  let successfulResponseCount=0;
   let model='', route='chunked-v83', debugParts=[];
   for(let i=0;i<imagesToSend.length;i+=maxPerCall){
     const chunk=imagesToSend.slice(i,i+maxPerCall);
@@ -3974,21 +4018,53 @@ async function sendHomeworkToAIChunked(imagesToSend){
     const kb=Math.round(JSON.stringify(chunk).length/1024);
     if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。</div>`;
     try{
-      const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
+      const requestContext={reportLineageId:authorityRun.reportLineageId,imageOrder:i,submittedImageCount:authorityRun.submittedImageCount};
+      const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`,requestContext);
+      successfulResponseCount++;
+      const authorityCheck=rcBAcceptedServerAuthority(data?.report,requestContext);
+      if(!authorityCheck.accepted){
+        perImage.push({imageOrder:i,status:'rejected',includedInMerge:false,canonicalRowCount:0,blockingErrorCode:authorityCheck.errorCode});
+        errors.push(`第 ${batchNo} 張：${authorityCheck.errorCode}`);
+        continue;
+      }
+      const serverAuthority=JSON.parse(JSON.stringify({
+        reportLineageId:data.report.reportLineageId,
+        imageOrder:i,
+        extractedEvidence:data.report.extractedEvidence,
+        canonicalEvidence:data.report.canonicalEvidence,
+        evidenceAuthority:data.report.evidenceAuthority,
+        engineV2:data.report.engineV2
+      }));
       const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+      report.rcBServerAuthority=serverAuthority;
       all.push(report);
+      perImage.push({imageOrder:i,status:'accepted',includedInMerge:true,canonicalRowCount:serverAuthority.canonicalEvidence.length,blockingErrorCode:null});
       analyses.push(data.analysis||report.rawAnalysis||'');
       model=data.model||model;
       route=data.route||route;
       debugParts.push(...v83DebugFromData(data));
     }catch(e){
+      perImage.push({imageOrder:i,status:'failed',includedInMerge:false,canonicalRowCount:0,blockingErrorCode:'REQUEST_FAILED'});
       errors.push(`第 ${batchNo} 張：${e.message||String(e)}`);
     }
   }
+  const processing={
+    processingCoverage:'unknown',
+    submittedImageCount:authorityRun.submittedImageCount,
+    attemptedRequestCount:total,
+    successfulResponseCount,
+    acceptedResponseCount:all.length,
+    failedResponseCount:total-all.length,
+    includedResponseCount:all.length,
+    perImage
+  };
+  processing.processingCoverage=rcBProcessingCoverage(processing);
   if(!all.length){
-    throw new Error('所有圖片分析都逾時或失敗：'+errors.join('；'));
+    const failure=new Error('所有圖片分析都逾時、失敗或被拒絕：'+errors.join('；'));
+    failure.rcBProcessing=processing;
+    throw failure;
   }
-  const merged=v81MergeHomeworkReports(all, imagesToSend.length);
+  const merged=v81MergeHomeworkReports(all, imagesToSend.length,{reportLineageId:authorityRun.reportLineageId,processing});
   if(errors.length){
     merged.parentInterpretation=(merged.parentInterpretation||'')+' 部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。';
     merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。'];
@@ -4000,7 +4076,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     model,
     route:'v83-one-by-one-'+route,
     imageCount:imagesToSend.length,
-    partial:errors.length>0, debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
+    partial:processing.processingCoverage!=='complete', debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
   };
 }
 
@@ -4015,6 +4091,9 @@ async function sendHomeworkToAI(imagesToSend, options={}){
     subject:'Homework',
     status:'uploaded',
     child:{name:app.profile.childName,year:app.profile.year},
+    reportLineageId:options.reportLineageId,
+    imageOrder:options.imageOrder,
+    submittedImageCount:options.submittedImageCount,
     aiMode:options.aiMode||'fast',
     reliabilityMode:options.reliabilityMode||'v83',
     frontendDebug:{originalKb:options.originalKb||0,retryKb:options.retryKb||0,retry:!!options.retry},
@@ -4196,13 +4275,15 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     setHomeworkAnalyzing(false);
     return;
   }
+  const reportLineageId=rcBCreateReportLineageId();
+  baseRecord.reportLineageId=reportLineageId;
   $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課… ${modeLabel}，約 ${kb}KB。AI 需要一點時間，請保持此頁開啟；離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   // Track whether the page was hidden (user left the app) while analysis was running.
   let wentHidden=false;
   const onVis=()=>{ if(document.hidden) wentHidden=true; };
   document.addEventListener('visibilitychange',onVis);
   try{
-    const data=await sendHomeworkToAIChunked(imagesToSend);
+    const data=await sendHomeworkToAIChunked(imagesToSend,{reportLineageId,submittedImageCount:imagesToSend.length});
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
     let report=normalizeHomeworkReport(data,text,imagesToSend.length);
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
@@ -4247,6 +4328,11 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     const backgrounded=wentHidden || document.hidden;
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
     report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,backgrounded,completedAt:new Date().toISOString()};
+    report.reportLineageId=reportLineageId;
+    if(e.rcBProcessing) report.processing=e.rcBProcessing;
+    report.contentCoverage='unverified';
+    report.limitations=['QUESTION_COVERAGE_UNVERIFIED'];
+    report.publishable=false;
     app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e),backgrounded});
     save();
     renderHomework();

@@ -1,4 +1,10 @@
 // V93 Report Integrity - parent fail-safe and clean review evidence
+const { createHash } = require('crypto');
+
+const RC_B_AUTHORITY_SCHEMA_VERSION = 2;
+const RC_B_CANONICALIZER_VERSION = 'rc-b-v1';
+const RC_B_PRESENTATION_RULE_VERSION = 'rc-b-v1';
+
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -10,6 +16,7 @@ exports.handler = async function(event) {
 
     const body = JSON.parse(event.body || '{}');
     const images = collectImages(body).slice(0, 6);
+    const authorityContext = normalizeAuthorityRequestContext(body);
     const approxKB = Math.round(JSON.stringify(images).length / 1024);
     if (approxKB > 5200) {
       return json(413, { error: `圖片傳送太大（約 ${approxKB}KB）。請先用「只分析第一張」，或重新拍攝較清晰、較少反光的相片。`, debug:{approxKB} });
@@ -49,7 +56,7 @@ exports.handler = async function(event) {
     if (first.ok) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
       const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens} });
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens} });
     }
 
     const firstErr = first.data?.error?.message || first.error || '';
@@ -78,7 +85,7 @@ exports.handler = async function(event) {
     if (second.ok) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
       const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)} });
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)} });
     }
 
     return json(second.status || first.status || 500, {
@@ -320,6 +327,226 @@ function sectionBetween(raw, startMarkers, endMarkers) {
   }
   return text.slice(from, end).replace(/^[:：\s-]+/, '').trim();
 }
+function normalizeAuthorityRequestContext(body) {
+  const reportLineageId = typeof body?.reportLineageId === 'string' ? body.reportLineageId.trim() : '';
+  const imageOrder = Number(body?.imageOrder);
+  const submittedImageCount = Number(body?.submittedImageCount);
+  const validationErrors = [];
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(reportLineageId)) validationErrors.push({ code: 'INVALID_REPORT_LINEAGE_ID', message: 'reportLineageId is missing or invalid' });
+  if (!Number.isInteger(imageOrder) || imageOrder < 0 || imageOrder > 5) validationErrors.push({ code: 'INVALID_IMAGE_ORDER', message: 'imageOrder must be an integer from 0 to 5' });
+  if (!Number.isInteger(submittedImageCount) || submittedImageCount < 1 || submittedImageCount > 6) {
+    validationErrors.push({ code: 'INVALID_SUBMITTED_IMAGE_COUNT', message: 'submittedImageCount must be an integer from 1 to 6' });
+  } else if (Number.isInteger(imageOrder) && imageOrder >= submittedImageCount) {
+    validationErrors.push({ code: 'IMAGE_ORDER_OUT_OF_RANGE', message: 'imageOrder must be lower than submittedImageCount' });
+  }
+  return { reportLineageId, imageOrder, submittedImageCount, validationErrors };
+}
+
+function sha256Hex(value) {
+  return createHash('sha256').update(String(value), 'utf8').digest('hex');
+}
+
+function canonicalSerialize(values) {
+  return JSON.stringify(values);
+}
+
+function normalizeAuthorityString(value) {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).normalize('NFC').replace(/\s+/g, ' ').trim();
+  return normalized || null;
+}
+
+function normalizeSourceRowPayload(value) {
+  return normalizeAuthorityString(String(value ?? '').replace(/^[\s\-•*]+/, '')) || '';
+}
+
+function canonicalStatusV2(value) {
+  const token = String(value || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+  if (token === 'correct') return 'correct';
+  if (token === 'wrong' || token === 'incorrect') return 'wrong';
+  if (token === 'review' || token === 'needs review' || token === 'needs checking') return 'review';
+  if (token === 'unclear' || token === 'uncertain') return 'uncertain';
+  if (token === 'missing' || token === 'blank' || token === 'unanswered') return 'missing';
+  return null;
+}
+
+function parseCanonicalEvidenceRowV2(sourceRowPayload, sourceRowIndex, context) {
+  const normalizedSourceRowPayload = normalizeSourceRowPayload(sourceRowPayload);
+  const parts = normalizedSourceRowPayload.split('|').map(x => x.trim()).filter(Boolean);
+  const values = {};
+  let questionId = null;
+  for (const part of parts) {
+    let match = part.match(/^Page\s*:?[\s]*(.+)$/i);
+    if (match) { values.page = normalizeAuthorityString(match[1]); continue; }
+    match = part.match(/^(?:Q|Question)\s*(\d+)\s*$/i);
+    if (match) { questionId = `Q${match[1]}`; values.question = questionId; continue; }
+    match = part.match(/^(?:Q|Question)\s*(\d+)?\s*:\s*(.*)$/i);
+    if (match) { questionId = match[1] ? `Q${match[1]}` : null; values.question = normalizeAuthorityString(match[2]); continue; }
+    match = part.match(/^Student\s*:\s*(.*)$/i);
+    if (match) { values.studentAnswer = normalizeAuthorityString(match[1]); continue; }
+    match = part.match(/^Correct\s*:\s*(.*)$/i);
+    if (match) { values.referenceAnswer = normalizeAuthorityString(match[1]); continue; }
+    match = part.match(/^Status\s*:\s*(.*)$/i);
+    if (match) { values.rawStatus = normalizeAuthorityString(match[1]); continue; }
+    match = part.match(/^Sub[- ]?skill\s*:\s*(.*)$/i);
+    if (match) { values.subSkill = normalizeAuthorityString(match[1]); continue; }
+    match = part.match(/^Skill\s*:\s*(.*)$/i);
+    if (match) { values.skill = normalizeAuthorityString(match[1]); continue; }
+    match = part.match(/^Confidence\s*:\s*(.*)$/i);
+    if (match) values.confidence = normalizeAuthorityString(match[1])?.toLowerCase() || null;
+  }
+  const errors = [];
+  const status = canonicalStatusV2(values.rawStatus);
+  if (!values.page) errors.push({ code: 'CANONICAL_PAGE_MISSING', sourceRowIndex, message: 'Page is required' });
+  if (!values.question) errors.push({ code: 'CANONICAL_QUESTION_MISSING', sourceRowIndex, message: 'Question is required' });
+  if (!status) errors.push({ code: 'CANONICAL_STATUS_UNSUPPORTED', sourceRowIndex, message: 'Status is missing or unsupported' });
+  if (errors.length) return { row: null, errors };
+
+  const sourceRowHash = sha256Hex(normalizedSourceRowPayload);
+  const sourceRowId = sha256Hex(canonicalSerialize([context.reportLineageId, context.imageOrder, sourceRowIndex, normalizedSourceRowPayload]));
+  const contentFingerprint = sha256Hex(canonicalSerialize([values.question, values.studentAnswer || null, values.referenceAnswer || null, status, values.skill || null]));
+  return {
+    row: {
+      sourceRowId,
+      contentFingerprint,
+      reportLineageId: context.reportLineageId,
+      imageOrder: context.imageOrder,
+      sourceRowIndex,
+      sourceRowPayload: String(sourceRowPayload),
+      authoritySchemaVersion: RC_B_AUTHORITY_SCHEMA_VERSION,
+      page: values.page,
+      questionId,
+      question: values.question,
+      studentAnswer: values.studentAnswer || null,
+      referenceAnswer: values.referenceAnswer || null,
+      status,
+      skill: values.skill || null,
+      subSkill: values.subSkill || null,
+      confidence: values.confidence || null,
+      provenance: {
+        authority: 'structured_evidence',
+        sourcePath: 'report.extractedEvidence',
+        sourceRowIndex,
+        imageOrder: context.imageOrder,
+        reportLineageId: context.reportLineageId,
+        sourceRowHash
+      }
+    },
+    errors: []
+  };
+}
+
+function canonicalEvidenceFingerprintInputV2(row) {
+  return [row.sourceRowId, row.contentFingerprint, row.reportLineageId, row.imageOrder, row.sourceRowIndex,
+    normalizeSourceRowPayload(row.sourceRowPayload), row.authoritySchemaVersion, row.page, row.questionId,
+    row.question, row.studentAnswer, row.referenceAnswer, row.status, row.skill, row.subSkill,
+    row.confidence, row.provenance?.sourceRowHash || null];
+}
+
+function canonicalizeExtractedEvidenceV2(extractedEvidence, context) {
+  const sourceRows = Array.isArray(extractedEvidence) ? extractedEvidence.slice() : [];
+  const validationErrors = Array.isArray(context?.validationErrors) ? context.validationErrors.map(x => ({ ...x })) : [];
+  const parsedRows = [];
+  if (!sourceRows.length) validationErrors.push({ code: 'EXTRACTED_EVIDENCE_EMPTY', message: 'No structured extracted evidence rows were available' });
+  sourceRows.forEach((sourceRowPayload, sourceRowIndex) => {
+    const parsed = parseCanonicalEvidenceRowV2(sourceRowPayload, sourceRowIndex, context);
+    validationErrors.push(...parsed.errors);
+    if (parsed.row) parsedRows.push(parsed.row);
+  });
+  const canonicalEvidence = validationErrors.length ? [] : parsedRows;
+  return {
+    canonicalEvidence,
+    validationErrors,
+    sourceEvidenceFingerprint: sha256Hex(canonicalSerialize(sourceRows.map(normalizeSourceRowPayload))),
+    canonicalEvidenceFingerprint: sha256Hex(canonicalSerialize(canonicalEvidence.map(canonicalEvidenceFingerprintInputV2)))
+  };
+}
+
+function buildEngineV2FromCanonicalEvidenceV2(canonicalEvidence, authority) {
+  const evidence = (canonicalEvidence || []).map(row => ({
+    sourceRowId: row.sourceRowId,
+    contentFingerprint: row.contentFingerprint,
+    page: row.page,
+    questionId: row.questionId,
+    question: row.question,
+    studentAnswer: row.studentAnswer,
+    referenceAnswer: row.referenceAnswer,
+    correctAnswer: row.referenceAnswer,
+    status: row.status,
+    skill: row.skill,
+    subSkill: row.subSkill,
+    confidence: row.confidence,
+    source: 'structured_evidence',
+    provenance: { ...row.provenance }
+  }));
+  return {
+    version: 'v3', authority: 'structured_evidence', schemaVersion: RC_B_AUTHORITY_SCHEMA_VERSION,
+    generatedFrom: 'report.canonicalEvidence', rootSource: 'report.extractedEvidence',
+    sourceEvidenceCount: authority.sourceEvidenceCount, canonicalEvidenceCount: authority.canonicalEvidenceCount,
+    sourceEvidenceFingerprint: authority.sourceEvidenceFingerprint,
+    canonicalEvidenceFingerprint: authority.canonicalEvidenceFingerprint,
+    reportLineageId: authority.reportLineageId,
+    imageOrder: authority.imageOrder,
+    submittedImageCount: authority.submittedImageCount,
+    presentationRuleVersion: RC_B_PRESENTATION_RULE_VERSION, evidence
+  };
+}
+
+function deriveProcessingCoverageV2(processing) {
+  const submitted = Number(processing?.submittedImageCount);
+  const accepted = Number(processing?.acceptedResponseCount);
+  const included = Number(processing?.includedResponseCount);
+  const failed = Number(processing?.failedResponseCount);
+  const perImage = Array.isArray(processing?.perImage) ? processing.perImage : [];
+  const consistent = Number.isInteger(submitted) && submitted > 0 &&
+    Number.isInteger(accepted) && accepted >= 0 && Number.isInteger(included) && included >= 0 &&
+    Number.isInteger(failed) && failed >= 0 && accepted + failed === submitted &&
+    included <= accepted && perImage.length === submitted;
+  if (!consistent) return 'unknown';
+  if (accepted === submitted && included === accepted && failed === 0 && perImage.every(x => x.status === 'accepted' && x.includedInMerge === true)) return 'complete';
+  if (accepted > 0 && included > 0 && (failed > 0 || included < accepted || perImage.some(x => x.status !== 'accepted' || x.includedInMerge !== true))) return 'partial';
+  if (accepted === 0 && included === 0) return 'failed';
+  return 'unknown';
+}
+
+function applyCanonicalEvidenceAuthorityV2(report, context) {
+  const result = canonicalizeExtractedEvidenceV2(report.extractedEvidence, context);
+  const evidenceAuthority = {
+    authority: 'structured_evidence', schemaVersion: RC_B_AUTHORITY_SCHEMA_VERSION,
+    canonicalizerVersion: RC_B_CANONICALIZER_VERSION, generatedFrom: 'report.extractedEvidence',
+    sourceEvidenceCount: Array.isArray(report.extractedEvidence) ? report.extractedEvidence.length : 0,
+    canonicalEvidenceCount: result.canonicalEvidence.length,
+    sourceEvidenceFingerprint: result.sourceEvidenceFingerprint,
+    canonicalEvidenceFingerprint: result.canonicalEvidenceFingerprint,
+    reportLineageId: context.reportLineageId || null,
+    imageOrder: Number.isInteger(context.imageOrder) ? context.imageOrder : null,
+    submittedImageCount: Number.isInteger(context.submittedImageCount) ? context.submittedImageCount : 0,
+    validationErrors: result.validationErrors
+  };
+  const accepted = result.validationErrors.length === 0 && result.canonicalEvidence.length > 0;
+  const singleImageComplete = accepted && context.submittedImageCount === 1 && context.imageOrder === 0;
+  report.reportLineageId = context.reportLineageId || null;
+  report.canonicalEvidence = result.canonicalEvidence;
+  report.evidenceAuthority = evidenceAuthority;
+  report.engineV2 = buildEngineV2FromCanonicalEvidenceV2(result.canonicalEvidence, evidenceAuthority);
+  report.processing = {
+    processingCoverage: singleImageComplete ? 'complete' : 'unknown',
+    submittedImageCount: Number.isInteger(context.submittedImageCount) ? context.submittedImageCount : 0,
+    attemptedRequestCount: 1, successfulResponseCount: 1,
+    acceptedResponseCount: accepted ? 1 : 0, failedResponseCount: accepted ? 0 : 1,
+    includedResponseCount: singleImageComplete ? 1 : 0,
+    perImage: [{ imageOrder: Number.isInteger(context.imageOrder) ? context.imageOrder : null,
+      status: accepted ? 'accepted' : 'rejected', includedInMerge: singleImageComplete,
+      canonicalRowCount: result.canonicalEvidence.length,
+      blockingErrorCode: accepted ? null : (result.validationErrors[0]?.code || 'AUTHORITY_VALIDATION_FAILED') }]
+  };
+  report.contentCoverage = 'unverified';
+  report.limitations = [...new Set(['QUESTION_COVERAGE_UNVERIFIED', ...result.validationErrors.map(x => x.code)])];
+  report.evidenceStatus = accepted ? 'complete' : (evidenceAuthority.sourceEvidenceCount ? 'incomplete' : 'unavailable');
+  report.publishable = singleImageComplete;
+  return report;
+}
+
 const ENGINE_V2_EVIDENCE_MARKER = 'Engine v2 Extracted Evidence';
 const ENGINE_V2_EVIDENCE_END_MARKERS = [
   'Learning level awareness',
@@ -787,7 +1014,8 @@ function skillTrendV79(evidence) {
     return row;
   }).sort((a, b) => (b.wrong + b.unclear + b.correct) - (a.wrong + a.unclear + a.correct));
 }
-function buildEngineV2FromReportV79(report) {
+// Diagnostic-only legacy prose parser. It must never populate report.engineV2.
+function buildDiagnosticEngineV2FromProseV79(report) {
   const evidence = [];
   [
     ...(Array.isArray(report.strengths) ? report.strengths : []).map(x => ({ x, source: 'strength' })),
@@ -806,11 +1034,11 @@ function addEvidenceLineV79(arr, line) {
   const s = normalizeReportLine(line);
   if (s && !arr.some(x => normalizeReportLine(x).toLowerCase() === s.toLowerCase())) arr.push(s);
 }
-function applyEngineV2ToReportV79(report) {
-  report.engineV2 = buildEngineV2FromReportV79(report);
+function applyDiagnosticEngineV2FromProseV79(report) {
+  const diagnosticEngineV2 = buildDiagnosticEngineV2FromProseV79(report);
   const good = Array.isArray(report.strengths) ? [...report.strengths] : [];
   const review = Array.isArray(report.checkPoints) ? [...report.checkPoints] : [];
-  (report.engineV2.evidence || []).forEach(e => {
+  (diagnosticEngineV2.evidence || []).forEach(e => {
     if (e.status === 'wrong') addEvidenceLineV79(review, `【明確錯】${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''}${e.correctAnswer ? '，正確應為 ' + e.correctAnswer : ''}`);
     if (e.status === 'correct' && e.source === 'review') addEvidenceLineV79(good, `${e.question}${e.studentAnswer ? ' = ' + e.studentAnswer : ''} 正確`);
   });
@@ -819,7 +1047,7 @@ function applyEngineV2ToReportV79(report) {
   return report;
 }
 
-function buildStructuredHomeworkReport(raw) {
+function buildStructuredHomeworkReport(raw, authorityContext) {
   const text = cleanParentText(raw || '');
   const extractedEvidence = extractEngineV2EvidenceRows(text);
   const wow = sectionBetween(text, ['✨ Parent Wow Summary','Parent Wow Summary'], ['🔎 Engine v2','🌟 0.']);
@@ -849,7 +1077,7 @@ function buildStructuredHomeworkReport(raw) {
     extractedEvidence,
     rawAnalysis: text
   };
-  return applyEngineV2ToReportV79(hardGuardReportV76(sanitizeStructuredReportV70(report)));
+  return applyCanonicalEvidenceAuthorityV2(hardGuardReportV76(sanitizeStructuredReportV70(report)), authorityContext);
 }
 
 function friendlyError(msg) {
@@ -863,3 +1091,16 @@ function friendlyError(msg) {
 function json(statusCode, obj) {
   return { statusCode, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' }, body: JSON.stringify(obj) };
 }
+
+// Pure helpers exposed only for deterministic Commit 1 assertions.
+exports.__rcbTest = {
+  normalizeAuthorityRequestContext,
+  sha256Hex,
+  canonicalSerialize,
+  normalizeSourceRowPayload,
+  canonicalizeExtractedEvidenceV2,
+  buildEngineV2FromCanonicalEvidenceV2,
+  applyCanonicalEvidenceAuthorityV2,
+  buildStructuredHomeworkReport,
+  deriveProcessingCoverageV2
+};
