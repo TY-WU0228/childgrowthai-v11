@@ -3707,36 +3707,45 @@ function v74QualityScore(r){
 }
 function v74EnrichHomeworkReport(report, note='', imageCount=0){
   report=v76HardGuardHomeworkReport(v70SanitizeHomeworkReport(report||{}));
+  const authorityValidation=validateServerEvidenceAuthorityV2(report);
+  const trustedAuthority=authorityValidation.trusted;
+  report.authorityValidation=authorityValidation;
+  report.authorityState=authorityValidation.authorityState;
+  if(!trustedAuthority){
+    if(report.engineV2 && !report.legacyEngineV2 && !report.rejectedEngineV2){
+      const preserved=JSON.parse(JSON.stringify(report.engineV2));
+      if(authorityValidation.authorityState==='legacy') report.legacyEngineV2=preserved;
+      else report.rejectedEngineV2=preserved;
+    }
+    report.engineV2=null;
+  }
+  report.publishable=trustedAuthority && report.processing?.processingCoverage==='complete';
   const allText=v74TextOfReport(report)+' '+String(note||'');
-  const strongText=(report.strengths||[]).join(' ');
-  const reviewText=[...(report.checkPoints||[]),...(report.reasons||[])].join(' ');
-  const strongSkills=v74DetectSkillsFromText(strongText).length?v74DetectSkillsFromText(strongText):v74DetectSkillsFromText(allText);
-  const reviewSkills=v74DetectSkillsFromText(reviewText);
-  const errorTypes=v74DetectErrorTypes(reviewText || allText);
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
-  report.engineV2 = v79BuildEngineFromReport(report);
-  const v79Strong = (report.engineV2.evidence||[]).filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
-  const v79Review = (report.engineV2.evidence||[]).filter(e=>e.status==='wrong'||e.status==='unclear').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const trustedEvidence=trustedAuthority?report.engineV2.evidence:[];
+  const v79Strong = trustedEvidence.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const v79Review = trustedEvidence.filter(e=>e.status==='wrong'||e.status==='review'||e.status==='uncertain'||e.status==='missing').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
   report.growth={
-    engineVersion:'v2.1',
+    engineVersion:trustedAuthority?'v3':'untrusted',
     subject:v74DetectSubject(allText),
     worksheetLevel:v74DetectWorksheetLevel(allText),
     childYear:app?.profile?.year || '',
-    skillsStrong:(v79Strong.length?v79Strong:strongSkills).slice(0,6),
-    skillsToReview:(v79Review.length?v79Review:reviewSkills).slice(0,6),
-    errorTypes:errorTypes.slice(0,6),
+    skillsStrong:v79Strong.slice(0,6),
+    skillsToReview:v79Review.slice(0,6),
+    errorTypes:[],
     confidence,
     imageCount,
     nextStep:report.nextStep || '',
-    trendTags:[...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)].slice(0,12)
+    trendTags:[...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)].slice(0,12),
+    authorityState:authorityValidation.authorityState
   };
   report.reportQuality={
     score:qualityScore,
     label:qualityScore>=85?'Wow-ready':qualityScore>=75?'Useful beta':qualityScore>=60?'Needs more evidence':'Insufficient data',
     checks:{
       levelAwareness:!!report.levelAwareness,
-      concreteSkills:strongSkills.length+reviewSkills.length>0,
+      concreteSkills:trustedEvidence.some(e=>!!(e.skill||e.subSkill)),
       clearStrengths:(report.strengths||[]).length>0,
       reviewPoints:Array.isArray(report.checkPoints),
       reasons:(report.reasons||[]).length>0,
@@ -3872,19 +3881,164 @@ function rcBCreateReportLineageId(){
   }
   throw new Error('Secure report lineage ID is unavailable');
 }
-function rcBAcceptedServerAuthority(report, requestContext){
-  const a=report?.evidenceAuthority, e=report?.engineV2, rows=report?.canonicalEvidence;
-  if(report?.reportLineageId!==requestContext.reportLineageId) return {accepted:false,errorCode:'REPORT_LINEAGE_MISMATCH'};
-  if(!Array.isArray(rows)||!rows.length) return {accepted:false,errorCode:'CANONICAL_EVIDENCE_EMPTY'};
-  if(a?.authority!=='structured_evidence'||a?.schemaVersion!==2||a?.generatedFrom!=='report.extractedEvidence') return {accepted:false,errorCode:'AUTHORITY_METADATA_INVALID'};
-  if(a.reportLineageId!==requestContext.reportLineageId||a.imageOrder!==requestContext.imageOrder||a.submittedImageCount!==requestContext.submittedImageCount) return {accepted:false,errorCode:'AUTHORITY_PROVENANCE_MISMATCH'};
-  if(!Array.isArray(a.validationErrors)||a.validationErrors.length) return {accepted:false,errorCode:a?.validationErrors?.[0]?.code||'AUTHORITY_VALIDATION_FAILED'};
-  if(a.canonicalEvidenceCount!==rows.length||a.sourceEvidenceCount!==(report.extractedEvidence||[]).length) return {accepted:false,errorCode:'AUTHORITY_COUNT_MISMATCH'};
-  if(!/^[a-f0-9]{64}$/.test(a.sourceEvidenceFingerprint||'')||!/^[a-f0-9]{64}$/.test(a.canonicalEvidenceFingerprint||'')) return {accepted:false,errorCode:'AUTHORITY_FINGERPRINT_INVALID'};
-  if(e?.authority!=='structured_evidence'||e?.schemaVersion!==2||e?.generatedFrom!=='report.canonicalEvidence'||!Array.isArray(e.evidence)||e.evidence.length!==rows.length) return {accepted:false,errorCode:'ENGINE_AUTHORITY_INVALID'};
-  if(e.reportLineageId!==requestContext.reportLineageId||e.imageOrder!==requestContext.imageOrder||e.submittedImageCount!==requestContext.submittedImageCount) return {accepted:false,errorCode:'ENGINE_PROVENANCE_MISMATCH'};
-  if(rows.some((row,i)=>row.reportLineageId!==requestContext.reportLineageId||row.imageOrder!==requestContext.imageOrder||row.sourceRowIndex!==i||e.evidence[i]?.sourceRowId!==row.sourceRowId)) return {accepted:false,errorCode:'ROW_PROVENANCE_INVALID'};
-  return {accepted:true,errorCode:null};
+function rcBSha256Hex(value){
+  const bytes=new TextEncoder().encode(String(value));
+  const paddedLength=Math.ceil((bytes.length+9)/64)*64;
+  const data=new Uint8Array(paddedLength);
+  data.set(bytes); data[bytes.length]=0x80;
+  const view=new DataView(data.buffer), bitLength=bytes.length*8;
+  view.setUint32(paddedLength-8,Math.floor(bitLength/0x100000000),false);
+  view.setUint32(paddedLength-4,bitLength>>>0,false);
+  const k=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const w=new Uint32Array(64), rotr=(x,n)=>(x>>>n)|(x<<(32-n));
+  for(let offset=0;offset<paddedLength;offset+=64){
+    for(let i=0;i<16;i++) w[i]=view.getUint32(offset+i*4,false);
+    for(let i=16;i<64;i++){
+      const s0=rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3);
+      const s1=rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10);
+      w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;
+    }
+    let [a,b,c,d,e,f,g,hh]=h;
+    for(let i=0;i<64;i++){
+      const s1=rotr(e,6)^rotr(e,11)^rotr(e,25), ch=(e&f)^((~e)&g);
+      const t1=(hh+s1+ch+k[i]+w[i])>>>0;
+      const s0=rotr(a,2)^rotr(a,13)^rotr(a,22), maj=(a&b)^(a&c)^(b&c);
+      const t2=(s0+maj)>>>0;
+      hh=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+    }
+    h[0]=(h[0]+a)>>>0;h[1]=(h[1]+b)>>>0;h[2]=(h[2]+c)>>>0;h[3]=(h[3]+d)>>>0;
+    h[4]=(h[4]+e)>>>0;h[5]=(h[5]+f)>>>0;h[6]=(h[6]+g)>>>0;h[7]=(h[7]+hh)>>>0;
+  }
+  return h.map(x=>x.toString(16).padStart(8,'0')).join('');
+}
+function rcBCanonicalSerialize(values){return JSON.stringify(values)}
+function rcBNormalizeAuthorityString(value){
+  if(value===null||value===undefined) return null;
+  const normalized=String(value).normalize('NFC').replace(/\s+/g,' ').trim();
+  return normalized||null;
+}
+function rcBNormalizeSourceRowPayload(value){return rcBNormalizeAuthorityString(String(value??'').replace(/^[\s\-â€¢*]+/,''))||''}
+function rcBCanonicalFingerprintInput(row){
+  row=row||{};
+  return [row.sourceRowId,row.contentFingerprint,row.reportLineageId,row.imageOrder,row.sourceRowIndex,
+    rcBNormalizeSourceRowPayload(row.sourceRowPayload),row.authoritySchemaVersion,row.page,row.questionId,
+    row.question,row.studentAnswer,row.referenceAnswer,row.status,row.skill,row.subSkill,row.confidence,row.provenance?.sourceRowHash||null];
+}
+function rcBSourceEvidenceFingerprint(rows){return rcBSha256Hex(rcBCanonicalSerialize((rows||[]).map(rcBNormalizeSourceRowPayload)))}
+function rcBCanonicalEvidenceFingerprint(rows){return rcBSha256Hex(rcBCanonicalSerialize((rows||[]).map(rcBCanonicalFingerprintInput)))}
+function rcBPushAuthorityError(errors,code){if(!errors.includes(code)) errors.push(code)}
+function rcBSameAuthorityValue(a,b){return JSON.stringify(a??null)===JSON.stringify(b??null)}
+
+function validateServerEvidenceAuthorityV2(report,options={}){
+  const extracted=Array.isArray(report?.extractedEvidence)?report.extractedEvidence:[];
+  const canonical=Array.isArray(report?.canonicalEvidence)?report.canonicalEvidence:[];
+  const authority=report?.evidenceAuthority;
+  const engine=report?.engineV2;
+  const errors=[], warnings=[];
+  const legacySignal=!authority&&!canonical.length&&!!(engine||report?.summary||report?.rawAnalysis||report?.parentInterpretation||report?.strengths||report?.checkPoints);
+  let authorityState=legacySignal?'legacy':(!authority?'missing':'invalid');
+  if(!authority){
+    rcBPushAuthorityError(errors,legacySignal?'LEGACY_AUTHORITY_UNSUPPORTED':'AUTHORITY_METADATA_MISSING');
+  }else{
+    if(authority.authority!=='structured_evidence'||authority.generatedFrom!=='report.extractedEvidence') rcBPushAuthorityError(errors,'AUTHORITY_SOURCE_MISMATCH');
+    if(authority.schemaVersion!==2||authority.canonicalizerVersion!=='rc-b-v1') rcBPushAuthorityError(errors,'AUTHORITY_SCHEMA_UNSUPPORTED');
+    if(!Array.isArray(authority.validationErrors)) rcBPushAuthorityError(errors,'AUTHORITY_VALIDATION_ERRORS_INVALID');
+    else if(authority.validationErrors.length) authority.validationErrors.forEach(x=>rcBPushAuthorityError(errors,x?.code||'AUTHORITY_VALIDATION_FAILED'));
+  }
+  if(!canonical.length) rcBPushAuthorityError(errors,'CANONICAL_EVIDENCE_EMPTY');
+  if(authority){
+    if(authority.sourceEvidenceCount!==extracted.length) rcBPushAuthorityError(errors,'AUTHORITY_SOURCE_COUNT_MISMATCH');
+    if(authority.canonicalEvidenceCount!==canonical.length) rcBPushAuthorityError(errors,'CANONICAL_COUNT_MISMATCH');
+    if(!/^[a-f0-9]{64}$/.test(authority.sourceEvidenceFingerprint||'')||!/^([a-f0-9]{64})$/.test(authority.canonicalEvidenceFingerprint||'')) rcBPushAuthorityError(errors,'AUTHORITY_FINGERPRINT_INVALID');
+    if(authority.sourceEvidenceFingerprint!==rcBSourceEvidenceFingerprint(extracted)||authority.canonicalEvidenceFingerprint!==rcBCanonicalEvidenceFingerprint(canonical)) rcBPushAuthorityError(errors,'AUTHORITY_FINGERPRINT_MISMATCH');
+  }
+  if(!engine||engine.version!=='v3'||engine.authority!=='structured_evidence'||engine.schemaVersion!==2||engine.generatedFrom!=='report.canonicalEvidence'||engine.rootSource!=='report.extractedEvidence'||engine.presentationRuleVersion!=='rc-b-v1'){
+    rcBPushAuthorityError(errors,'ENGINE_AUTHORITY_INVALID');
+  }
+  if(!Array.isArray(engine?.evidence)) rcBPushAuthorityError(errors,'ENGINE_EVIDENCE_INVALID');
+  else if(engine.evidence.length!==canonical.length) rcBPushAuthorityError(errors,'ENGINE_COUNT_MISMATCH');
+  if(authority&&engine){
+    ['sourceEvidenceCount','canonicalEvidenceCount','sourceEvidenceFingerprint','canonicalEvidenceFingerprint','reportLineageId','imageOrder','submittedImageCount'].forEach(key=>{
+      if(!rcBSameAuthorityValue(engine[key],authority[key])) rcBPushAuthorityError(errors,key==='reportLineageId'?'LINEAGE_MISMATCH':'ENGINE_AUTHORITY_BINDING_MISMATCH');
+    });
+  }
+  const lineage=report?.reportLineageId;
+  if(!/^[A-Za-z0-9_-]{16,128}$/.test(lineage||'')||authority?.reportLineageId!==lineage||engine?.reportLineageId!==lineage) rcBPushAuthorityError(errors,'LINEAGE_MISMATCH');
+  const submitted=Number(authority?.submittedImageCount);
+  if(!Number.isInteger(submitted)||submitted<1||submitted>6) rcBPushAuthorityError(errors,'AUTHORITY_IMAGE_METADATA_INVALID');
+  const mergedAuthority=authority?.imageOrder===null&&submitted>1;
+  if(!mergedAuthority&&(!Number.isInteger(authority?.imageOrder)||authority.imageOrder<0||authority.imageOrder>=submitted)) rcBPushAuthorityError(errors,'AUTHORITY_IMAGE_METADATA_INVALID');
+
+  const canonicalIds=new Set(), engineIds=new Set(), perImageNext=new Map();
+  canonical.forEach((row,index)=>{
+    const rowId=row?.sourceRowId;
+    if(!/^[a-f0-9]{64}$/.test(rowId||'')) rcBPushAuthorityError(errors,'CANONICAL_SOURCE_ROW_BINDING_MISSING');
+    else if(canonicalIds.has(rowId)) rcBPushAuthorityError(errors,'CANONICAL_SOURCE_ROW_BINDING_DUPLICATE');
+    else canonicalIds.add(rowId);
+    if(!/^[a-f0-9]{64}$/.test(row?.contentFingerprint||'')) rcBPushAuthorityError(errors,'CONTENT_FINGERPRINT_INVALID');
+    if(row?.reportLineageId!==lineage||row?.provenance?.reportLineageId!==lineage) rcBPushAuthorityError(errors,'LINEAGE_MISMATCH');
+    if(!Number.isInteger(row?.imageOrder)||row.imageOrder<0||row.imageOrder>=submitted||row?.provenance?.imageOrder!==row.imageOrder) rcBPushAuthorityError(errors,'ROW_IMAGE_ORDER_INVALID');
+    const expectedIndex=perImageNext.get(row?.imageOrder)||0;
+    if(!Number.isInteger(row?.sourceRowIndex)||row.sourceRowIndex!==expectedIndex||row?.provenance?.sourceRowIndex!==row.sourceRowIndex) rcBPushAuthorityError(errors,'SOURCE_ROW_INDEX_INVALID');
+    perImageNext.set(row?.imageOrder,expectedIndex+1);
+    if(index&&canonical[index-1]?.imageOrder>row?.imageOrder) rcBPushAuthorityError(errors,'CANONICAL_ORDER_INVALID');
+    const normalizedPayload=rcBNormalizeSourceRowPayload(row?.sourceRowPayload);
+    const expectedRowId=rcBSha256Hex(rcBCanonicalSerialize([lineage,row?.imageOrder,row?.sourceRowIndex,normalizedPayload]));
+    const expectedContent=rcBSha256Hex(rcBCanonicalSerialize([row?.question,row?.studentAnswer||null,row?.referenceAnswer||null,row?.status,row?.skill||null]));
+    if(rowId!==expectedRowId) rcBPushAuthorityError(errors,'SOURCE_ROW_ID_MISMATCH');
+    if(row?.contentFingerprint!==expectedContent) rcBPushAuthorityError(errors,'CONTENT_FINGERPRINT_MISMATCH');
+    if(row?.authoritySchemaVersion!==2||row?.provenance?.authority!=='structured_evidence'||row?.provenance?.sourcePath!=='report.extractedEvidence') rcBPushAuthorityError(errors,'ROW_PROVENANCE_INVALID');
+    if(row?.provenance?.sourceRowHash!==rcBSha256Hex(normalizedPayload)) rcBPushAuthorityError(errors,'SOURCE_ROW_HASH_MISMATCH');
+    const projected=engine?.evidence?.[index];
+    if(!projected?.sourceRowId||!canonicalIds.has(projected.sourceRowId)) rcBPushAuthorityError(errors,'ENGINE_SOURCE_ROW_BINDING_MISSING');
+    else if(engineIds.has(projected.sourceRowId)) rcBPushAuthorityError(errors,'ENGINE_SOURCE_ROW_BINDING_DUPLICATE');
+    else engineIds.add(projected.sourceRowId);
+    if(projected?.sourceRowId!==rowId) rcBPushAuthorityError(errors,'ENGINE_ROW_ORDER_MISMATCH');
+    const projectedFields=['contentFingerprint','page','questionId','question','studentAnswer','referenceAnswer','status','skill','subSkill','confidence'];
+    if(projectedFields.some(key=>!rcBSameAuthorityValue(projected?.[key],row?.[key]))||!rcBSameAuthorityValue(projected?.correctAnswer,row?.referenceAnswer)||projected?.source!=='structured_evidence'||!rcBSameAuthorityValue(projected?.provenance,row?.provenance)) rcBPushAuthorityError(errors,'ENGINE_ROW_PROJECTION_MISMATCH');
+  });
+  if(engineIds.size!==canonicalIds.size) rcBPushAuthorityError(errors,'ENGINE_SOURCE_ROW_BINDING_MISSING');
+
+  if(report?.contentCoverage!=='unverified') rcBPushAuthorityError(errors,'CONTENT_COVERAGE_INVALID');
+  if(!Array.isArray(report?.limitations)||!report.limitations.includes('QUESTION_COVERAGE_UNVERIFIED')) rcBPushAuthorityError(errors,'CONTENT_COVERAGE_INVALID');
+  if(!options.skipProcessing){
+    const p=report?.processing, coverage=rcBProcessingCoverage(p);
+    const perImage=Array.isArray(p?.perImage)?p.perImage:[];
+    const processingValid=p&&coverage===p.processingCoverage&&['complete','partial'].includes(coverage)&&
+      Number.isInteger(p.attemptedRequestCount)&&p.attemptedRequestCount>=p.successfulResponseCount&&
+      Number.isInteger(p.successfulResponseCount)&&p.successfulResponseCount>=p.acceptedResponseCount&&
+      p.attemptedRequestCount===p.submittedImageCount&&
+      perImage.filter(x=>x.status!=='failed').length===p.successfulResponseCount&&
+      perImage.filter(x=>x.status==='accepted').length===p.acceptedResponseCount&&
+      perImage.filter(x=>x.includedInMerge===true).length===p.includedResponseCount&&
+      perImage.filter(x=>x.status!=='accepted').length===p.failedResponseCount&&
+      new Set(perImage.map(x=>x.imageOrder)).size===perImage.length&&perImage.every(x=>Number.isInteger(x.imageOrder)&&x.imageOrder>=0&&x.imageOrder<p.submittedImageCount&&Number.isInteger(x.canonicalRowCount)&&x.canonicalRowCount>=0);
+    if(!processingValid) rcBPushAuthorityError(errors,'PROCESSING_METADATA_INVALID');
+    else{
+      const includedOrders=new Set(perImage.filter(x=>x.status==='accepted'&&x.includedInMerge===true).map(x=>x.imageOrder));
+      const rowCountFor=order=>canonical.filter(row=>row.imageOrder===order).length;
+      if(canonical.some(row=>!includedOrders.has(row.imageOrder))||[...includedOrders].some(order=>!canonical.some(row=>row.imageOrder===order))||perImage.some(x=>x.canonicalRowCount!==(x.includedInMerge?rowCountFor(x.imageOrder):0))) rcBPushAuthorityError(errors,'PROCESSING_CANONICAL_MISMATCH');
+    }
+  }
+  if(errors.length&&authorityState!=='legacy'&&authorityState!=='missing') authorityState=errors.some(x=>/LINEAGE|COUNT|BINDING|ORDER|PROCESSING_CANONICAL/.test(x))?'inconsistent':'invalid';
+  if(!errors.length) authorityState='trusted';
+  return {
+    trusted:errors.length===0,
+    authorityState,
+    blockingErrors:errors,
+    warnings,
+    validatedCounts:{sourceEvidenceCount:extracted.length,canonicalEvidenceCount:canonical.length,engineEvidenceCount:Array.isArray(engine?.evidence)?engine.evidence.length:0}
+  };
+}
+
+function rcBAcceptedServerAuthority(report,requestContext){
+  const validation=validateServerEvidenceAuthorityV2(report,{skipProcessing:true});
+  if(!validation.trusted) return {accepted:false,errorCode:validation.blockingErrors[0]||'AUTHORITY_VALIDATION_FAILED',validation};
+  const a=report.evidenceAuthority;
+  if(report.reportLineageId!==requestContext.reportLineageId||a.reportLineageId!==requestContext.reportLineageId) return {accepted:false,errorCode:'REPORT_LINEAGE_MISMATCH',validation};
+  if(a.imageOrder!==requestContext.imageOrder||a.submittedImageCount!==requestContext.submittedImageCount) return {accepted:false,errorCode:'AUTHORITY_PROVENANCE_MISMATCH',validation};
+  return {accepted:true,errorCode:null,validation};
 }
 function rcBProcessingCoverage(processing){
   const submitted=Number(processing?.submittedImageCount), accepted=Number(processing?.acceptedResponseCount), included=Number(processing?.includedResponseCount), failed=Number(processing?.failedResponseCount);
@@ -3899,20 +4053,51 @@ function rcBProcessingCoverage(processing){
 function v81MergeHomeworkReports(reports, imageCount, authorityRun={}){
   const cleanReports=(reports||[]).filter(Boolean);
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
-  const extractedEvidence=cleanReports.flatMap(r=>
+  const serverAuthorities=cleanReports.map(r=>r.rcBServerAuthority).filter(Boolean).sort((a,b)=>a.imageOrder-b.imageOrder);
+  const extractedEvidence=serverAuthorities.flatMap(r=>
     Array.isArray(r.extractedEvidence)
       ? r.extractedEvidence.filter(x=>typeof x==='string'&&x.length)
       : []
   );
-  const serverAuthorities=cleanReports.map(r=>r.rcBServerAuthority).filter(Boolean);
+  const authorityErrors=[];
+  if(serverAuthorities.length!==cleanReports.length) rcBPushAuthorityError(authorityErrors,'MERGE_AUTHORITY_INPUT_MISSING');
+  serverAuthorities.forEach(snapshot=>{
+    const check=validateServerEvidenceAuthorityV2(snapshot,{skipProcessing:true});
+    check.blockingErrors.forEach(code=>rcBPushAuthorityError(authorityErrors,code));
+    if(snapshot.reportLineageId!==authorityRun.reportLineageId) rcBPushAuthorityError(authorityErrors,'LINEAGE_MISMATCH');
+  });
+  const imageOrders=serverAuthorities.map(x=>x.imageOrder);
+  if(new Set(imageOrders).size!==imageOrders.length||imageOrders.some((x,i)=>!Number.isInteger(x)||(i&&x<=imageOrders[i-1]))) rcBPushAuthorityError(authorityErrors,'MERGE_IMAGE_ORDER_INVALID');
   const canonicalEvidence=serverAuthorities.flatMap(x=>Array.isArray(x.canonicalEvidence)?x.canonicalEvidence:[]);
+  const authoritativeEngineRows=serverAuthorities.flatMap(x=>Array.isArray(x.engineV2?.evidence)?x.engineV2.evidence:[]);
+  const rowIds=canonicalEvidence.map(x=>x.sourceRowId);
+  if(new Set(rowIds).size!==rowIds.length) rcBPushAuthorityError(authorityErrors,'CANONICAL_SOURCE_ROW_BINDING_DUPLICATE');
+  const processing=authorityRun.processing||null;
+  const includedOrders=new Set((processing?.perImage||[]).filter(x=>x.status==='accepted'&&x.includedInMerge===true).map(x=>x.imageOrder));
+  if(serverAuthorities.some(x=>!includedOrders.has(x.imageOrder))||[...includedOrders].some(order=>!serverAuthorities.some(x=>x.imageOrder===order))) rcBPushAuthorityError(authorityErrors,'PROCESSING_CANONICAL_MISMATCH');
+  const sourceEvidenceFingerprint=rcBSourceEvidenceFingerprint(extractedEvidence);
+  const canonicalEvidenceFingerprint=rcBCanonicalEvidenceFingerprint(canonicalEvidence);
+  const evidenceAuthority={
+    authority:'structured_evidence',schemaVersion:2,canonicalizerVersion:'rc-b-v1',generatedFrom:'report.extractedEvidence',
+    sourceEvidenceCount:extractedEvidence.length,canonicalEvidenceCount:canonicalEvidence.length,
+    sourceEvidenceFingerprint,canonicalEvidenceFingerprint,reportLineageId:authorityRun.reportLineageId||null,
+    imageOrder:null,submittedImageCount:Number(processing?.submittedImageCount)||imageCount,
+    validationErrors:authorityErrors.map(code=>({code,message:code}))
+  };
+  const engineV2=authorityErrors.length?null:{
+    version:'v3',authority:'structured_evidence',schemaVersion:2,generatedFrom:'report.canonicalEvidence',rootSource:'report.extractedEvidence',
+    sourceEvidenceCount:extractedEvidence.length,canonicalEvidenceCount:canonicalEvidence.length,
+    sourceEvidenceFingerprint,canonicalEvidenceFingerprint,reportLineageId:authorityRun.reportLineageId||null,
+    imageOrder:null,submittedImageCount:evidenceAuthority.submittedImageCount,presentationRuleVersion:'rc-b-v1',
+    evidence:authoritativeEngineRows
+  };
   const strengths=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.strengths)?r.strengths:[]))
     .filter(x=>!/暫未見明確錯題|未見明確錯|無需覆核/.test(x)).slice(0,8);
   let checkPoints=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.checkPoints)?r.checkPoints:[]))
     .filter(x=>!/^\s*暫未見明確錯題/.test(x)).slice(0,8);
   if(!checkPoints.length) checkPoints=['暫未見明確錯題。'];
   const reasons=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.reasons)?r.reasons:[])).slice(0,6);
-  return {
+  const merged={
     title:'AI 功課分析',
     shortSummary: cleanReports.map(r=>r.shortSummary).filter(Boolean)[0] || '已分批完成分析。',
     summary: joined('summary') || '已分批讀取功課圖片。',
@@ -3926,14 +4111,25 @@ function v81MergeHomeworkReports(reports, imageCount, authorityRun={}){
     rawAnalysis: joined('rawAnalysis'),
     extractedEvidence,
     canonicalEvidence,
+    evidenceAuthority,
+    engineV2,
     reportLineageId: authorityRun.reportLineageId||null,
-    processing: authorityRun.processing||null,
+    processing,
     contentCoverage:'unverified',
     limitations:['QUESTION_COVERAGE_UNVERIFIED'],
     publishable:false,
     serverAuthorities,
     imageCount
   };
+  const mergedValidation=validateServerEvidenceAuthorityV2(merged);
+  merged.authorityValidation=mergedValidation;
+  merged.authorityState=mergedValidation.authorityState;
+  merged.publishable=mergedValidation.trusted&&processing?.processingCoverage==='complete';
+  if(!mergedValidation.trusted&&merged.engineV2){
+    merged.rejectedEngineV2=merged.engineV2;
+    merged.engineV2=null;
+  }
+  return merged;
 }
 
 function v83IsTimeoutError(msg){
@@ -4033,7 +4229,11 @@ async function sendHomeworkToAIChunked(imagesToSend, authorityRun){
         extractedEvidence:data.report.extractedEvidence,
         canonicalEvidence:data.report.canonicalEvidence,
         evidenceAuthority:data.report.evidenceAuthority,
-        engineV2:data.report.engineV2
+        engineV2:data.report.engineV2,
+        processing:data.report.processing,
+        contentCoverage:data.report.contentCoverage,
+        limitations:data.report.limitations,
+        publishable:data.report.publishable
       }));
       const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
       report.rcBServerAuthority=serverAuthority;
@@ -4557,19 +4757,21 @@ const _v9611Cache=new WeakMap();
 function v9611NormalizedReport(report){
   if(!report) return null;
   if(_v9611Cache.has(report)) return _v9611Cache.get(report);
+  const authorityValidation=validateServerEvidenceAuthorityV2(report);
+  const trustedAuthority=authorityValidation.trusted;
   
   // 1. Get the normalized, deduped, sorted evidence rows
-  const rows=v96VisibleRows(report);
+  const rows=trustedAuthority?v96VisibleRows(report):[];
   
   // 2. Count by display status, all from ONE deduped normalized item list.
   const counts={stable:0, wrong:0, review:0, missing:0, total:0};
-  const allEvidence=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  const allEvidence=trustedAuthority?v82CleanEvidence(report?.engineV2?.evidence||[]):[];
   // V96.21: derive the stable (做得穩) count from the SAME deduped item list as
   // the review rows, via v96StableKey, instead of the raw un-deduped evidence
   // list. Counting raw evidence let duplicate "correct" lines inflate the total
   // (e.g. 27/28 stable on a 26-question worksheet). Now stable, wrong, review and
   // missing all come from one grounded, deduped question list.
-  counts.stable=v96StableCount(report);
+  counts.stable=trustedAuthority?v96StableCount(report):0;
   rows.forEach(e=>{
     const ds=v96DisplayStatus(e);
     if(ds==='wrong') counts.wrong++;
@@ -4625,7 +4827,8 @@ function v9611NormalizedReport(report){
     tonight,
     reportFp,
     subject,
-    isMath
+    isMath,
+    authorityValidation
   };
   
   _v9611Cache.set(report, normalized);
@@ -5826,11 +6029,7 @@ function homeworkReportHTML(r, record={}){
   r=v9611ApplyHomeworkCanonical(r);
   r=v93SanitizeReport(r);
   if(v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
-  // Rebuild clean engine view using V82 filters.
-  if(r.engineV2){
-    r.engineV2.evidence=v82CleanEvidence(r.engineV2.evidence||[]);
-    r.engineV2.summary=v79SkillTrend(r.engineV2.evidence||[]);
-  }
+  // Commit 2: rendering may project trusted evidence, but must not rewrite it.
   const cleanScore=v80QualityScore(r);
   r.reportQuality=r.reportQuality||{};
   r.reportQuality.score=cleanScore;
