@@ -3422,19 +3422,71 @@ function v79SkillTrendHTML(trends){
     <div class="muted">${esc(row.interpretation)}</div>
   </div>`).join('');
 }
+function v79AnalyticsEligibility(report){
+  const validation=validateServerEvidenceAuthorityV2(report);
+  const processingCoverage=String(report?.processing?.processingCoverage||'unknown');
+  const engineEvidence=Array.isArray(report?.engineV2?.evidence)?report.engineV2.evidence:[];
+  const trusted=validation.trusted&&engineEvidence.length>0&&['complete','partial'].includes(processingCoverage);
+  let exclusionState=null;
+  if(!trusted){
+    if(processingCoverage==='failed') exclusionState='failed';
+    else if(validation.authorityState==='legacy') exclusionState='legacy';
+    else if(validation.authorityState==='missing') exclusionState='missing';
+    else if(!Array.isArray(report?.canonicalEvidence)||!report.canonicalEvidence.length||!engineEvidence.length) exclusionState='empty';
+    else exclusionState='invalid';
+  }
+  return {trusted,validation,processingCoverage,engineEvidence:trusted?engineEvidence:[],exclusionState};
+}
 function v79MergeSkillTrends(allReports){
-  const evidence=[];
+  const evidence=[], excludedByState={legacy:0,missing:0,invalid:0,empty:0,failed:0};
+  let trustedReportCount=0,partialReportCount=0;
   (allReports||[]).forEach(x=>{
-    const r=x.report||x;
-    const engine=r.engineV2||v79BuildEngineFromReport(r);
-    evidence.push(...(engine.evidence||[]));
+    const report=x?.report||x||{};
+    const eligibility=v79AnalyticsEligibility(report);
+    if(!eligibility.trusted){
+      excludedByState[eligibility.exclusionState]=(excludedByState[eligibility.exclusionState]||0)+1;
+      return;
+    }
+    trustedReportCount++;
+    if(eligibility.processingCoverage==='partial') partialReportCount++;
+    evidence.push(...eligibility.engineEvidence);
   });
-  return v79SkillTrend(evidence);
+  const excludedReportCount=(allReports||[]).length-trustedReportCount;
+  return {
+    trends:v79SkillTrend(evidence),
+    evidenceTotals:{
+      total:evidence.length,
+      correct:evidence.filter(x=>x.status==='correct').length,
+      wrong:evidence.filter(x=>x.status==='wrong').length,
+      unclear:evidence.filter(x=>!['correct','wrong'].includes(x.status)).length
+    },
+    trustedReportCount,
+    excludedReportCount,
+    partialReportCount,
+    excludedByState,
+    hasTrustedData:trustedReportCount>0&&evidence.length>0,
+    hasExcludedData:excludedReportCount>0,
+    hasPartialData:partialReportCount>0,
+    contentCoverage:'unverified'
+  };
+}
+function v79AnalyticsLimitationsHTML(result){
+  const messages=[];
+  if(result.hasExcludedData) messages.push('Some earlier reports could not be verified and were not included.');
+  if(result.hasPartialData) messages.push('Only successfully processed work is included.');
+  messages.push('The system has not confirmed that every question was captured. Please review the original worksheets.');
+  return `<div class="notice bluebox">${messages.map(esc).join('<br>')}</div>`;
 }
 function v79SkillTrendDashboardHTML(){
-  const reports=(app.homeworkReports||[]).map(h=>v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0));
-  const trends=v79MergeSkillTrends(reports);
-  const readiness=Math.min(100,Math.round(Math.min(45,(app.homeworkReports||[]).length*7)+Math.min(25,(trends||[]).length*5)+Math.min(15,(app.emotions||[]).length*3)+Math.min(15,(app.teacherComments||[]).length*4)));
+  const result=v79MergeSkillTrends((app.homeworkReports||[]).map(h=>h.report||{}));
+  if(!result.hasTrustedData){
+    const message=result.excludedByState.failed>0
+      ? 'These reports could not be analysed, so verified learning insights are not available yet.'
+      : 'Verified learning insights are not available yet.';
+    return `<div class="engineCard"><h2>Learning insights</h2><div class="notice bluebox">${esc(message)}<br>Please review the original worksheets before relying on this summary.</div></div>`;
+  }
+  const trends=result.trends;
+  const readiness=Math.min(100,Math.round(Math.min(45,result.trustedReportCount*7)+Math.min(25,trends.length*5)+Math.min(15,(app.emotions||[]).length*3)+Math.min(15,(app.teacherComments||[]).length*4)));
   return `<div class="engineCard">
     <h2>🧠 Homework Engine v2.1</h2>
     <div class="muted">V80：只保留乾淨題目 evidence；英文閱讀用 Reading Intelligence；Skill Status 不再用 general tag。</div>
@@ -3446,10 +3498,11 @@ function v79SkillTrendDashboardHTML(){
     </div>
     <div class="engineMiniGrid">
       <div class="engineMini"><b>${readiness}</b><span>Engine readiness /100</span></div>
-      <div class="engineMini"><b>${(app.homeworkReports||[]).length}</b><span>功課 records</span></div>
+      <div class="engineMini"><b>${result.trustedReportCount}</b><span>verified homework records</span></div>
       <div class="engineMini"><b>${trends.length}</b><span>skill / sub-skill</span></div>
       <div class="engineMini"><b>${trends.filter(t=>t.status==='Mixed'||t.status==='Needs Review').length}</b><span>要留意 skills</span></div>
     </div>
+    ${v79AnalyticsLimitationsHTML(result)}
     <div class="reportBlock"><b>Skill Status Summary</b>${v79SkillTrendHTML(trends)}</div>
   </div>`;
 }
@@ -3705,38 +3758,81 @@ function v74QualityScore(r){
   if(v74DetectSkillsFromText(s).length) score+=5;
   return Math.max(0,Math.min(100,score));
 }
+function vRCBRenderClone(value, seen=new WeakMap()){
+  if(value===null||typeof value!=='object') return value;
+  if(seen.has(value)) return seen.get(value);
+  if(value instanceof Date) return new Date(value.getTime());
+  const copy=Array.isArray(value)?[]:{};
+  seen.set(value,copy);
+  Reflect.ownKeys(value).forEach(key=>{copy[key]=vRCBRenderClone(value[key],seen)});
+  return copy;
+}
+function vRCBPrepareHomeworkReportView(source, note='', imageCount=0){
+  const report=vRCBRenderClone(source&&typeof source==='object'?source:{});
+  const eligibility=v79AnalyticsEligibility(report);
+  if(!eligibility.trusted) return {report,eligibility};
+  return {report:v74EnrichHomeworkReport(report,note,imageCount),eligibility};
+}
+function vRCBStructuredSubject(report){
+  const skills=(report?.engineV2?.evidence||[]).map(row=>String(row?.skill||row?.subSkill||'')).filter(Boolean);
+  if(skills.some(x=>/math|addition|subtraction|multiplication|division|number|time|money|shape/i.test(x))) return 'Maths';
+  if(skills.some(x=>/reading|spelling|grammar|writing|english|vocabulary/i.test(x))) return 'English';
+  return skills[0]||'General Learning';
+}
+function vRCBParentLimitationsHTML(state){
+  const messages=[];
+  if(state?.hasExcludedData) messages.push('Some earlier reports could not be verified and were not included.');
+  if(state?.hasPartialData||state?.processingCoverage==='partial') messages.push('Only successfully processed work is included.');
+  messages.push('The system has not confirmed that every question was captured. Please review the original worksheets.');
+  return `<div class="notice bluebox">${messages.map(esc).join('<br>')}</div>`;
+}
+function vRCBUnavailableHomeworkHTML(eligibility){
+  const message=eligibility?.processingCoverage==='failed'
+    ? 'This report could not be analysed, so verified learning details are not available yet.'
+    : 'Verified learning details are not available yet.';
+  return `<div class="card" style="box-shadow:none"><h2>Homework report</h2><div class="notice bluebox">${esc(message)}<br>Please review the original worksheet before relying on this summary.</div></div>`;
+}
 function v74EnrichHomeworkReport(report, note='', imageCount=0){
   report=v76HardGuardHomeworkReport(v70SanitizeHomeworkReport(report||{}));
+  const authorityValidation=validateServerEvidenceAuthorityV2(report);
+  const trustedAuthority=authorityValidation.trusted;
+  report.authorityValidation=authorityValidation;
+  report.authorityState=authorityValidation.authorityState;
+  if(!trustedAuthority){
+    if(report.engineV2 && !report.legacyEngineV2 && !report.rejectedEngineV2){
+      const preserved=JSON.parse(JSON.stringify(report.engineV2));
+      if(authorityValidation.authorityState==='legacy') report.legacyEngineV2=preserved;
+      else report.rejectedEngineV2=preserved;
+    }
+    report.engineV2=null;
+  }
+  report.publishable=trustedAuthority && report.processing?.processingCoverage==='complete';
   const allText=v74TextOfReport(report)+' '+String(note||'');
-  const strongText=(report.strengths||[]).join(' ');
-  const reviewText=[...(report.checkPoints||[]),...(report.reasons||[])].join(' ');
-  const strongSkills=v74DetectSkillsFromText(strongText).length?v74DetectSkillsFromText(strongText):v74DetectSkillsFromText(allText);
-  const reviewSkills=v74DetectSkillsFromText(reviewText);
-  const errorTypes=v74DetectErrorTypes(reviewText || allText);
   const confidence=v74DetectConfidence(report);
   const qualityScore=v74QualityScore(report);
-  report.engineV2 = v79BuildEngineFromReport(report);
-  const v79Strong = (report.engineV2.evidence||[]).filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
-  const v79Review = (report.engineV2.evidence||[]).filter(e=>e.status==='wrong'||e.status==='unclear').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const trustedEvidence=trustedAuthority?report.engineV2.evidence:[];
+  const v79Strong = trustedEvidence.filter(e=>e.status==='correct').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
+  const v79Review = trustedEvidence.filter(e=>e.status==='wrong'||e.status==='review'||e.status==='uncertain'||e.status==='missing').map(e=>e.subSkill||e.skill).filter(x=>x&&!v80IsGenericTag(x));
   report.growth={
-    engineVersion:'v2.1',
+    engineVersion:trustedAuthority?'v3':'untrusted',
     subject:v74DetectSubject(allText),
     worksheetLevel:v74DetectWorksheetLevel(allText),
     childYear:app?.profile?.year || '',
-    skillsStrong:(v79Strong.length?v79Strong:strongSkills).slice(0,6),
-    skillsToReview:(v79Review.length?v79Review:reviewSkills).slice(0,6),
-    errorTypes:errorTypes.slice(0,6),
+    skillsStrong:v79Strong.slice(0,6),
+    skillsToReview:v79Review.slice(0,6),
+    errorTypes:[],
     confidence,
     imageCount,
     nextStep:report.nextStep || '',
-    trendTags:[...strongSkills.map(x=>'strong:'+x),...reviewSkills.map(x=>'review:'+x),...errorTypes.map(x=>'error:'+x)].slice(0,12)
+    trendTags:[...v79Strong.map(x=>'strong:'+x),...v79Review.map(x=>'review:'+x)].slice(0,12),
+    authorityState:authorityValidation.authorityState
   };
   report.reportQuality={
     score:qualityScore,
     label:qualityScore>=85?'Wow-ready':qualityScore>=75?'Useful beta':qualityScore>=60?'Needs more evidence':'Insufficient data',
     checks:{
       levelAwareness:!!report.levelAwareness,
-      concreteSkills:strongSkills.length+reviewSkills.length>0,
+      concreteSkills:trustedEvidence.some(e=>!!(e.skill||e.subSkill)),
       clearStrengths:(report.strengths||[]).length>0,
       reviewPoints:Array.isArray(report.checkPoints),
       reasons:(report.reasons||[]).length>0,
@@ -3762,30 +3858,42 @@ function v74RecentHomework(days=28){
   return (app.homeworkReports||[]).filter(h=>new Date(h.date||0).getTime()>=cutoff);
 }
 function v74AllHomeworkReports(){
-  return (app.homeworkReports||[]).map(h=>({record:h, report:v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0)}));
+  return (app.homeworkReports||[]).map(sourceRecord=>{
+    const record=vRCBRenderClone(sourceRecord||{});
+    const prepared=vRCBPrepareHomeworkReportView(sourceRecord?.report||{},sourceRecord?.note||'',sourceRecord?.imageCount||0);
+    record.report=prepared.report;
+    return {record,report:prepared.report,eligibility:prepared.eligibility};
+  });
 }
 function v74GrowthStats(){
   const all=v74AllHomeworkReports();
-  const recent=all.filter(x=>new Date(x.record.date||0).getTime()>=Date.now()-28*86400000);
-  const list=recent.length?recent:all.slice(-10);
+  const trusted=all.filter(x=>x.eligibility.trusted);
+  const recent=trusted.filter(x=>new Date(x.record.date||0).getTime()>=Date.now()-28*86400000);
+  const list=recent.length?recent:trusted.slice(-10);
   const strong=v74Count(list.flatMap(x=>x.report.growth?.skillsStrong||[]));
   const review=v74Count(list.flatMap(x=>x.report.growth?.skillsToReview||[]));
   const errors=v74Count(list.flatMap(x=>x.report.growth?.errorTypes||[]));
-  const subjects=v74Count(list.map(x=>x.report.growth?.subject));
-  const avgQuality=list.length?Math.round(list.reduce((a,x)=>a+(x.report.reportQuality?.score||0),0)/list.length):0;
+  const subjects=v74Count(list.map(x=>vRCBStructuredSubject(x.report)));
+  const avgQuality=0;
   const moods=(app.emotions||[]).slice(-14).map(e=>e.mood);
   const tired=moods.filter(m=>/tired|frustrated|攰|疲|挫/i.test(m)).length;
   const busyDays=DAYS.map(d=>[d,routinesForDay(d,false).length]).sort((a,b)=>b[1]-a[1]);
+  const trustedReportCount=trusted.length;
+  const excludedReportCount=all.length-trustedReportCount;
+  const partialReportCount=trusted.filter(x=>x.eligibility.processingCoverage==='partial').length;
   const readiness=Math.min(100,
     Math.round(
-      Math.min(35,(app.homeworkReports||[]).length*7)+
+      Math.min(35,trustedReportCount*7)+
       Math.min(20,(app.emotions||[]).length*4)+
       Math.min(20,(app.teacherComments||[]).length*5)+
       Math.min(15,(app.activityReports||[]).length*5)+
       Math.min(10,(app.routines||[]).filter(r=>!r.oneOffDate).length*2)
     )
   );
-  return {all,list,strong,review,errors,subjects,avgQuality,moods,tired,busyDays,readiness};
+  return {all,list,strong,review,errors,subjects,avgQuality,moods,tired,busyDays,readiness,
+    trustedReportCount,excludedReportCount,partialReportCount,
+    hasTrustedData:trustedReportCount>0,hasExcludedData:excludedReportCount>0,hasPartialData:partialReportCount>0,
+    contentCoverage:'unverified'};
 }
 function v74ReportEngineSnapshotHTML(){
   return v79SkillTrendDashboardHTML();
@@ -3862,21 +3970,233 @@ function v81UniqueLines(arr){
   });
   return out;
 }
-function v81MergeHomeworkReports(reports, imageCount){
+function rcBCreateReportLineageId(){
+  const c=globalThis.crypto;
+  if(c&&typeof c.randomUUID==='function') return c.randomUUID();
+  if(c&&typeof c.getRandomValues==='function'){
+    const b=new Uint8Array(16); c.getRandomValues(b); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+    const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  }
+  throw new Error('Secure report lineage ID is unavailable');
+}
+function rcBSha256Hex(value){
+  const bytes=new TextEncoder().encode(String(value));
+  const paddedLength=Math.ceil((bytes.length+9)/64)*64;
+  const data=new Uint8Array(paddedLength);
+  data.set(bytes); data[bytes.length]=0x80;
+  const view=new DataView(data.buffer), bitLength=bytes.length*8;
+  view.setUint32(paddedLength-8,Math.floor(bitLength/0x100000000),false);
+  view.setUint32(paddedLength-4,bitLength>>>0,false);
+  const k=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const w=new Uint32Array(64), rotr=(x,n)=>(x>>>n)|(x<<(32-n));
+  for(let offset=0;offset<paddedLength;offset+=64){
+    for(let i=0;i<16;i++) w[i]=view.getUint32(offset+i*4,false);
+    for(let i=16;i<64;i++){
+      const s0=rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3);
+      const s1=rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10);
+      w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;
+    }
+    let [a,b,c,d,e,f,g,hh]=h;
+    for(let i=0;i<64;i++){
+      const s1=rotr(e,6)^rotr(e,11)^rotr(e,25), ch=(e&f)^((~e)&g);
+      const t1=(hh+s1+ch+k[i]+w[i])>>>0;
+      const s0=rotr(a,2)^rotr(a,13)^rotr(a,22), maj=(a&b)^(a&c)^(b&c);
+      const t2=(s0+maj)>>>0;
+      hh=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+    }
+    h[0]=(h[0]+a)>>>0;h[1]=(h[1]+b)>>>0;h[2]=(h[2]+c)>>>0;h[3]=(h[3]+d)>>>0;
+    h[4]=(h[4]+e)>>>0;h[5]=(h[5]+f)>>>0;h[6]=(h[6]+g)>>>0;h[7]=(h[7]+hh)>>>0;
+  }
+  return h.map(x=>x.toString(16).padStart(8,'0')).join('');
+}
+function rcBCanonicalSerialize(values){return JSON.stringify(values)}
+function rcBNormalizeAuthorityString(value){
+  if(value===null||value===undefined) return null;
+  const normalized=String(value).normalize('NFC').replace(/\s+/g,' ').trim();
+  return normalized||null;
+}
+function rcBNormalizeSourceRowPayload(value){return rcBNormalizeAuthorityString(String(value??'').replace(/^[\s\-â€¢*]+/,''))||''}
+function rcBCanonicalFingerprintInput(row){
+  row=row||{};
+  return [row.sourceRowId,row.contentFingerprint,row.reportLineageId,row.imageOrder,row.sourceRowIndex,
+    rcBNormalizeSourceRowPayload(row.sourceRowPayload),row.authoritySchemaVersion,row.page,row.questionId,
+    row.question,row.studentAnswer,row.referenceAnswer,row.status,row.skill,row.subSkill,row.confidence,row.provenance?.sourceRowHash||null];
+}
+function rcBSourceEvidenceFingerprint(rows){return rcBSha256Hex(rcBCanonicalSerialize((rows||[]).map(rcBNormalizeSourceRowPayload)))}
+function rcBCanonicalEvidenceFingerprint(rows){return rcBSha256Hex(rcBCanonicalSerialize((rows||[]).map(rcBCanonicalFingerprintInput)))}
+function rcBPushAuthorityError(errors,code){if(!errors.includes(code)) errors.push(code)}
+function rcBSameAuthorityValue(a,b){return JSON.stringify(a??null)===JSON.stringify(b??null)}
+
+function validateServerEvidenceAuthorityV2(report,options={}){
+  const extracted=Array.isArray(report?.extractedEvidence)?report.extractedEvidence:[];
+  const canonical=Array.isArray(report?.canonicalEvidence)?report.canonicalEvidence:[];
+  const authority=report?.evidenceAuthority;
+  const engine=report?.engineV2;
+  const errors=[], warnings=[];
+  const legacySignal=!authority&&!canonical.length&&!!(engine||report?.summary||report?.rawAnalysis||report?.parentInterpretation||report?.strengths||report?.checkPoints);
+  let authorityState=legacySignal?'legacy':(!authority?'missing':'invalid');
+  if(!authority){
+    rcBPushAuthorityError(errors,legacySignal?'LEGACY_AUTHORITY_UNSUPPORTED':'AUTHORITY_METADATA_MISSING');
+  }else{
+    if(authority.authority!=='structured_evidence'||authority.generatedFrom!=='report.extractedEvidence') rcBPushAuthorityError(errors,'AUTHORITY_SOURCE_MISMATCH');
+    if(authority.schemaVersion!==2||authority.canonicalizerVersion!=='rc-b-v1') rcBPushAuthorityError(errors,'AUTHORITY_SCHEMA_UNSUPPORTED');
+    if(!Array.isArray(authority.validationErrors)) rcBPushAuthorityError(errors,'AUTHORITY_VALIDATION_ERRORS_INVALID');
+    else if(authority.validationErrors.length) authority.validationErrors.forEach(x=>rcBPushAuthorityError(errors,x?.code||'AUTHORITY_VALIDATION_FAILED'));
+  }
+  if(!canonical.length) rcBPushAuthorityError(errors,'CANONICAL_EVIDENCE_EMPTY');
+  if(authority){
+    if(authority.sourceEvidenceCount!==extracted.length) rcBPushAuthorityError(errors,'AUTHORITY_SOURCE_COUNT_MISMATCH');
+    if(authority.canonicalEvidenceCount!==canonical.length) rcBPushAuthorityError(errors,'CANONICAL_COUNT_MISMATCH');
+    if(!/^[a-f0-9]{64}$/.test(authority.sourceEvidenceFingerprint||'')||!/^([a-f0-9]{64})$/.test(authority.canonicalEvidenceFingerprint||'')) rcBPushAuthorityError(errors,'AUTHORITY_FINGERPRINT_INVALID');
+    if(authority.sourceEvidenceFingerprint!==rcBSourceEvidenceFingerprint(extracted)||authority.canonicalEvidenceFingerprint!==rcBCanonicalEvidenceFingerprint(canonical)) rcBPushAuthorityError(errors,'AUTHORITY_FINGERPRINT_MISMATCH');
+  }
+  if(!engine||engine.version!=='v3'||engine.authority!=='structured_evidence'||engine.schemaVersion!==2||engine.generatedFrom!=='report.canonicalEvidence'||engine.rootSource!=='report.extractedEvidence'||engine.presentationRuleVersion!=='rc-b-v1'){
+    rcBPushAuthorityError(errors,'ENGINE_AUTHORITY_INVALID');
+  }
+  if(!Array.isArray(engine?.evidence)) rcBPushAuthorityError(errors,'ENGINE_EVIDENCE_INVALID');
+  else if(engine.evidence.length!==canonical.length) rcBPushAuthorityError(errors,'ENGINE_COUNT_MISMATCH');
+  if(authority&&engine){
+    ['sourceEvidenceCount','canonicalEvidenceCount','sourceEvidenceFingerprint','canonicalEvidenceFingerprint','reportLineageId','imageOrder','submittedImageCount'].forEach(key=>{
+      if(!rcBSameAuthorityValue(engine[key],authority[key])) rcBPushAuthorityError(errors,key==='reportLineageId'?'LINEAGE_MISMATCH':'ENGINE_AUTHORITY_BINDING_MISMATCH');
+    });
+  }
+  const lineage=report?.reportLineageId;
+  if(!/^[A-Za-z0-9_-]{16,128}$/.test(lineage||'')||authority?.reportLineageId!==lineage||engine?.reportLineageId!==lineage) rcBPushAuthorityError(errors,'LINEAGE_MISMATCH');
+  const submitted=Number(authority?.submittedImageCount);
+  if(!Number.isInteger(submitted)||submitted<1||submitted>6) rcBPushAuthorityError(errors,'AUTHORITY_IMAGE_METADATA_INVALID');
+  const mergedAuthority=authority?.imageOrder===null&&submitted>1;
+  if(!mergedAuthority&&(!Number.isInteger(authority?.imageOrder)||authority.imageOrder<0||authority.imageOrder>=submitted)) rcBPushAuthorityError(errors,'AUTHORITY_IMAGE_METADATA_INVALID');
+
+  const canonicalIds=new Set(), engineIds=new Set(), perImageNext=new Map();
+  canonical.forEach((row,index)=>{
+    const rowId=row?.sourceRowId;
+    if(!/^[a-f0-9]{64}$/.test(rowId||'')) rcBPushAuthorityError(errors,'CANONICAL_SOURCE_ROW_BINDING_MISSING');
+    else if(canonicalIds.has(rowId)) rcBPushAuthorityError(errors,'CANONICAL_SOURCE_ROW_BINDING_DUPLICATE');
+    else canonicalIds.add(rowId);
+    if(!/^[a-f0-9]{64}$/.test(row?.contentFingerprint||'')) rcBPushAuthorityError(errors,'CONTENT_FINGERPRINT_INVALID');
+    if(row?.reportLineageId!==lineage||row?.provenance?.reportLineageId!==lineage) rcBPushAuthorityError(errors,'LINEAGE_MISMATCH');
+    if(!Number.isInteger(row?.imageOrder)||row.imageOrder<0||row.imageOrder>=submitted||row?.provenance?.imageOrder!==row.imageOrder) rcBPushAuthorityError(errors,'ROW_IMAGE_ORDER_INVALID');
+    const expectedIndex=perImageNext.get(row?.imageOrder)||0;
+    if(!Number.isInteger(row?.sourceRowIndex)||row.sourceRowIndex!==expectedIndex||row?.provenance?.sourceRowIndex!==row.sourceRowIndex) rcBPushAuthorityError(errors,'SOURCE_ROW_INDEX_INVALID');
+    perImageNext.set(row?.imageOrder,expectedIndex+1);
+    if(index&&canonical[index-1]?.imageOrder>row?.imageOrder) rcBPushAuthorityError(errors,'CANONICAL_ORDER_INVALID');
+    const normalizedPayload=rcBNormalizeSourceRowPayload(row?.sourceRowPayload);
+    const expectedRowId=rcBSha256Hex(rcBCanonicalSerialize([lineage,row?.imageOrder,row?.sourceRowIndex,normalizedPayload]));
+    const expectedContent=rcBSha256Hex(rcBCanonicalSerialize([row?.question,row?.studentAnswer||null,row?.referenceAnswer||null,row?.status,row?.skill||null]));
+    if(rowId!==expectedRowId) rcBPushAuthorityError(errors,'SOURCE_ROW_ID_MISMATCH');
+    if(row?.contentFingerprint!==expectedContent) rcBPushAuthorityError(errors,'CONTENT_FINGERPRINT_MISMATCH');
+    if(row?.authoritySchemaVersion!==2||row?.provenance?.authority!=='structured_evidence'||row?.provenance?.sourcePath!=='report.extractedEvidence') rcBPushAuthorityError(errors,'ROW_PROVENANCE_INVALID');
+    if(row?.provenance?.sourceRowHash!==rcBSha256Hex(normalizedPayload)) rcBPushAuthorityError(errors,'SOURCE_ROW_HASH_MISMATCH');
+    const projected=engine?.evidence?.[index];
+    if(!projected?.sourceRowId||!canonicalIds.has(projected.sourceRowId)) rcBPushAuthorityError(errors,'ENGINE_SOURCE_ROW_BINDING_MISSING');
+    else if(engineIds.has(projected.sourceRowId)) rcBPushAuthorityError(errors,'ENGINE_SOURCE_ROW_BINDING_DUPLICATE');
+    else engineIds.add(projected.sourceRowId);
+    if(projected?.sourceRowId!==rowId) rcBPushAuthorityError(errors,'ENGINE_ROW_ORDER_MISMATCH');
+    const projectedFields=['contentFingerprint','page','questionId','question','studentAnswer','referenceAnswer','status','skill','subSkill','confidence'];
+    if(projectedFields.some(key=>!rcBSameAuthorityValue(projected?.[key],row?.[key]))||!rcBSameAuthorityValue(projected?.correctAnswer,row?.referenceAnswer)||projected?.source!=='structured_evidence'||!rcBSameAuthorityValue(projected?.provenance,row?.provenance)) rcBPushAuthorityError(errors,'ENGINE_ROW_PROJECTION_MISMATCH');
+  });
+  if(engineIds.size!==canonicalIds.size) rcBPushAuthorityError(errors,'ENGINE_SOURCE_ROW_BINDING_MISSING');
+
+  if(report?.contentCoverage!=='unverified') rcBPushAuthorityError(errors,'CONTENT_COVERAGE_INVALID');
+  if(!Array.isArray(report?.limitations)||!report.limitations.includes('QUESTION_COVERAGE_UNVERIFIED')) rcBPushAuthorityError(errors,'CONTENT_COVERAGE_INVALID');
+  if(!options.skipProcessing){
+    const p=report?.processing, coverage=rcBProcessingCoverage(p);
+    const perImage=Array.isArray(p?.perImage)?p.perImage:[];
+    const processingValid=p&&coverage===p.processingCoverage&&['complete','partial'].includes(coverage)&&
+      Number.isInteger(p.attemptedRequestCount)&&p.attemptedRequestCount>=p.successfulResponseCount&&
+      Number.isInteger(p.successfulResponseCount)&&p.successfulResponseCount>=p.acceptedResponseCount&&
+      p.attemptedRequestCount===p.submittedImageCount&&
+      perImage.filter(x=>x.status!=='failed').length===p.successfulResponseCount&&
+      perImage.filter(x=>x.status==='accepted').length===p.acceptedResponseCount&&
+      perImage.filter(x=>x.includedInMerge===true).length===p.includedResponseCount&&
+      perImage.filter(x=>x.status!=='accepted').length===p.failedResponseCount&&
+      new Set(perImage.map(x=>x.imageOrder)).size===perImage.length&&perImage.every(x=>Number.isInteger(x.imageOrder)&&x.imageOrder>=0&&x.imageOrder<p.submittedImageCount&&Number.isInteger(x.canonicalRowCount)&&x.canonicalRowCount>=0);
+    if(!processingValid) rcBPushAuthorityError(errors,'PROCESSING_METADATA_INVALID');
+    else{
+      const includedOrders=new Set(perImage.filter(x=>x.status==='accepted'&&x.includedInMerge===true).map(x=>x.imageOrder));
+      const rowCountFor=order=>canonical.filter(row=>row.imageOrder===order).length;
+      if(canonical.some(row=>!includedOrders.has(row.imageOrder))||[...includedOrders].some(order=>!canonical.some(row=>row.imageOrder===order))||perImage.some(x=>x.canonicalRowCount!==(x.includedInMerge?rowCountFor(x.imageOrder):0))) rcBPushAuthorityError(errors,'PROCESSING_CANONICAL_MISMATCH');
+    }
+  }
+  if(errors.length&&authorityState!=='legacy'&&authorityState!=='missing') authorityState=errors.some(x=>/LINEAGE|COUNT|BINDING|ORDER|PROCESSING_CANONICAL/.test(x))?'inconsistent':'invalid';
+  if(!errors.length) authorityState='trusted';
+  return {
+    trusted:errors.length===0,
+    authorityState,
+    blockingErrors:errors,
+    warnings,
+    validatedCounts:{sourceEvidenceCount:extracted.length,canonicalEvidenceCount:canonical.length,engineEvidenceCount:Array.isArray(engine?.evidence)?engine.evidence.length:0}
+  };
+}
+
+function rcBAcceptedServerAuthority(report,requestContext){
+  const validation=validateServerEvidenceAuthorityV2(report,{skipProcessing:true});
+  if(!validation.trusted) return {accepted:false,errorCode:validation.blockingErrors[0]||'AUTHORITY_VALIDATION_FAILED',validation};
+  const a=report.evidenceAuthority;
+  if(report.reportLineageId!==requestContext.reportLineageId||a.reportLineageId!==requestContext.reportLineageId) return {accepted:false,errorCode:'REPORT_LINEAGE_MISMATCH',validation};
+  if(a.imageOrder!==requestContext.imageOrder||a.submittedImageCount!==requestContext.submittedImageCount) return {accepted:false,errorCode:'AUTHORITY_PROVENANCE_MISMATCH',validation};
+  return {accepted:true,errorCode:null,validation};
+}
+function rcBProcessingCoverage(processing){
+  const submitted=Number(processing?.submittedImageCount), accepted=Number(processing?.acceptedResponseCount), included=Number(processing?.includedResponseCount), failed=Number(processing?.failedResponseCount);
+  const perImage=Array.isArray(processing?.perImage)?processing.perImage:[];
+  const valid=Number.isInteger(submitted)&&submitted>0&&Number.isInteger(accepted)&&accepted>=0&&Number.isInteger(included)&&included>=0&&Number.isInteger(failed)&&failed>=0&&accepted+failed===submitted&&included<=accepted&&perImage.length===submitted;
+  if(!valid) return 'unknown';
+  if(accepted===submitted&&included===accepted&&failed===0&&perImage.every(x=>x.status==='accepted'&&x.includedInMerge===true)) return 'complete';
+  if(accepted>0&&included>0&&(failed>0||included<accepted||perImage.some(x=>x.status!=='accepted'||x.includedInMerge!==true))) return 'partial';
+  if(accepted===0&&included===0) return 'failed';
+  return 'unknown';
+}
+function v81MergeHomeworkReports(reports, imageCount, authorityRun={}){
   const cleanReports=(reports||[]).filter(Boolean);
   const joined=(field)=>cleanReports.map(r=>r[field]).filter(Boolean).join('\n\n');
-  const extractedEvidence=cleanReports.flatMap(r=>
+  const serverAuthorities=cleanReports.map(r=>r.rcBServerAuthority).filter(Boolean).sort((a,b)=>a.imageOrder-b.imageOrder);
+  const extractedEvidence=serverAuthorities.flatMap(r=>
     Array.isArray(r.extractedEvidence)
-      ? r.extractedEvidence.map(x=>String(x||'').trim()).filter(Boolean)
+      ? r.extractedEvidence.filter(x=>typeof x==='string'&&x.length)
       : []
   );
+  const authorityErrors=[];
+  if(serverAuthorities.length!==cleanReports.length) rcBPushAuthorityError(authorityErrors,'MERGE_AUTHORITY_INPUT_MISSING');
+  serverAuthorities.forEach(snapshot=>{
+    const check=validateServerEvidenceAuthorityV2(snapshot,{skipProcessing:true});
+    check.blockingErrors.forEach(code=>rcBPushAuthorityError(authorityErrors,code));
+    if(snapshot.reportLineageId!==authorityRun.reportLineageId) rcBPushAuthorityError(authorityErrors,'LINEAGE_MISMATCH');
+  });
+  const imageOrders=serverAuthorities.map(x=>x.imageOrder);
+  if(new Set(imageOrders).size!==imageOrders.length||imageOrders.some((x,i)=>!Number.isInteger(x)||(i&&x<=imageOrders[i-1]))) rcBPushAuthorityError(authorityErrors,'MERGE_IMAGE_ORDER_INVALID');
+  const canonicalEvidence=serverAuthorities.flatMap(x=>Array.isArray(x.canonicalEvidence)?x.canonicalEvidence:[]);
+  const authoritativeEngineRows=serverAuthorities.flatMap(x=>Array.isArray(x.engineV2?.evidence)?x.engineV2.evidence:[]);
+  const rowIds=canonicalEvidence.map(x=>x.sourceRowId);
+  if(new Set(rowIds).size!==rowIds.length) rcBPushAuthorityError(authorityErrors,'CANONICAL_SOURCE_ROW_BINDING_DUPLICATE');
+  const processing=authorityRun.processing||null;
+  const includedOrders=new Set((processing?.perImage||[]).filter(x=>x.status==='accepted'&&x.includedInMerge===true).map(x=>x.imageOrder));
+  if(serverAuthorities.some(x=>!includedOrders.has(x.imageOrder))||[...includedOrders].some(order=>!serverAuthorities.some(x=>x.imageOrder===order))) rcBPushAuthorityError(authorityErrors,'PROCESSING_CANONICAL_MISMATCH');
+  const sourceEvidenceFingerprint=rcBSourceEvidenceFingerprint(extractedEvidence);
+  const canonicalEvidenceFingerprint=rcBCanonicalEvidenceFingerprint(canonicalEvidence);
+  const evidenceAuthority={
+    authority:'structured_evidence',schemaVersion:2,canonicalizerVersion:'rc-b-v1',generatedFrom:'report.extractedEvidence',
+    sourceEvidenceCount:extractedEvidence.length,canonicalEvidenceCount:canonicalEvidence.length,
+    sourceEvidenceFingerprint,canonicalEvidenceFingerprint,reportLineageId:authorityRun.reportLineageId||null,
+    imageOrder:null,submittedImageCount:Number(processing?.submittedImageCount)||imageCount,
+    validationErrors:authorityErrors.map(code=>({code,message:code}))
+  };
+  const engineV2=authorityErrors.length?null:{
+    version:'v3',authority:'structured_evidence',schemaVersion:2,generatedFrom:'report.canonicalEvidence',rootSource:'report.extractedEvidence',
+    sourceEvidenceCount:extractedEvidence.length,canonicalEvidenceCount:canonicalEvidence.length,
+    sourceEvidenceFingerprint,canonicalEvidenceFingerprint,reportLineageId:authorityRun.reportLineageId||null,
+    imageOrder:null,submittedImageCount:evidenceAuthority.submittedImageCount,presentationRuleVersion:'rc-b-v1',
+    evidence:authoritativeEngineRows
+  };
   const strengths=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.strengths)?r.strengths:[]))
     .filter(x=>!/暫未見明確錯題|未見明確錯|無需覆核/.test(x)).slice(0,8);
   let checkPoints=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.checkPoints)?r.checkPoints:[]))
     .filter(x=>!/^\s*暫未見明確錯題/.test(x)).slice(0,8);
   if(!checkPoints.length) checkPoints=['暫未見明確錯題。'];
   const reasons=v81UniqueLines(cleanReports.flatMap(r=>Array.isArray(r.reasons)?r.reasons:[])).slice(0,6);
-  return {
+  const merged={
     title:'AI 功課分析',
     shortSummary: cleanReports.map(r=>r.shortSummary).filter(Boolean)[0] || '已分批完成分析。',
     summary: joined('summary') || '已分批讀取功課圖片。',
@@ -3889,8 +4209,26 @@ function v81MergeHomeworkReports(reports, imageCount){
     confidence: cleanReports.some(r=>String(r.confidence||'').toLowerCase()==='low')?'medium':'medium',
     rawAnalysis: joined('rawAnalysis'),
     extractedEvidence,
+    canonicalEvidence,
+    evidenceAuthority,
+    engineV2,
+    reportLineageId: authorityRun.reportLineageId||null,
+    processing,
+    contentCoverage:'unverified',
+    limitations:['QUESTION_COVERAGE_UNVERIFIED'],
+    publishable:false,
+    serverAuthorities,
     imageCount
   };
+  const mergedValidation=validateServerEvidenceAuthorityV2(merged);
+  merged.authorityValidation=mergedValidation;
+  merged.authorityState=mergedValidation.authorityState;
+  merged.publishable=mergedValidation.trusted&&processing?.processingCoverage==='complete';
+  if(!mergedValidation.trusted&&merged.engineV2){
+    merged.rejectedEngineV2=merged.engineV2;
+    merged.engineV2=null;
+  }
+  return merged;
 }
 
 function v83IsTimeoutError(msg){
@@ -3941,10 +4279,10 @@ function v83ShrinkDataUrl(dataUrl,maxDim=850,quality=0.48){
     }catch(e){resolve(dataUrl);}
   });
 }
-async function sendHomeworkToAIWithRetry(imagesToSend, label=''){
+async function sendHomeworkToAIWithRetry(imagesToSend, label='', requestContext={}){
   const originalKb=Math.round(JSON.stringify(imagesToSend||[]).length/1024);
   try{
-    return await sendHomeworkToAI(imagesToSend,{aiMode:'fast',reliabilityMode:'v83-first',originalKb});
+    return await sendHomeworkToAI(imagesToSend,{aiMode:'fast',reliabilityMode:'v83-first',originalKb,...requestContext});
   }catch(e){
     const msg=e.message||String(e);
     if(!v83IsTimeoutError(msg) || !(imagesToSend||[]).length) throw e;
@@ -3952,21 +4290,22 @@ async function sendHomeworkToAIWithRetry(imagesToSend, label=''){
     const smaller=[];
     for(const img of imagesToSend){ smaller.push(await v83ShrinkDataUrl(img,850,0.46)); }
     const retryKb=Math.round(JSON.stringify(smaller).length/1024);
-    const data=await sendHomeworkToAI(smaller,{aiMode:'fast',reliabilityMode:'v83-retry-ultra-compressed',originalKb,retryKb,retry:true});
+    const data=await sendHomeworkToAI(smaller,{aiMode:'fast',reliabilityMode:'v83-retry-ultra-compressed',originalKb,retryKb,retry:true,...requestContext});
     data.retries=(data.retries||0)+1;
     data.debug={...(data.debug||{}),originalKb,retryKb,frontendRetry:true};
     return data;
   }
 }
 
-async function sendHomeworkToAIChunked(imagesToSend){
+async function sendHomeworkToAIChunked(imagesToSend, authorityRun){
   // V83: one image per AI call is slower but much more reliable on serverless.
   const maxPerCall=1;
   const total=Math.ceil((imagesToSend||[]).length/maxPerCall);
-  if((imagesToSend||[]).length<=maxPerCall) return await sendHomeworkToAIWithRetry(imagesToSend,'單張相');
   const all=[];
   const analyses=[];
   const errors=[];
+  const perImage=[];
+  let successfulResponseCount=0;
   let model='', route='chunked-v83', debugParts=[];
   for(let i=0;i<imagesToSend.length;i+=maxPerCall){
     const chunk=imagesToSend.slice(i,i+maxPerCall);
@@ -3974,21 +4313,57 @@ async function sendHomeworkToAIChunked(imagesToSend){
     const kb=Math.round(JSON.stringify(chunk).length/1024);
     if($('hwStatus')) $('hwStatus').innerHTML=`<div class="notice bluebox">正在逐張分析功課... 第 ${batchNo} / ${total} 張，約 ${kb}KB。</div>`;
     try{
-      const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`);
+      const requestContext={reportLineageId:authorityRun.reportLineageId,imageOrder:i,submittedImageCount:authorityRun.submittedImageCount};
+      const data=await sendHomeworkToAIWithRetry(chunk,`第 ${batchNo} 張`,requestContext);
+      successfulResponseCount++;
+      const authorityCheck=rcBAcceptedServerAuthority(data?.report,requestContext);
+      if(!authorityCheck.accepted){
+        perImage.push({imageOrder:i,status:'rejected',includedInMerge:false,canonicalRowCount:0,blockingErrorCode:authorityCheck.errorCode});
+        errors.push(`第 ${batchNo} 張：${authorityCheck.errorCode}`);
+        continue;
+      }
+      const serverAuthority=JSON.parse(JSON.stringify({
+        reportLineageId:data.report.reportLineageId,
+        imageOrder:i,
+        extractedEvidence:data.report.extractedEvidence,
+        canonicalEvidence:data.report.canonicalEvidence,
+        evidenceAuthority:data.report.evidenceAuthority,
+        engineV2:data.report.engineV2,
+        processing:data.report.processing,
+        contentCoverage:data.report.contentCoverage,
+        limitations:data.report.limitations,
+        publishable:data.report.publishable
+      }));
       const report=normalizeHomeworkReport(data,$('hwText')?.value?.trim()||'',chunk.length);
+      report.rcBServerAuthority=serverAuthority;
       all.push(report);
+      perImage.push({imageOrder:i,status:'accepted',includedInMerge:true,canonicalRowCount:serverAuthority.canonicalEvidence.length,blockingErrorCode:null});
       analyses.push(data.analysis||report.rawAnalysis||'');
       model=data.model||model;
       route=data.route||route;
       debugParts.push(...v83DebugFromData(data));
     }catch(e){
+      perImage.push({imageOrder:i,status:'failed',includedInMerge:false,canonicalRowCount:0,blockingErrorCode:'REQUEST_FAILED'});
       errors.push(`第 ${batchNo} 張：${e.message||String(e)}`);
     }
   }
+  const processing={
+    processingCoverage:'unknown',
+    submittedImageCount:authorityRun.submittedImageCount,
+    attemptedRequestCount:total,
+    successfulResponseCount,
+    acceptedResponseCount:all.length,
+    failedResponseCount:total-all.length,
+    includedResponseCount:all.length,
+    perImage
+  };
+  processing.processingCoverage=rcBProcessingCoverage(processing);
   if(!all.length){
-    throw new Error('所有圖片分析都逾時或失敗：'+errors.join('；'));
+    const failure=new Error('所有圖片分析都逾時、失敗或被拒絕：'+errors.join('；'));
+    failure.rcBProcessing=processing;
+    throw failure;
   }
-  const merged=v81MergeHomeworkReports(all, imagesToSend.length);
+  const merged=v81MergeHomeworkReports(all, imagesToSend.length,{reportLineageId:authorityRun.reportLineageId,processing});
   if(errors.length){
     merged.parentInterpretation=(merged.parentInterpretation||'')+' 部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。';
     merged.checkPoints=[...(merged.checkPoints||[]), '部分圖片未能完成分析，建議稍後重試或用「只分析第一張」。'];
@@ -4000,7 +4375,7 @@ async function sendHomeworkToAIChunked(imagesToSend){
     model,
     route:'v83-one-by-one-'+route,
     imageCount:imagesToSend.length,
-    partial:errors.length>0, debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
+    partial:processing.processingCoverage!=='complete', debug:{frontendBatches:total,errors,debugParts:[...new Set(debugParts)]}
   };
 }
 
@@ -4015,6 +4390,9 @@ async function sendHomeworkToAI(imagesToSend, options={}){
     subject:'Homework',
     status:'uploaded',
     child:{name:app.profile.childName,year:app.profile.year},
+    reportLineageId:options.reportLineageId,
+    imageOrder:options.imageOrder,
+    submittedImageCount:options.submittedImageCount,
     aiMode:options.aiMode||'fast',
     reliabilityMode:options.reliabilityMode||'v83',
     frontendDebug:{originalKb:options.originalKb||0,retryKb:options.retryKb||0,retry:!!options.retry},
@@ -4196,13 +4574,15 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     setHomeworkAnalyzing(false);
     return;
   }
+  const reportLineageId=rcBCreateReportLineageId();
+  baseRecord.reportLineageId=reportLineageId;
   $('hwStatus').innerHTML=`<div class="notice bluebox">正在分析功課… ${modeLabel}，約 ${kb}KB。AI 需要一點時間，請保持此頁開啟；離開 App 可能會中斷分析。${imagesToSend.length>1?' 系統會逐張處理，減少失敗。':''}</div>`;
   // Track whether the page was hidden (user left the app) while analysis was running.
   let wentHidden=false;
   const onVis=()=>{ if(document.hidden) wentHidden=true; };
   document.addEventListener('visibilitychange',onVis);
   try{
-    const data=await sendHomeworkToAIChunked(imagesToSend);
+    const data=await sendHomeworkToAIChunked(imagesToSend,{reportLineageId,submittedImageCount:imagesToSend.length});
     const partial=!!(data.partial || (data.debug&&Array.isArray(data.debug.errors)&&data.debug.errors.length));
     let report=normalizeHomeworkReport(data,text,imagesToSend.length);
     report.runtime={success:!partial,partial,incomplete:partial,model:data.model||'',route:data.route||'',debug:data.debug||{},imageCount:imagesToSend.length,completedAt:new Date().toISOString()};
@@ -4247,6 +4627,11 @@ async function runHomeworkAnalysis(imagesToSend, modeLabel){
     const backgrounded=wentHidden || document.hidden;
     const report=homeworkFallbackReport(text,imagesToSend.length,e.message||String(e));
     report.runtime={success:false,error:e.message||String(e),imageCount:imagesToSend.length,backgrounded,completedAt:new Date().toISOString()};
+    report.reportLineageId=reportLineageId;
+    if(e.rcBProcessing) report.processing=e.rcBProcessing;
+    report.contentCoverage='unverified';
+    report.limitations=['QUESTION_COVERAGE_UNVERIFIED'];
+    report.publishable=false;
     app.homeworkReports.push({...baseRecord,report,offline:true,error:e.message||String(e),backgrounded});
     save();
     renderHomework();
@@ -4277,6 +4662,7 @@ function viewHomeworkReport(id, scroll=false){
   $('hwResult').innerHTML=homeworkReportHTML(record.report, record) + (record.error&&v85AdminMode()?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
   if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
+window.viewHomeworkReport=viewHomeworkReport;
 
 function v82StatusClass(status){
   if(/Strong|Observed/i.test(status||'')) return 'statusStrong';
@@ -4471,19 +4857,21 @@ const _v9611Cache=new WeakMap();
 function v9611NormalizedReport(report){
   if(!report) return null;
   if(_v9611Cache.has(report)) return _v9611Cache.get(report);
+  const authorityValidation=validateServerEvidenceAuthorityV2(report);
+  const trustedAuthority=authorityValidation.trusted;
   
   // 1. Get the normalized, deduped, sorted evidence rows
-  const rows=v96VisibleRows(report);
+  const rows=trustedAuthority?v96VisibleRows(report):[];
   
   // 2. Count by display status, all from ONE deduped normalized item list.
   const counts={stable:0, wrong:0, review:0, missing:0, total:0};
-  const allEvidence=v82CleanEvidence(report?.engineV2?.evidence||[]);
+  const allEvidence=trustedAuthority?v82CleanEvidence(report?.engineV2?.evidence||[]):[];
   // V96.21: derive the stable (做得穩) count from the SAME deduped item list as
   // the review rows, via v96StableKey, instead of the raw un-deduped evidence
   // list. Counting raw evidence let duplicate "correct" lines inflate the total
   // (e.g. 27/28 stable on a 26-question worksheet). Now stable, wrong, review and
   // missing all come from one grounded, deduped question list.
-  counts.stable=v96StableCount(report);
+  counts.stable=trustedAuthority?v96StableCount(report):0;
   rows.forEach(e=>{
     const ds=v96DisplayStatus(e);
     if(ds==='wrong') counts.wrong++;
@@ -4539,7 +4927,8 @@ function v9611NormalizedReport(report){
     tonight,
     reportFp,
     subject,
-    isMath
+    isMath,
+    authorityValidation
   };
   
   _v9611Cache.set(report, normalized);
@@ -5736,15 +6125,14 @@ function v93ReviewDetailHTML(report){
 }
 
 function homeworkReportHTML(r, record={}){
-  r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  record=vRCBRenderClone(record||{});
+  const prepared=vRCBPrepareHomeworkReportView(r||{},'',r?.growth?.imageCount||record?.imageCount||0);
+  if(!prepared.eligibility.trusted) return vRCBUnavailableHomeworkHTML(prepared.eligibility);
+  r=prepared.report;
   r=v9611ApplyHomeworkCanonical(r);
   r=v93SanitizeReport(r);
-  if(v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
-  // Rebuild clean engine view using V82 filters.
-  if(r.engineV2){
-    r.engineV2.evidence=v82CleanEvidence(r.engineV2.evidence||[]);
-    r.engineV2.summary=v79SkillTrend(r.engineV2.evidence||[]);
-  }
+  if(prepared.eligibility.processingCoverage!=='partial'&&v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
+  // Commit 2: rendering may project trusted evidence, but must not rewrite it.
   const cleanScore=v80QualityScore(r);
   r.reportQuality=r.reportQuality||{};
   r.reportQuality.score=cleanScore;
@@ -5758,7 +6146,10 @@ function homeworkReportHTML(r, record={}){
   const reviewOk=reviewList.length===1 && /暫未見明確錯題/.test(reviewList[0]);
   const strongSkills=(g.skillsStrong||[]).filter(x=>x&&!v80IsGenericTag(x));
   const reviewSkills=reviewOk?[]:[...(g.skillsToReview||[]),...(g.errorTypes||[])].filter(x=>x&&!v80IsGenericTag(x));
+  const authorityLimitations=vRCBParentLimitationsHTML(prepared.eligibility);
   return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
+
+  ${authorityLimitations}
 
   <div class="wowHero">
     <h2>✨ 今日最值得留意</h2>
@@ -5821,12 +6212,12 @@ function renderAnalytics(){
   $('analytics').innerHTML=`<div class="card">
     <h2>🤖 分析 Dashboard</h2>
     <div class="grid">
-      <div class="metric"><b>${hw.length}</b><span>功課分析</span></div>
+      <div class="metric"><b>${st.trustedReportCount}</b><span>已驗證功課分析</span></div>
       <div class="metric"><b>${emotions.length}</b><span>情緒記錄</span></div>
       <div class="metric"><b>${comments.length}</b><span>老師 Comment</span></div>
       <div class="metric"><b>${notices.length}</b><span>學校通知</span></div>
       <div class="metric"><b>${acts.length}</b><span>活動進度</span></div>
-      <div class="metric"><b>${st.readiness}</b><span>Growth Memory /100</span></div>
+      ${st.hasTrustedData?`<div class="metric"><b>${st.readiness}</b><span>Growth Memory /100</span></div>`:''}
     </div>
     <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。Homework Engine v2.1 會把乾淨 evidence 轉成 skill / sub-skill 趨勢。</div>
   </div>
@@ -5851,13 +6242,12 @@ function weeklyReportHTML(){
   const latestHW=recentHW.slice(-1)[0]?.report;
   const latestAct=(app.activityReports||[]).slice(-1)[0]?.report;
   const topBusy=st.busyDays[0];
-  const academic=[
-    recentHW.length?`最近 ${recentHW.length} 份功課記錄主要集中在 ${subject}。`:'未有足夠功課資料。',
-    topStrong.length?`較明顯強項：${topStrong.join('、')}。`:'強項 tags 仍不足，需要多 2–3 份功課分析。',
-    topReview.length?`較常覆核：${topReview.join('、')}。`:'暫時未見反覆覆核 pattern。',
-    topErrors.length?`可能錯誤類型：${topErrors.join('、')}。`:'錯誤類型資料仍不足。',
-    st.avgQuality?`最近 report 平均 quality：${st.avgQuality}/100。`:'Report quality 仍未有足夠樣本。'
-  ];
+  const academic=st.hasTrustedData?[
+    `最近 ${recentHW.length} 份已驗證功課記錄主要集中在 ${subject}。`,
+    topStrong.length?`較明顯強項：${topStrong.join('、')}。`:'強項 tags 仍不足。',
+    topReview.length?`較常覆核：${topReview.join('、')}。`:'目前已驗證資料未顯示重複覆核重點。',
+    topErrors.length?`可能錯誤類型：${topErrors.join('、')}。`:'錯誤類型資料仍不足。'
+  ]:['Verified learning insights are not available yet. Please review the original worksheets before relying on this summary.'];
   const emotion=[
     recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
     st.tired?`有 ${st.tired} 次 tired/frustrated 訊號；活動多或夜晚功課時建議減量。`:'暫時未見明顯疲倦 / 挫敗 pattern。',
@@ -5869,11 +6259,11 @@ function weeklyReportHTML(){
     openNotices.length?`仍有 ${openNotices.length} 個未完成學校通知，需要檢查準備物品 / 付款 / deadline。`:'暫時沒有未完成學校通知。'
   ];
   const actions=[
-    latestHW?.nextStep || '先累積 2-3 份功課分析，Report Engine 才能更準確。',
+    latestHW?v85ConcreteNextStep(latestHW):'請先對照原始功課，再選一題陪孩子慢慢重做。',
     topReview[0]?`今週只揀一個重點練：${topReview[0].replace(/ ×\d+$/,'')}。每次 10–15 分鐘。`:'今週先保持穩定記錄，不需要加太多任務。',
     st.tired?'Tired / frustrated 日子只做 reading log 或簡短練習，不安排深度數學。':'活動多日仍建議短練習，避免一次做太多。'
   ];
-  return `<div class="reportBlock"><b>1. This Week Snapshot</b><ul><li>目前共有 ${total} 項資料。</li><li>Growth Memory readiness：${st.readiness}/100。</li><li>功課分析：${app.homeworkReports.length} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
+  return `${vRCBParentLimitationsHTML(st)}<div class="reportBlock"><b>1. This Week Snapshot</b><ul><li>目前共有 ${total} 項資料。</li>${st.hasTrustedData?`<li>Growth Memory readiness：${st.readiness}/100。</li>`:''}<li>已驗證功課分析：${st.trustedReportCount} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
   <div class="reportBlock"><b>2. Academic Progress / 學習趨勢</b>${compactList(academic)}</div>
   <div class="reportBlock"><b>3. Repeated Review Areas / 反覆留意位</b><div class="growthTagWrap">${v74TagHTML(st.review.slice(0,6).map(([k,v])=>`${k} ×${v}`),'review') || '<span class="muted">資料仍不足</span>'}</div></div>
   <div class="reportBlock"><b>4. Emotion & Energy Pattern</b>${compactList(emotion)}</div>
