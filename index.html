@@ -3758,6 +3758,40 @@ function v74QualityScore(r){
   if(v74DetectSkillsFromText(s).length) score+=5;
   return Math.max(0,Math.min(100,score));
 }
+function vRCBRenderClone(value, seen=new WeakMap()){
+  if(value===null||typeof value!=='object') return value;
+  if(seen.has(value)) return seen.get(value);
+  if(value instanceof Date) return new Date(value.getTime());
+  const copy=Array.isArray(value)?[]:{};
+  seen.set(value,copy);
+  Reflect.ownKeys(value).forEach(key=>{copy[key]=vRCBRenderClone(value[key],seen)});
+  return copy;
+}
+function vRCBPrepareHomeworkReportView(source, note='', imageCount=0){
+  const report=vRCBRenderClone(source&&typeof source==='object'?source:{});
+  const eligibility=v79AnalyticsEligibility(report);
+  if(!eligibility.trusted) return {report,eligibility};
+  return {report:v74EnrichHomeworkReport(report,note,imageCount),eligibility};
+}
+function vRCBStructuredSubject(report){
+  const skills=(report?.engineV2?.evidence||[]).map(row=>String(row?.skill||row?.subSkill||'')).filter(Boolean);
+  if(skills.some(x=>/math|addition|subtraction|multiplication|division|number|time|money|shape/i.test(x))) return 'Maths';
+  if(skills.some(x=>/reading|spelling|grammar|writing|english|vocabulary/i.test(x))) return 'English';
+  return skills[0]||'General Learning';
+}
+function vRCBParentLimitationsHTML(state){
+  const messages=[];
+  if(state?.hasExcludedData) messages.push('Some earlier reports could not be verified and were not included.');
+  if(state?.hasPartialData||state?.processingCoverage==='partial') messages.push('Only successfully processed work is included.');
+  messages.push('The system has not confirmed that every question was captured. Please review the original worksheets.');
+  return `<div class="notice bluebox">${messages.map(esc).join('<br>')}</div>`;
+}
+function vRCBUnavailableHomeworkHTML(eligibility){
+  const message=eligibility?.processingCoverage==='failed'
+    ? 'This report could not be analysed, so verified learning details are not available yet.'
+    : 'Verified learning details are not available yet.';
+  return `<div class="card" style="box-shadow:none"><h2>Homework report</h2><div class="notice bluebox">${esc(message)}<br>Please review the original worksheet before relying on this summary.</div></div>`;
+}
 function v74EnrichHomeworkReport(report, note='', imageCount=0){
   report=v76HardGuardHomeworkReport(v70SanitizeHomeworkReport(report||{}));
   const authorityValidation=validateServerEvidenceAuthorityV2(report);
@@ -3824,30 +3858,42 @@ function v74RecentHomework(days=28){
   return (app.homeworkReports||[]).filter(h=>new Date(h.date||0).getTime()>=cutoff);
 }
 function v74AllHomeworkReports(){
-  return (app.homeworkReports||[]).map(h=>({record:h, report:v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0)}));
+  return (app.homeworkReports||[]).map(sourceRecord=>{
+    const record=vRCBRenderClone(sourceRecord||{});
+    const prepared=vRCBPrepareHomeworkReportView(sourceRecord?.report||{},sourceRecord?.note||'',sourceRecord?.imageCount||0);
+    record.report=prepared.report;
+    return {record,report:prepared.report,eligibility:prepared.eligibility};
+  });
 }
 function v74GrowthStats(){
   const all=v74AllHomeworkReports();
-  const recent=all.filter(x=>new Date(x.record.date||0).getTime()>=Date.now()-28*86400000);
-  const list=recent.length?recent:all.slice(-10);
+  const trusted=all.filter(x=>x.eligibility.trusted);
+  const recent=trusted.filter(x=>new Date(x.record.date||0).getTime()>=Date.now()-28*86400000);
+  const list=recent.length?recent:trusted.slice(-10);
   const strong=v74Count(list.flatMap(x=>x.report.growth?.skillsStrong||[]));
   const review=v74Count(list.flatMap(x=>x.report.growth?.skillsToReview||[]));
   const errors=v74Count(list.flatMap(x=>x.report.growth?.errorTypes||[]));
-  const subjects=v74Count(list.map(x=>x.report.growth?.subject));
-  const avgQuality=list.length?Math.round(list.reduce((a,x)=>a+(x.report.reportQuality?.score||0),0)/list.length):0;
+  const subjects=v74Count(list.map(x=>vRCBStructuredSubject(x.report)));
+  const avgQuality=0;
   const moods=(app.emotions||[]).slice(-14).map(e=>e.mood);
   const tired=moods.filter(m=>/tired|frustrated|攰|疲|挫/i.test(m)).length;
   const busyDays=DAYS.map(d=>[d,routinesForDay(d,false).length]).sort((a,b)=>b[1]-a[1]);
+  const trustedReportCount=trusted.length;
+  const excludedReportCount=all.length-trustedReportCount;
+  const partialReportCount=trusted.filter(x=>x.eligibility.processingCoverage==='partial').length;
   const readiness=Math.min(100,
     Math.round(
-      Math.min(35,(app.homeworkReports||[]).length*7)+
+      Math.min(35,trustedReportCount*7)+
       Math.min(20,(app.emotions||[]).length*4)+
       Math.min(20,(app.teacherComments||[]).length*5)+
       Math.min(15,(app.activityReports||[]).length*5)+
       Math.min(10,(app.routines||[]).filter(r=>!r.oneOffDate).length*2)
     )
   );
-  return {all,list,strong,review,errors,subjects,avgQuality,moods,tired,busyDays,readiness};
+  return {all,list,strong,review,errors,subjects,avgQuality,moods,tired,busyDays,readiness,
+    trustedReportCount,excludedReportCount,partialReportCount,
+    hasTrustedData:trustedReportCount>0,hasExcludedData:excludedReportCount>0,hasPartialData:partialReportCount>0,
+    contentCoverage:'unverified'};
 }
 function v74ReportEngineSnapshotHTML(){
   return v79SkillTrendDashboardHTML();
@@ -6078,10 +6124,13 @@ function v93ReviewDetailHTML(report){
 }
 
 function homeworkReportHTML(r, record={}){
-  r=v74EnrichHomeworkReport(r||{},'',r?.growth?.imageCount||0);
+  record=vRCBRenderClone(record||{});
+  const prepared=vRCBPrepareHomeworkReportView(r||{},'',r?.growth?.imageCount||record?.imageCount||0);
+  if(!prepared.eligibility.trusted) return vRCBUnavailableHomeworkHTML(prepared.eligibility);
+  r=prepared.report;
   r=v9611ApplyHomeworkCanonical(r);
   r=v93SanitizeReport(r);
-  if(v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
+  if(prepared.eligibility.processingCoverage!=='partial'&&v93IsIncompleteReport(r,record) && !v85AdminMode()) return v93IncompleteReportHTML(r,record);
   // Commit 2: rendering may project trusted evidence, but must not rewrite it.
   const cleanScore=v80QualityScore(r);
   r.reportQuality=r.reportQuality||{};
@@ -6096,7 +6145,10 @@ function homeworkReportHTML(r, record={}){
   const reviewOk=reviewList.length===1 && /暫未見明確錯題/.test(reviewList[0]);
   const strongSkills=(g.skillsStrong||[]).filter(x=>x&&!v80IsGenericTag(x));
   const reviewSkills=reviewOk?[]:[...(g.skillsToReview||[]),...(g.errorTypes||[])].filter(x=>x&&!v80IsGenericTag(x));
+  const authorityLimitations=vRCBParentLimitationsHTML(prepared.eligibility);
   return `<div class="card" style="box-shadow:none"><h2>📚 完整功課分析</h2>
+
+  ${authorityLimitations}
 
   <div class="wowHero">
     <h2>✨ 今日最值得留意</h2>
@@ -6159,12 +6211,12 @@ function renderAnalytics(){
   $('analytics').innerHTML=`<div class="card">
     <h2>🤖 分析 Dashboard</h2>
     <div class="grid">
-      <div class="metric"><b>${hw.length}</b><span>功課分析</span></div>
+      <div class="metric"><b>${st.trustedReportCount}</b><span>已驗證功課分析</span></div>
       <div class="metric"><b>${emotions.length}</b><span>情緒記錄</span></div>
       <div class="metric"><b>${comments.length}</b><span>老師 Comment</span></div>
       <div class="metric"><b>${notices.length}</b><span>學校通知</span></div>
       <div class="metric"><b>${acts.length}</b><span>活動進度</span></div>
-      <div class="metric"><b>${st.readiness}</b><span>Growth Memory /100</span></div>
+      ${st.hasTrustedData?`<div class="metric"><b>${st.readiness}</b><span>Growth Memory /100</span></div>`:''}
     </div>
     <div class="insight">最近狀態：${moodIcon(lastMood)} ${esc(lastMood)}。Homework Engine v2.1 會把乾淨 evidence 轉成 skill / sub-skill 趨勢。</div>
   </div>
@@ -6189,13 +6241,12 @@ function weeklyReportHTML(){
   const latestHW=recentHW.slice(-1)[0]?.report;
   const latestAct=(app.activityReports||[]).slice(-1)[0]?.report;
   const topBusy=st.busyDays[0];
-  const academic=[
-    recentHW.length?`最近 ${recentHW.length} 份功課記錄主要集中在 ${subject}。`:'未有足夠功課資料。',
-    topStrong.length?`較明顯強項：${topStrong.join('、')}。`:'強項 tags 仍不足，需要多 2–3 份功課分析。',
-    topReview.length?`較常覆核：${topReview.join('、')}。`:'暫時未見反覆覆核 pattern。',
-    topErrors.length?`可能錯誤類型：${topErrors.join('、')}。`:'錯誤類型資料仍不足。',
-    st.avgQuality?`最近 report 平均 quality：${st.avgQuality}/100。`:'Report quality 仍未有足夠樣本。'
-  ];
+  const academic=st.hasTrustedData?[
+    `最近 ${recentHW.length} 份已驗證功課記錄主要集中在 ${subject}。`,
+    topStrong.length?`較明顯強項：${topStrong.join('、')}。`:'強項 tags 仍不足。',
+    topReview.length?`較常覆核：${topReview.join('、')}。`:'目前已驗證資料未顯示重複覆核重點。',
+    topErrors.length?`可能錯誤類型：${topErrors.join('、')}。`:'錯誤類型資料仍不足。'
+  ]:['Verified learning insights are not available yet. Please review the original worksheets before relying on this summary.'];
   const emotion=[
     recentMoods.length?`最近情緒記錄：${recentMoods.join('、')}。`:'未有足夠情緒記錄。',
     st.tired?`有 ${st.tired} 次 tired/frustrated 訊號；活動多或夜晚功課時建議減量。`:'暫時未見明顯疲倦 / 挫敗 pattern。',
@@ -6207,11 +6258,11 @@ function weeklyReportHTML(){
     openNotices.length?`仍有 ${openNotices.length} 個未完成學校通知，需要檢查準備物品 / 付款 / deadline。`:'暫時沒有未完成學校通知。'
   ];
   const actions=[
-    latestHW?.nextStep || '先累積 2-3 份功課分析，Report Engine 才能更準確。',
+    latestHW?v85ConcreteNextStep(latestHW):'請先對照原始功課，再選一題陪孩子慢慢重做。',
     topReview[0]?`今週只揀一個重點練：${topReview[0].replace(/ ×\d+$/,'')}。每次 10–15 分鐘。`:'今週先保持穩定記錄，不需要加太多任務。',
     st.tired?'Tired / frustrated 日子只做 reading log 或簡短練習，不安排深度數學。':'活動多日仍建議短練習，避免一次做太多。'
   ];
-  return `<div class="reportBlock"><b>1. This Week Snapshot</b><ul><li>目前共有 ${total} 項資料。</li><li>Growth Memory readiness：${st.readiness}/100。</li><li>功課分析：${app.homeworkReports.length} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
+  return `${vRCBParentLimitationsHTML(st)}<div class="reportBlock"><b>1. This Week Snapshot</b><ul><li>目前共有 ${total} 項資料。</li>${st.hasTrustedData?`<li>Growth Memory readiness：${st.readiness}/100。</li>`:''}<li>已驗證功課分析：${st.trustedReportCount} 份；老師 comment：${app.teacherComments.length} 條；活動進度：${(app.activityReports||[]).length} 份。</li></ul></div>
   <div class="reportBlock"><b>2. Academic Progress / 學習趨勢</b>${compactList(academic)}</div>
   <div class="reportBlock"><b>3. Repeated Review Areas / 反覆留意位</b><div class="growthTagWrap">${v74TagHTML(st.review.slice(0,6).map(([k,v])=>`${k} ×${v}`),'review') || '<span class="muted">資料仍不足</span>'}</div></div>
   <div class="reportBlock"><b>4. Emotion & Energy Pattern</b>${compactList(emotion)}</div>
