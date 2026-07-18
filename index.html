@@ -4662,6 +4662,7 @@ function viewHomeworkReport(id, scroll=false){
   $('hwResult').innerHTML=homeworkReportHTML(record.report, record) + (record.error&&v85AdminMode()?`<div class="hwDebugBox">Debug error:\n${esc(record.error)}</div>`:'');
   if(scroll) setTimeout(()=>$('hwResult')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
 }
+window.viewHomeworkReport=viewHomeworkReport;
 
 function v82StatusClass(status){
   if(/Strong|Observed/i.test(status||'')) return 'statusStrong';

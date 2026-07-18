@@ -47,11 +47,13 @@ function v74ReportEngineSnapshotHTML(){return v79SkillTrendDashboardHTML()} func
 function save(){persistence.save++} var localStorage={setItem(){persistence.storage++},removeItem(){persistence.storage++}};
 this.api={setApp(v){app=v},getApp(){return app},homeworkReportHTML,renderAnalytics,weeklyReportHTML,v74GrowthStats,v74AllHomeworkReports,
  vRCBPrepareHomeworkReportView,v79MergeSkillTrends,v79SkillTrendDashboardHTML,v79AnalyticsEligibility,validateServerEvidenceAuthorityV2,
- trend:v79SkillTrend,html(){return elements.analytics.innerHTML},reset(){persistence={save:0,storage:0,cache:0,history:0};builderCalls=0;elements.analytics={innerHTML:''}},
+ trend:v79SkillTrend,html(){return elements.analytics.innerHTML},detailHtml(){return elements.hwResult?.innerHTML||''},handler(){return window.viewHomeworkReport},handlerIdentity(){return window.viewHomeworkReport===viewHomeworkReport},reset(){persistence={save:0,storage:0,cache:0,history:0};builderCalls=0;elements.analytics={innerHTML:''};elements.hwResult={innerHTML:''}},
  counters(){return {...persistence,builder:builderCalls}},serialize(){return JSON.stringify(app)}};
 `;
 const source=[
+  'var window=this;',
   section('function rcBSha256Hex','function v81MergeHomeworkReports'),
+  section('function viewHomeworkReport','function v82StatusClass'),
   section('function v79SkillTrendHTML','function v78ChoiceStatus'),
   secondSection('function v79SkillTrend(evidence)','function v82ReadingRows'),
   section('function vRCBRenderClone','function v74TagHTML'),
@@ -112,5 +114,12 @@ test('Y Commit 1 regression','SHA-256 vector and QA-068 16-row authority fixture
 test('Z Commit 2 regression','all 15 Commit 2 assertions pass',()=>{const r=JSON.parse(execFileSync(process.execPath,[path.join(__dirname,'rc-b-commit2.assertions.js')],{encoding:'utf8'}));assert.deepEqual({passed:r.passed,failed:r.failed},{passed:15,failed:0})});
 test('AA Commit 2.5 regression','all 21 Commit 2.5 assertions pass',()=>{const r=JSON.parse(execFileSync(process.execPath,[path.join(__dirname,'rc-b-commit2-5.assertions.js')],{encoding:'utf8'}));assert.deepEqual({passed:r.passed,failed:r.failed},{passed:21,failed:0})});
 test('AB Client syntax and global safety','all scripts parse and expected duplicate order remains stable',()=>{const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);assert(scripts.length);scripts.forEach(x=>new Function(x));assert.equal(typeof api.homeworkReportHTML,'function');assert.equal(typeof api.weeklyReportHTML,'function');assert.equal([...html.matchAll(/function v79SkillTrend\(evidence\)/g)].length,2)});
+test('AC Global Report Detail handler identity','existing production function is exported without copying or duplication',()=>{assert.equal(typeof api.handler(),'function');assert.equal(api.handlerIdentity(),true);assert.equal([...html.matchAll(/function viewHomeworkReport\s*\(/g)].length,1);assert.equal([...html.matchAll(/window\.viewHomeworkReport\s*=\s*viewHomeworkReport/g)].length,1)});
+test('AD Inline Report Detail compatibility','representative global lookup invokes without ReferenceError',()=>{api.setApp(appFor([trusted()]));api.reset();vm.runInContext("viewHomeworkReport('r0')",context);assert.match(api.detailHtml(),/FACTUAL:1 \+ 1/)});
+test('AE Trusted Report Detail global path','trusted evidence and content coverage limitation display without mutation',()=>{const r=trusted(),before=clone(r);api.setApp(appFor([r]));api.reset();api.handler()('r0');assert.match(api.detailHtml(),/FACTUAL:1 \+ 1/);assert.match(api.detailHtml(),/not confirmed that every question/);assert.deepEqual(r,before)});
+test('AF Invalid Report Detail global path','invalid authority fails closed without repair',()=>{for(const kind of ['fingerprint','count','lineage','binding']){const r=invalid(kind),before=clone(r);api.setApp(appFor([r]));api.reset();api.handler()('r0');assertUnavailable(api.detailHtml());assert.deepEqual(r,before)}});
+test('AG Stale and unknown global paths','stale publishable and unknown processing both fail closed unchanged',()=>{for(const r of [stale(),unknown()]){const before=clone(r);api.setApp(appFor([r]));api.reset();api.handler()('r0');assertUnavailable(api.detailHtml());assert.deepEqual(r,before)}assert.equal(stale().publishable,true)});
+test('AH Global handler persistence safety','handler causes no save, storage, cache, history, or builder activity',()=>{const r=trusted();api.setApp(appFor([r]));api.reset();api.handler()('r0');assert.deepEqual(clone(api.counters()),{save:0,storage:0,cache:0,history:0,builder:0})});
+test('AI Repeated global handler invocation','five calls are identical and do not accumulate or mutate',()=>{const r=trusted(),state=appFor([r]);api.setApp(state);api.reset();const before=api.serialize(),outs=[];for(let i=0;i<5;i++){api.handler()('r0');outs.push(api.detailHtml())}assert.equal(new Set(outs).size,1);assert.equal(api.serialize(),before);assert.deepEqual(clone(api.counters()),{save:0,storage:0,cache:0,history:0,builder:0})});
 
 process.stdout.write(JSON.stringify({passed:results.length,failed:0,results},null,2)+'\n');
