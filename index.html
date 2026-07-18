@@ -3422,19 +3422,71 @@ function v79SkillTrendHTML(trends){
     <div class="muted">${esc(row.interpretation)}</div>
   </div>`).join('');
 }
+function v79AnalyticsEligibility(report){
+  const validation=validateServerEvidenceAuthorityV2(report);
+  const processingCoverage=String(report?.processing?.processingCoverage||'unknown');
+  const engineEvidence=Array.isArray(report?.engineV2?.evidence)?report.engineV2.evidence:[];
+  const trusted=validation.trusted&&engineEvidence.length>0&&['complete','partial'].includes(processingCoverage);
+  let exclusionState=null;
+  if(!trusted){
+    if(processingCoverage==='failed') exclusionState='failed';
+    else if(validation.authorityState==='legacy') exclusionState='legacy';
+    else if(validation.authorityState==='missing') exclusionState='missing';
+    else if(!Array.isArray(report?.canonicalEvidence)||!report.canonicalEvidence.length||!engineEvidence.length) exclusionState='empty';
+    else exclusionState='invalid';
+  }
+  return {trusted,validation,processingCoverage,engineEvidence:trusted?engineEvidence:[],exclusionState};
+}
 function v79MergeSkillTrends(allReports){
-  const evidence=[];
+  const evidence=[], excludedByState={legacy:0,missing:0,invalid:0,empty:0,failed:0};
+  let trustedReportCount=0,partialReportCount=0;
   (allReports||[]).forEach(x=>{
-    const r=x.report||x;
-    const engine=r.engineV2||v79BuildEngineFromReport(r);
-    evidence.push(...(engine.evidence||[]));
+    const report=x?.report||x||{};
+    const eligibility=v79AnalyticsEligibility(report);
+    if(!eligibility.trusted){
+      excludedByState[eligibility.exclusionState]=(excludedByState[eligibility.exclusionState]||0)+1;
+      return;
+    }
+    trustedReportCount++;
+    if(eligibility.processingCoverage==='partial') partialReportCount++;
+    evidence.push(...eligibility.engineEvidence);
   });
-  return v79SkillTrend(evidence);
+  const excludedReportCount=(allReports||[]).length-trustedReportCount;
+  return {
+    trends:v79SkillTrend(evidence),
+    evidenceTotals:{
+      total:evidence.length,
+      correct:evidence.filter(x=>x.status==='correct').length,
+      wrong:evidence.filter(x=>x.status==='wrong').length,
+      unclear:evidence.filter(x=>!['correct','wrong'].includes(x.status)).length
+    },
+    trustedReportCount,
+    excludedReportCount,
+    partialReportCount,
+    excludedByState,
+    hasTrustedData:trustedReportCount>0&&evidence.length>0,
+    hasExcludedData:excludedReportCount>0,
+    hasPartialData:partialReportCount>0,
+    contentCoverage:'unverified'
+  };
+}
+function v79AnalyticsLimitationsHTML(result){
+  const messages=[];
+  if(result.hasExcludedData) messages.push('Some earlier reports could not be verified and were not included.');
+  if(result.hasPartialData) messages.push('Only successfully processed work is included.');
+  messages.push('The system has not confirmed that every question was captured. Please review the original worksheets.');
+  return `<div class="notice bluebox">${messages.map(esc).join('<br>')}</div>`;
 }
 function v79SkillTrendDashboardHTML(){
-  const reports=(app.homeworkReports||[]).map(h=>v74EnrichHomeworkReport(h.report||{},h.note||'',h.imageCount||0));
-  const trends=v79MergeSkillTrends(reports);
-  const readiness=Math.min(100,Math.round(Math.min(45,(app.homeworkReports||[]).length*7)+Math.min(25,(trends||[]).length*5)+Math.min(15,(app.emotions||[]).length*3)+Math.min(15,(app.teacherComments||[]).length*4)));
+  const result=v79MergeSkillTrends((app.homeworkReports||[]).map(h=>h.report||{}));
+  if(!result.hasTrustedData){
+    const message=result.excludedByState.failed>0
+      ? 'These reports could not be analysed, so verified learning insights are not available yet.'
+      : 'Verified learning insights are not available yet.';
+    return `<div class="engineCard"><h2>Learning insights</h2><div class="notice bluebox">${esc(message)}<br>Please review the original worksheets before relying on this summary.</div></div>`;
+  }
+  const trends=result.trends;
+  const readiness=Math.min(100,Math.round(Math.min(45,result.trustedReportCount*7)+Math.min(25,trends.length*5)+Math.min(15,(app.emotions||[]).length*3)+Math.min(15,(app.teacherComments||[]).length*4)));
   return `<div class="engineCard">
     <h2>🧠 Homework Engine v2.1</h2>
     <div class="muted">V80：只保留乾淨題目 evidence；英文閱讀用 Reading Intelligence；Skill Status 不再用 general tag。</div>
@@ -3446,10 +3498,11 @@ function v79SkillTrendDashboardHTML(){
     </div>
     <div class="engineMiniGrid">
       <div class="engineMini"><b>${readiness}</b><span>Engine readiness /100</span></div>
-      <div class="engineMini"><b>${(app.homeworkReports||[]).length}</b><span>功課 records</span></div>
+      <div class="engineMini"><b>${result.trustedReportCount}</b><span>verified homework records</span></div>
       <div class="engineMini"><b>${trends.length}</b><span>skill / sub-skill</span></div>
       <div class="engineMini"><b>${trends.filter(t=>t.status==='Mixed'||t.status==='Needs Review').length}</b><span>要留意 skills</span></div>
     </div>
+    ${v79AnalyticsLimitationsHTML(result)}
     <div class="reportBlock"><b>Skill Status Summary</b>${v79SkillTrendHTML(trends)}</div>
   </div>`;
 }
