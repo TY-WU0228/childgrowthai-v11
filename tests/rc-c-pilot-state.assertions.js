@@ -82,6 +82,14 @@ function assertClass(state, expectedClass, expectedDiagnostic) {
   return result;
 }
 
+function assertExactServerResultShape(result) {
+  assert.deepStrictEqual(Object.keys(result).sort(), [
+    'diagnostics',
+    'effectiveCoverageAssuranceLevel',
+    'serverClass',
+  ].sort());
+}
+
 const tests = [];
 function test(name, fn) { tests.push({ name, fn }); }
 
@@ -208,10 +216,22 @@ test('8 - exact no-assessable-content emits no learning inference', () => {
 test('9 - blank attempts have no mismatch, fabricated row, or weakness claim', () => {
   const state = blankAssessableBaseline();
   const result = assertClass(state, 'blank_attempts');
+  assert.deepStrictEqual(result, {
+    serverClass: 'blank_attempts',
+    diagnostics: [],
+    effectiveCoverageAssuranceLevel: 'unknown',
+  });
+  assertExactServerResultShape(result);
+  for (const key of [
+    'correctnessClaim', 'weaknessClaim', 'evidenceRows', 'canonicalEvidence', 'itemLedger',
+    'fabricatedEvidence', 'learningClaim', 'metadata', 'claimMetadata', 'parentClaim', 'completenessClaim',
+  ]) assert.strictEqual(Object.prototype.hasOwnProperty.call(result, key), false, key);
+  assert.throws(() => assertExactServerResultShape({ ...result, metadata: {} }), assert.AssertionError);
   const comparison = rcc.compareStoredAndRecomputedServerClassV1({ ...state, storedServerStructuralUseClass: result.serverClass });
   assert.strictEqual(comparison.authoritySnapshotValid, true);
   assert(!comparison.diagnostics.includes('SERVER_STRUCTURAL_USE_CLASS_MISMATCH'));
   assert.deepStrictEqual(state.itemLedger, []);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'fabricatedEvidence'), false);
   assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'weaknessClaim'), false);
   assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'correctnessClaim'), false);
 });
@@ -479,6 +499,179 @@ test('22 - supported canonical values remain deterministic and collision-safe', 
     rcc.computeAuthoritySnapshotFingerprintV1(completeTrustedSelfReconciledBaseline()),
     'd2d66432a36863404786954b64239349e330d2ed2cc7dc8d6a1d943a659bbd1b',
   );
+});
+
+test('23 - descriptor-safe traversal rejects accessors without executing them', () => {
+  const counterObject = { counter: 0 };
+  Object.defineProperty(counterObject, 'danger', {
+    enumerable: true,
+    get() { counterObject.counter += 1; return 'unsafe'; },
+  });
+  const descriptorsBefore = Object.getOwnPropertyDescriptors(counterObject);
+  assert.throws(() => rcc.rccCanonicalize(counterObject), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:ACCESSOR_PROPERTY',
+  });
+  assert.strictEqual(counterObject.counter, 0);
+  assert.deepStrictEqual(Object.getOwnPropertyDescriptors(counterObject), descriptorsBefore);
+
+  const nonEnumerableGetter = {};
+  Object.defineProperty(nonEnumerableGetter, 'hidden', {
+    enumerable: false,
+    get() { throw new Error('MUST_NOT_RUN'); },
+  });
+  assert.throws(() => rcc.rccCanonicalize(nonEnumerableGetter), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:ACCESSOR_PROPERTY',
+  });
+
+  const setterOnly = {};
+  Object.defineProperty(setterOnly, 'writeOnly', { enumerable: true, set(_value) {} });
+  assert.throws(() => rcc.rccCanonicalize(setterOnly), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:ACCESSOR_PROPERTY',
+  });
+
+  let throwingGetterCalls = 0;
+  const throwingGetterSnapshot = {};
+  Object.defineProperty(throwingGetterSnapshot, 'authoritySnapshotFingerprint', {
+    enumerable: true,
+    get() { throwingGetterCalls += 1; throw new Error('ARBITRARY_GETTER_ERROR'); },
+  });
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(throwingGetterSnapshot), false);
+  assert.strictEqual(throwingGetterCalls, 0);
+
+  const originalOwnKeys = Reflect.ownKeys;
+  try {
+    Reflect.ownKeys = () => { throw new Error('ARBITRARY_REFLECTION_ERROR'); };
+    assert.throws(() => rcc.rccCanonicalize({ safe: true }), {
+      name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:TRAVERSAL_FAILURE',
+    });
+  } finally {
+    Reflect.ownKeys = originalOwnKeys;
+  }
+  const originalDescriptor = Reflect.getOwnPropertyDescriptor;
+  try {
+    Reflect.getOwnPropertyDescriptor = () => undefined;
+    assert.throws(() => rcc.rccCanonicalize({ safe: true }), {
+      name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROPERTY_DESCRIPTOR',
+    });
+  } finally {
+    Reflect.getOwnPropertyDescriptor = originalDescriptor;
+  }
+});
+
+test('24 - proxies are rejected before every trap and verification fails closed', () => {
+  const makeProxy = (handler = {}) => new Proxy({ safe: true }, handler);
+  const trapCounts = { ownKeys: 0, descriptor: 0, get: 0 };
+  const proxies = [
+    makeProxy(),
+    makeProxy({ ownKeys() { trapCounts.ownKeys += 1; return ['safe']; } }),
+    makeProxy({ getOwnPropertyDescriptor() { trapCounts.descriptor += 1; return undefined; } }),
+    makeProxy({ get() { trapCounts.get += 1; return 'unsafe'; } }),
+    makeProxy({ ownKeys() { throw new Error('ARBITRARY_PROXY_ERROR'); } }),
+  ];
+  for (const value of proxies) {
+    assert.throws(() => rcc.rccCanonicalize(value), {
+      name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROXY',
+    });
+    assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(value), false);
+  }
+  assert.deepStrictEqual(trapCounts, { ownKeys: 0, descriptor: 0, get: 0 });
+  assert.throws(() => rcc.rccCanonicalize({ nested: makeProxy() }), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROXY',
+  });
+  assert.throws(() => rcc.rccCanonicalize([makeProxy()]), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROXY',
+  });
+});
+
+test('25 - complete object and array own-property surfaces prevent silent collisions', () => {
+  assert.strictEqual(rcc.rccCanonicalSerialize({ ordinary: true }), '{"ordinary":true}');
+  const nullPrototype = Object.create(null);
+  nullPrototype.ordinary = true;
+  assert.strictEqual(rcc.rccCanonicalSerialize(nullPrototype), '{"ordinary":true}');
+  assert.strictEqual(rcc.rccCanonicalSerialize(Object.freeze({ frozen: true })), '{"frozen":true}');
+  assert.strictEqual(rcc.rccCanonicalSerialize(Object.seal({ sealed: true })), '{"sealed":true}');
+
+  const ordinary = { a: 1 };
+  const ordinaryFingerprint = rcc.computeAuthoritySnapshotFingerprintV1(ordinary);
+  const hidden = { a: 1 };
+  Object.defineProperty(hidden, 'hidden', { value: 2, enumerable: false });
+  assert.throws(() => rcc.computeAuthoritySnapshotFingerprintV1(hidden), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROPERTY_DESCRIPTOR',
+  });
+  assert.strictEqual(rcc.computeAuthoritySnapshotFingerprintV1(ordinary), ordinaryFingerprint);
+
+  const symbolObject = { a: 1 };
+  symbolObject[Symbol('hidden')] = 2;
+  assert.throws(() => rcc.rccCanonicalize(symbolObject), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:SYMBOL_KEY',
+  });
+  assert.throws(() => rcc.rccCanonicalize(Object.create({ inherited: true })), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:OBJECT_PROTOTYPE',
+  });
+
+  assert.strictEqual(rcc.rccCanonicalSerialize([null]), '[null]');
+  assert.notStrictEqual(rcc.rccCanonicalSerialize([1, 2]), rcc.rccCanonicalSerialize([2, 1]));
+  assert.throws(() => rcc.rccCanonicalize([, 1]), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:SPARSE_ARRAY',
+  });
+  assert.throws(() => rcc.rccCanonicalize([undefined]), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:UNDEFINED',
+  });
+
+  const extraArray = [1];
+  const plainArrayFingerprint = rcc.computeAuthoritySnapshotFingerprintV1([1]);
+  extraArray.extra = 2;
+  assert.throws(() => rcc.computeAuthoritySnapshotFingerprintV1(extraArray), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROPERTY_DESCRIPTOR',
+  });
+  assert.strictEqual(rcc.computeAuthoritySnapshotFingerprintV1([1]), plainArrayFingerprint);
+
+  const symbolArray = [1];
+  symbolArray[Symbol('extra')] = 2;
+  assert.throws(() => rcc.rccCanonicalize(symbolArray), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:SYMBOL_KEY',
+  });
+  const hiddenArray = [1];
+  Object.defineProperty(hiddenArray, 'hidden', { value: 2, enumerable: false });
+  assert.throws(() => rcc.rccCanonicalize(hiddenArray), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:PROPERTY_DESCRIPTOR',
+  });
+  const accessorArray = [1];
+  Object.defineProperty(accessorArray, '0', { enumerable: true, get() { throw new Error('MUST_NOT_RUN'); } });
+  assert.throws(() => rcc.rccCanonicalize(accessorArray), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:ACCESSOR_PROPERTY',
+  });
+  const customPrototypeArray = [1];
+  Object.setPrototypeOf(customPrototypeArray, {});
+  assert.throws(() => rcc.rccCanonicalize(customPrototypeArray), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:ARRAY_PROTOTYPE',
+  });
+});
+
+test('26 - canonical maximum depth and scalar distinctions are deterministic', () => {
+  function nestedDepth(depth) {
+    let value = 'leaf';
+    for (let index = 0; index < depth; index += 1) value = { child: value };
+    return value;
+  }
+  assert.strictEqual(rcc.RC_C_CANONICAL_MAX_DEPTH, 128);
+  const atLimit = nestedDepth(rcc.RC_C_CANONICAL_MAX_DEPTH);
+  const overLimit = nestedDepth(rcc.RC_C_CANONICAL_MAX_DEPTH + 1);
+  assert.doesNotThrow(() => rcc.rccCanonicalSerialize(atLimit));
+  assert.doesNotThrow(() => rcc.computeAuthoritySnapshotFingerprintV1(atLimit));
+  const overLimitBytes = JSON.stringify(overLimit);
+  assert.throws(() => rcc.rccCanonicalize(overLimit), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:MAX_DEPTH_EXCEEDED',
+  });
+  assert.throws(() => rcc.computeAuthoritySnapshotFingerprintV1(overLimit), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:MAX_DEPTH_EXCEEDED',
+  });
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(overLimit), false);
+  assert.strictEqual(JSON.stringify(overLimit), overLimitBytes);
+  assert.strictEqual(rcc.rccCanonicalSerialize(-0), rcc.rccCanonicalSerialize(0));
+  assert.notStrictEqual(rcc.rccCanonicalSerialize(''), rcc.rccCanonicalSerialize(0));
+  assert.notStrictEqual(rcc.rccCanonicalSerialize(false), rcc.rccCanonicalSerialize(0));
+  assert.notStrictEqual(rcc.rccCanonicalSerialize([1]), rcc.rccCanonicalSerialize({ 0: 1 }));
 });
 
 let passed = 0;

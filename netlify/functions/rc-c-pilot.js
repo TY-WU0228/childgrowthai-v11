@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { types } = require('util');
 
 const RC_C_CONTRACT_VERSION = 'rc-c-v1-frozen';
 const RC_C_SCHEMA_VERSION = 1;
@@ -8,6 +9,7 @@ const RC_C_ENUMERATION_METHOD_VERSION = 'pilot_numbered_bands_v1';
 const RC_C_QUALITY_THRESHOLD_VERSION = 'rc-c-pilot-quality-v1';
 const RC_C_GEOMETRY_TOLERANCE_VERSION = 'rc-c-pilot-geometry-v1';
 const RC_C_AUTHORITY_ISSUER = 'coverage-authority-service';
+const RC_C_CANONICAL_MAX_DEPTH = 128;
 
 const ENUMS = Object.freeze({
   processingState: Object.freeze(['complete', 'partial', 'failed']),
@@ -121,29 +123,90 @@ function rccCanonicalError(code) {
   return new TypeError(`RCC_CANONICAL_UNSUPPORTED:${code}`);
 }
 
-function rccCanonicalize(value) {
+function rccSafeReflect(operation) {
+  try {
+    return operation();
+  } catch (_error) {
+    throw rccCanonicalError('TRAVERSAL_FAILURE');
+  }
+}
+
+function rccIsCanonicalError(error) {
+  return error instanceof TypeError && /^RCC_CANONICAL_UNSUPPORTED:[A-Z_]+$/.test(error.message);
+}
+
+function rccValidateDataDescriptor(descriptor, enumerableRequired) {
+  if (!descriptor || typeof descriptor !== 'object') throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+  if (
+    Object.prototype.hasOwnProperty.call(descriptor, 'get')
+    || Object.prototype.hasOwnProperty.call(descriptor, 'set')
+  ) throw rccCanonicalError('ACCESSOR_PROPERTY');
+  if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+    throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+  }
+  if (enumerableRequired && descriptor.enumerable !== true) {
+    throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+  }
+  return descriptor;
+}
+
+function rccTraverseCanonical(value, excludeObjectKey) {
   const active = new WeakSet();
 
-  function canonicalize(current) {
+  function canonicalize(current, depth) {
+    if (depth > RC_C_CANONICAL_MAX_DEPTH) throw rccCanonicalError('MAX_DEPTH_EXCEEDED');
     if (current === null || typeof current === 'string' || typeof current === 'boolean') return current;
     if (typeof current === 'number') {
       if (!Number.isFinite(current)) throw rccCanonicalError('NON_FINITE_NUMBER');
       return Object.is(current, -0) ? 0 : current;
     }
     if (current === undefined) throw rccCanonicalError('UNDEFINED');
+    if ((typeof current === 'object' || typeof current === 'function') && types.isProxy(current)) {
+      throw rccCanonicalError('PROXY');
+    }
     if (typeof current === 'function') throw rccCanonicalError('FUNCTION');
     if (typeof current === 'symbol') throw rccCanonicalError('SYMBOL');
     if (typeof current === 'bigint') throw rccCanonicalError('BIGINT');
 
     if (Array.isArray(current)) {
-      if (Object.getPrototypeOf(current) !== Array.prototype) throw rccCanonicalError('ARRAY_PROTOTYPE');
+      const prototype = rccSafeReflect(() => Reflect.getPrototypeOf(current));
+      if (prototype !== Array.prototype) throw rccCanonicalError('ARRAY_PROTOTYPE');
       if (active.has(current)) throw rccCanonicalError('CYCLIC_REFERENCE');
       active.add(current);
       try {
-        const result = [];
-        for (let index = 0; index < current.length; index += 1) {
-          if (!Object.prototype.hasOwnProperty.call(current, index)) throw rccCanonicalError('SPARSE_ARRAY');
-          result.push(canonicalize(current[index]));
+        const ownKeys = rccSafeReflect(() => Reflect.ownKeys(current));
+        if (ownKeys.some((key) => typeof key !== 'string')) throw rccCanonicalError('SYMBOL_KEY');
+        const descriptors = new Map();
+        for (const key of ownKeys) {
+          descriptors.set(key, rccSafeReflect(() => Reflect.getOwnPropertyDescriptor(current, key)));
+        }
+        for (const key of ownKeys) {
+          rccValidateDataDescriptor(descriptors.get(key), key !== 'length');
+        }
+        const lengthDescriptor = rccValidateDataDescriptor(descriptors.get('length'), false);
+        const length = lengthDescriptor.value;
+        if (!Number.isSafeInteger(length) || length < 0 || length > 0xffffffff) {
+          throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+        }
+        if (ownKeys.length !== length + 1) {
+          const expectedIndexCount = ownKeys.filter((key) => /^(0|[1-9][0-9]*)$/.test(key)).length;
+          if (expectedIndexCount < length) throw rccCanonicalError('SPARSE_ARRAY');
+          throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+        }
+        for (let index = 0; index < length; index += 1) {
+          const key = String(index);
+          if (!descriptors.has(key)) throw rccCanonicalError('SPARSE_ARRAY');
+          rccValidateDataDescriptor(descriptors.get(key), true);
+        }
+        for (const key of ownKeys) {
+          if (key !== 'length' && !/^(0|[1-9][0-9]*)$/.test(key)) {
+            throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+          }
+          if (key !== 'length' && Number(key) >= length) throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+        }
+        const result = new Array(length);
+        for (let index = 0; index < length; index += 1) {
+          result[index] = canonicalize(descriptors.get(String(index)).value, depth + 1);
         }
         return result;
       } finally {
@@ -151,26 +214,28 @@ function rccCanonicalize(value) {
       }
     }
 
-    if (current instanceof Date) throw rccCanonicalError('DATE');
-    if (current instanceof RegExp) throw rccCanonicalError('REGEXP');
-    if (current instanceof Map) throw rccCanonicalError('MAP');
-    if (current instanceof Set) throw rccCanonicalError('SET');
+    const prototype = rccSafeReflect(() => Reflect.getPrototypeOf(current));
+    if (prototype === Date.prototype) throw rccCanonicalError('DATE');
+    if (prototype === RegExp.prototype) throw rccCanonicalError('REGEXP');
+    if (prototype === Map.prototype) throw rccCanonicalError('MAP');
+    if (prototype === Set.prototype) throw rccCanonicalError('SET');
     if (Buffer.isBuffer(current) || ArrayBuffer.isView(current)) throw rccCanonicalError('BUFFER_OR_TYPED_ARRAY');
     if (typeof current === 'object') {
-      const prototype = Object.getPrototypeOf(current);
       if (prototype !== Object.prototype && prototype !== null) throw rccCanonicalError('OBJECT_PROTOTYPE');
       if (active.has(current)) throw rccCanonicalError('CYCLIC_REFERENCE');
       active.add(current);
       try {
-        const ownKeys = Reflect.ownKeys(current);
+        const ownKeys = rccSafeReflect(() => Reflect.ownKeys(current));
         if (ownKeys.some((key) => typeof key !== 'string')) throw rccCanonicalError('SYMBOL_KEY');
-        const result = {};
-        for (const key of ownKeys.sort()) {
-          const descriptor = Object.getOwnPropertyDescriptor(current, key);
-          if (!descriptor.enumerable || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
-            throw rccCanonicalError('PROPERTY_DESCRIPTOR');
-          }
-          result[key] = canonicalize(descriptor.value);
+        const descriptors = new Map();
+        for (const key of ownKeys) {
+          const descriptor = rccSafeReflect(() => Reflect.getOwnPropertyDescriptor(current, key));
+          descriptors.set(key, rccValidateDataDescriptor(descriptor, true));
+        }
+        const result = Object.create(null);
+        for (const key of ownKeys.slice().sort()) {
+          const child = canonicalize(descriptors.get(key).value, depth + 1);
+          if (!excludeObjectKey || !excludeObjectKey(key)) result[key] = child;
         }
         return result;
       } finally {
@@ -180,7 +245,16 @@ function rccCanonicalize(value) {
     throw rccCanonicalError('UNKNOWN_TYPE');
   }
 
-  return canonicalize(value);
+  try {
+    return canonicalize(value, 0);
+  } catch (error) {
+    if (rccIsCanonicalError(error)) throw error;
+    throw rccCanonicalError('TRAVERSAL_FAILURE');
+  }
+}
+
+function rccCanonicalize(value) {
+  return rccTraverseCanonical(value, null);
 }
 
 function rccCanonicalSerialize(value) {
@@ -424,34 +498,10 @@ const EXCLUDED_FINGERPRINT_KEYS = new Set([
   'payloadIntegrityValid',
 ]);
 
-function fingerprintProjection(value, active = new WeakSet()) {
-  if (Array.isArray(value)) {
-    if (active.has(value)) throw rccCanonicalError('CYCLIC_REFERENCE');
-    active.add(value);
-    try {
-      return value.map((child) => fingerprintProjection(child, active));
-    } finally {
-      active.delete(value);
-    }
-  }
-  if (value && typeof value === 'object') {
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) return value;
-    if (Reflect.ownKeys(value).some((key) => typeof key !== 'string')) return value;
-    if (active.has(value)) throw rccCanonicalError('CYCLIC_REFERENCE');
-    active.add(value);
-    try {
-      const result = {};
-      for (const [key, child] of Object.entries(value)) {
-        if (EXCLUDED_FINGERPRINT_KEYS.has(key) || /^(client|local)/i.test(key) || key === 'rcCPilotLocalState') continue;
-        result[key] = fingerprintProjection(child, active);
-      }
-      return result;
-    } finally {
-      active.delete(value);
-    }
-  }
-  return value;
+function fingerprintProjection(value) {
+  return rccTraverseCanonical(value, (key) => (
+    EXCLUDED_FINGERPRINT_KEYS.has(key) || /^(client|local)/i.test(key) || key === 'rcCPilotLocalState'
+  ));
 }
 
 function computeAuthoritySnapshotFingerprintV1(snapshot) {
@@ -460,10 +510,13 @@ function computeAuthoritySnapshotFingerprintV1(snapshot) {
 
 function verifyAuthoritySnapshotFingerprintV1(snapshot) {
   try {
-    if (!snapshot || !/^[0-9a-f]{64}$/.test(snapshot.authoritySnapshotFingerprint || '')) return false;
-    if (snapshot.authorityRevisionId !== buildAuthorityRevisionIdV1(snapshot.authoritySnapshotFingerprint)) return false;
-    const actual = computeAuthoritySnapshotFingerprintV1(snapshot);
-    return crypto.timingSafeEqual(Buffer.from(actual, 'ascii'), Buffer.from(snapshot.authoritySnapshotFingerprint, 'ascii'));
+    const safeSnapshot = rccCanonicalize(snapshot);
+    const fingerprint = safeSnapshot.authoritySnapshotFingerprint;
+    const revisionId = safeSnapshot.authorityRevisionId;
+    if (!/^[0-9a-f]{64}$/.test(fingerprint || '')) return false;
+    if (revisionId !== buildAuthorityRevisionIdV1(fingerprint)) return false;
+    const actual = computeAuthoritySnapshotFingerprintV1(safeSnapshot);
+    return crypto.timingSafeEqual(Buffer.from(actual, 'ascii'), Buffer.from(fingerprint, 'ascii'));
   } catch (_error) {
     return false;
   }
@@ -499,6 +552,7 @@ exports.__rccTest = Object.freeze({
   RC_C_QUALITY_THRESHOLD_VERSION,
   RC_C_GEOMETRY_TOLERANCE_VERSION,
   RC_C_AUTHORITY_ISSUER,
+  RC_C_CANONICAL_MAX_DEPTH,
   ENUMS,
   REQUIRED_SERVER_FIELDS,
 });
