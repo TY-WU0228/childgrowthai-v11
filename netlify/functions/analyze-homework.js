@@ -144,6 +144,79 @@ Each source leaf must contain exactly leafId, polygon, areaRatio, adjacency, sou
 This block is observation, never authority. Do not emit enumeration, topology, accounting, reconciliation, coverage, use-class, fingerprint, revision, or authority fields.`;
 }
 
+function hasDuplicateRCCJSONKeysV1(jsonText) {
+  if (typeof jsonText !== 'string' || jsonText.length > 1000000) throw new SyntaxError('bounded JSON required');
+  let index = 0;
+  let duplicate = false;
+  const skipWhitespace = () => { while (index < jsonText.length && /\s/.test(jsonText[index])) index += 1; };
+  const parseString = () => {
+    if (jsonText[index] !== '"') throw new SyntaxError('string required');
+    const start = index++;
+    while (index < jsonText.length) {
+      const character = jsonText[index++];
+      if (character === '"') return JSON.parse(jsonText.slice(start, index));
+      if (character === '\\') {
+        if (index >= jsonText.length) throw new SyntaxError('truncated escape');
+        if (jsonText[index] === 'u') {
+          index += 1;
+          if (!/^[0-9a-fA-F]{4}$/.test(jsonText.slice(index, index + 4))) throw new SyntaxError('invalid unicode escape');
+          index += 4;
+        } else {
+          if (!/["\\/bfnrt]/.test(jsonText[index])) throw new SyntaxError('invalid escape');
+          index += 1;
+        }
+      } else if (character.charCodeAt(0) < 0x20) throw new SyntaxError('control character');
+    }
+    throw new SyntaxError('unterminated string');
+  };
+  const parseValue = (depth) => {
+    if (depth > 128) throw new SyntaxError('maximum depth');
+    skipWhitespace();
+    if (jsonText[index] === '{') {
+      index += 1;
+      skipWhitespace();
+      const keys = new Set();
+      if (jsonText[index] === '}') { index += 1; return; }
+      while (index < jsonText.length) {
+        skipWhitespace();
+        const key = parseString();
+        if (keys.has(key)) duplicate = true;
+        keys.add(key);
+        skipWhitespace();
+        if (jsonText[index++] !== ':') throw new SyntaxError('colon required');
+        parseValue(depth + 1);
+        skipWhitespace();
+        const delimiter = jsonText[index++];
+        if (delimiter === '}') return;
+        if (delimiter !== ',') throw new SyntaxError('object delimiter required');
+      }
+      throw new SyntaxError('unterminated object');
+    }
+    if (jsonText[index] === '[') {
+      index += 1;
+      skipWhitespace();
+      if (jsonText[index] === ']') { index += 1; return; }
+      while (index < jsonText.length) {
+        parseValue(depth + 1);
+        skipWhitespace();
+        const delimiter = jsonText[index++];
+        if (delimiter === ']') return;
+        if (delimiter !== ',') throw new SyntaxError('array delimiter required');
+      }
+      throw new SyntaxError('unterminated array');
+    }
+    if (jsonText[index] === '"') { parseString(); return; }
+    const remainder = jsonText.slice(index);
+    const token = /^(?:-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null)/.exec(remainder);
+    if (!token) throw new SyntaxError('value required');
+    index += token[0].length;
+  };
+  parseValue(0);
+  skipWhitespace();
+  if (index !== jsonText.length) throw new SyntaxError('trailing JSON');
+  return duplicate;
+}
+
 function extractRCCPilotObservationV1(modelText) {
   if (typeof modelText !== 'string') return { ok: false, diagnostics: ['OBSERVATION_BLOCK_MISSING'] };
   const begin = 'RCC_PILOT_OBSERVATION_V1_BEGIN';
@@ -155,7 +228,10 @@ function extractRCCPilotObservationV1(modelText) {
   }
   const payload = modelText.slice(start + begin.length, finish).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let parsed;
-  try { parsed = JSON.parse(payload); } catch (_error) { return { ok: false, diagnostics: ['OBSERVATION_BLOCK_JSON_INVALID'] }; }
+  try {
+    if (hasDuplicateRCCJSONKeysV1(payload)) return { ok: false, diagnostics: ['OBSERVATION_DUPLICATE_KEY'] };
+    parsed = JSON.parse(payload);
+  } catch (_error) { return { ok: false, diagnostics: ['OBSERVATION_BLOCK_JSON_INVALID'] }; }
   return rccPilotService.normalizePilotObservationV1(parsed);
 }
 
@@ -165,12 +241,16 @@ function buildRCCPilotStructureContextV1(body, images, modelText) {
   if (!count.ok) return rccPilotService.buildFailClosedStructureStateV1(count.diagnostics[0]);
   const decoded = rccPilotService.decodePilotImageMetadataV1(images[0]);
   if (!decoded.ok) return rccPilotService.buildFailClosedStructureStateV1(decoded.diagnostics[0]);
+  const sourceImageFingerprint = rccPilotService.computeSourceImageFingerprintV1(decoded.imageBytes);
   const extracted = extractRCCPilotObservationV1(modelText);
   if (!extracted.ok) return rccPilotService.buildFailClosedStructureStateV1(extracted.diagnostics[0]);
   const normalizedObservation = extracted.normalizedObservation;
   const envelope = rccPilotService.validatePilotEnvelopeV1(decoded.metadata, normalizedObservation);
   if (!envelope.ok) return rccPilotService.buildFailClosedStructureStateV1(envelope.diagnostics[0]);
-  const enumeration = rccPilotService.enumerateNumberedBandsV1(normalizedObservation);
+  const enumeration = rccPilotService.enumerateNumberedBandsV1(normalizedObservation, {
+    sourceImageFingerprint,
+    methodVersion: rccPilotService.getRCCPilotConfig(process.env).enumerationMethodVersion,
+  });
   if (!enumeration.ok) return rccPilotService.buildFailClosedStructureStateV1(enumeration.diagnostics[0]);
   const topology = rccPilotService.validateOnePageTopologyV1(normalizedObservation, enumeration.itemLedger);
   if (!topology.ok) return rccPilotService.buildFailClosedStructureStateV1(topology.diagnostics[0]);
@@ -178,7 +258,6 @@ function buildRCCPilotStructureContextV1(body, images, modelText) {
   if (!partition.ok) return rccPilotService.buildFailClosedStructureStateV1(partition.diagnostics[0]);
   const accounting = rccPilotService.accountSourceDomainV1(partition.sourceDomain);
   if (!accounting.ok) return rccPilotService.buildFailClosedStructureStateV1(accounting.diagnostics[0]);
-  const sourceImageFingerprint = rccPilotService.computeSourceImageFingerprintV1(decoded.imageBytes);
   const config = rccPilotService.getRCCPilotConfig(process.env);
   const effectiveInputFingerprint = rccPilotService.computeEffectiveInputFingerprintV1({
     sourceImageFingerprint,

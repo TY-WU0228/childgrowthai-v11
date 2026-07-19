@@ -4,7 +4,10 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { service } = require('../netlify/functions/rc-c-pilot');
+const zlib = require('zlib');
+const rccPilotModule = require('../netlify/functions/rc-c-pilot');
+const { service } = rccPilotModule;
+const rccTestService = rccPilotModule.__rccTest;
 const analyzeTest = require('../netlify/functions/analyze-homework').__rccTest;
 
 const FIXTURES = path.join(__dirname, 'fixtures', 'rc-c-pilot');
@@ -32,6 +35,14 @@ function readJson(...parts) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function identityContext(overrides = {}) {
+  return {
+    sourceImageFingerprint: q16Gold.artifactHash,
+    methodVersion: 'pilot_numbered_bands_v1',
+    ...overrides
+  };
 }
 
 function rect(minX, minY, maxX, maxY) {
@@ -74,6 +85,113 @@ function normalized(input = observation()) {
 function expectDiagnostic(result, diagnostic) {
   assert.strictEqual(result.ok, false);
   assert.deepStrictEqual(result.diagnostics, [diagnostic]);
+}
+
+function expectRepeatedRejection(run, diagnostic) {
+  const first = run();
+  const second = run();
+  expectDiagnostic(first, diagnostic);
+  expectDiagnostic(second, diagnostic);
+  assert.strictEqual(service.rccCanonicalSerialize(first), service.rccCanonicalSerialize(second));
+  const serialized = JSON.stringify(first);
+  assert(!/(?:timestamp|random|issuedAt)/i.test(serialized));
+  assert.notStrictEqual(first.sourceDomainAccountingState, 'accounted');
+  assert.notStrictEqual(first.method_exhausted, true);
+  assert.notStrictEqual(first.coverageAssuranceLevel, 'self_reconciled');
+  return first;
+}
+
+const TEST_PNG_CRC_TABLE = Array.from({ length: 256 }, (_unused, index) => {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+  return value >>> 0;
+});
+
+function testPngCrc(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) crc = (crc >>> 8) ^ TEST_PNG_CRC_TABLE[(crc ^ byte) & 0xff];
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const typeBytes = Buffer.from(type, 'ascii');
+  const result = Buffer.alloc(12 + data.length);
+  result.writeUInt32BE(data.length, 0);
+  typeBytes.copy(result, 4);
+  data.copy(result, 8);
+  result.writeUInt32BE(testPngCrc(Buffer.concat([typeBytes, data])), 8 + data.length);
+  return result;
+}
+
+function makePng(options = {}) {
+  const width = options.width || 1;
+  const height = options.height || 1;
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  const raw = options.raw || Buffer.concat(Array.from({ length: height }, () => Buffer.from([0, 0, 0, 0, 0])));
+  const chunks = [pngChunk('IHDR', ihdr), ...(options.beforeIdat || [])];
+  if (!options.omitIdat) chunks.push(pngChunk('IDAT', zlib.deflateSync(raw)));
+  chunks.push(...(options.afterIdat || []), pngChunk('IEND', Buffer.alloc(0)));
+  return Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), ...chunks]);
+}
+
+function makeSizedPng(byteLength) {
+  const base = makePng();
+  const payloadLength = byteLength - base.length - 12;
+  assert(payloadLength >= 0);
+  return makePng({ beforeIdat: [pngChunk('raNd', Buffer.alloc(payloadLength))] });
+}
+
+function jpegSegment(marker, payload) {
+  const result = Buffer.alloc(payload.length + 4);
+  result[0] = 0xff;
+  result[1] = marker;
+  result.writeUInt16BE(payload.length + 2, 2);
+  payload.copy(result, 4);
+  return result;
+}
+
+function makeValidJpeg() {
+  const dqt = Buffer.concat([Buffer.from([0]), Buffer.alloc(64, 1)]);
+  const huffmanCounts = Buffer.from([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const dht = Buffer.concat([
+    Buffer.from([0x00]), huffmanCounts, Buffer.from([0x00]),
+    Buffer.from([0x10]), huffmanCounts, Buffer.from([0x00])
+  ]);
+  const sof = Buffer.from([8, 0, 1, 0, 1, 1, 1, 0x11, 0]);
+  const sos = Buffer.from([1, 1, 0x00, 0, 63, 0]);
+  return Buffer.concat([
+    Buffer.from([0xff, 0xd8]),
+    jpegSegment(0xdb, dqt),
+    jpegSegment(0xc0, sof),
+    jpegSegment(0xc4, dht),
+    jpegSegment(0xda, sos),
+    Buffer.from([0x3f]),
+    Buffer.from([0xff, 0xd9])
+  ]);
+}
+
+function webpChunk(type, payload) {
+  const padding = payload.length & 1 ? Buffer.from([0]) : Buffer.alloc(0);
+  const header = Buffer.alloc(8);
+  header.write(type, 0, 4, 'ascii');
+  header.writeUInt32LE(payload.length, 4);
+  return Buffer.concat([header, payload, padding]);
+}
+
+function makeWebp(chunks) {
+  const body = Buffer.concat([Buffer.from('WEBP', 'ascii'), ...chunks]);
+  const header = Buffer.alloc(8);
+  header.write('RIFF', 0, 4, 'ascii');
+  header.writeUInt32LE(body.length, 4);
+  return Buffer.concat([header, body]);
+}
+
+function imageUrl(mime, bytes) {
+  return `data:${mime};base64,${bytes.toString('base64')}`;
 }
 
 function dataUrlForFixture() {
@@ -120,18 +238,18 @@ test('fixture manifests cover every required accepted and rejected boundary', ()
 });
 
 test('exact one-image envelope and bounded PNG metadata decoding', () => {
-  expectDiagnostic(service.validatePilotImageCountV1([]), 'PILOT_IMAGE_COUNT_NOT_ONE');
-  expectDiagnostic(service.validatePilotImageCountV1(['a', 'b']), 'PILOT_IMAGE_COUNT_NOT_ONE');
+  expectRepeatedRejection(() => service.validatePilotImageCountV1([]), 'PILOT_IMAGE_COUNT_NOT_ONE');
+  expectRepeatedRejection(() => service.validatePilotImageCountV1(['a', 'b']), 'PILOT_IMAGE_COUNT_NOT_ONE');
   assert.strictEqual(service.validatePilotImageCountV1(['a']).ok, true);
   const image = dataUrlForFixture();
   const decoded = service.decodePilotImageMetadataV1(image.dataUrl);
   assert.strictEqual(decoded.ok, true);
   assert.deepStrictEqual(decoded.metadata, { mime: 'image/png', width: 1200, height: 1600, byteLength: image.bytes.length });
-  expectDiagnostic(service.decodePilotImageMetadataV1('data:image/gif;base64,AAAA'), 'UNSUPPORTED_IMAGE_MIME');
-  expectDiagnostic(service.decodePilotImageMetadataV1('not-a-data-url'), 'MALFORMED_IMAGE_DATA_URL');
-  expectDiagnostic(service.decodePilotImageMetadataV1('data:image/png;base64,iVBORw0KGgo='), 'IMAGE_DECODE_FAILED');
+  expectRepeatedRejection(() => service.decodePilotImageMetadataV1('data:image/gif;base64,AAAA'), 'UNSUPPORTED_IMAGE_MIME');
+  expectRepeatedRejection(() => service.decodePilotImageMetadataV1('not-a-data-url'), 'MALFORMED_IMAGE_DATA_URL');
+  expectRepeatedRejection(() => service.decodePilotImageMetadataV1('data:image/png;base64,iVBORw0KGgo='), 'IMAGE_DECODE_FAILED');
   const tooLarge = Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64');
-  expectDiagnostic(service.decodePilotImageMetadataV1(`data:image/png;base64,${tooLarge}`), 'IMAGE_FILE_SIZE_EXCEEDED');
+  expectRepeatedRejection(() => service.decodePilotImageMetadataV1(`data:image/png;base64,${tooLarge}`), 'IMAGE_FILE_SIZE_EXCEEDED');
 });
 
 test('accepted envelope dimensions, quality, item count, orientation, skew, and page ratio boundaries', () => {
@@ -154,39 +272,39 @@ test('accepted envelope dimensions, quality, item count, orientation, skew, and 
 
 test('envelope and quality failures are exact and fail closed', () => {
   const base = normalized();
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1199, height: 1600 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 4001, height: 5000 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 3500, height: 6000 }, base), 'IMAGE_PIXEL_COUNT_EXCEEDED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1199, height: 1600 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 4001, height: 5000 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 3500, height: 6000 }, base), 'IMAGE_PIXEL_COUNT_EXCEEDED');
   for (const [change, code] of [
     [{ logicalPageCount: 2 }, 'LOGICAL_PAGE_COUNT_UNSUPPORTED'],
     [{ skewDegrees: 3.001 }, 'SKEW_EXCEEDS_LIMIT'],
     [{ pageAreaRatio: 0.549 }, 'PAGE_AREA_RATIO_UNSUPPORTED']
-  ]) expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, ...change }), code);
+  ]) expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, ...change }), code);
   for (const [quality, code] of [
     [{ sharpnessPass: false }, 'QUALITY_SHARPNESS_FAILED'],
     [{ contrastPass: false }, 'QUALITY_CONTRAST_FAILED'],
     [{ glareOrSolidClippingRatio: 0.020001 }, 'GLARE_OR_SOLID_CLIPPING_EXCEEDED'],
     [{ materialCompressionDamage: true }, 'MATERIAL_COMPRESSION_DAMAGE']
-  ]) expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, quality: { ...base.quality, ...quality } }), code);
+  ]) expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, quality: { ...base.quality, ...quality } }), code);
   const clipped = clone(base); clipped.pagePolygon = rect(0, 0.05, 0.95, 0.95);
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, clipped), 'PAGE_EDGE_CLIPPED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, clipped), 'PAGE_EDGE_CLIPPED');
   const touching = clone(base); touching.candidateBands[0].promptPolygon = rect(0.05, 0.1, 0.5, 0.14);
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, touching), 'REGION_TOUCHES_PAGE_BOUNDARY');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, touching), 'REGION_TOUCHES_PAGE_BOUNDARY');
   const zero = clone(base); zero.candidateBands[0].contentType = 'non_assessable';
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, zero), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, zero), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
   const thirteen = clone(base); thirteen.candidateBands = candidates(13);
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, thirteen), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, thirteen), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
   const columns = clone(base); columns.candidateBands = candidates(2); columns.candidateBands[1].promptPolygon = rect(0.6, 0.2, 0.8, 0.23);
-  expectDiagnostic(service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, columns), 'MULTIPLE_READING_COLUMNS');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, columns), 'MULTIPLE_READING_COLUMNS');
 });
 
 test('closed observation schema rejects authority fields and unknown enums', () => {
   const injected = observation();
   injected.enumerationState = 'enumerated';
-  expectDiagnostic(service.normalizePilotObservationV1(injected), 'OBSERVATION_SCHEMA_INVALID');
+  expectRepeatedRejection(() => service.normalizePilotObservationV1(injected), 'OBSERVATION_SCHEMA_INVALID');
   for (const field of ['pageTopologyState', 'sourceDomainAccountingState', 'reconciliationState', 'coverageAssuranceLevel', 'serverStructuralUseClass', 'localEffectiveUseClass', 'authoritySnapshotFingerprint', 'authorityRevisionId']) {
     const current = observation(); current[field] = 'attacker-controlled';
-    expectDiagnostic(service.normalizePilotObservationV1(current), 'OBSERVATION_SCHEMA_INVALID');
+    expectRepeatedRejection(() => service.normalizePilotObservationV1(current), 'OBSERVATION_SCHEMA_INVALID');
   }
   for (const [field, value, code] of [
     ['numberingStyle', 'roman', 'OBSERVATION_NUMBERING_STYLE_UNKNOWN'],
@@ -199,15 +317,15 @@ test('closed observation schema rejects authority fields and unknown enums', () 
     ['contentType', 'unsupported', 'UNSUPPORTED_CONTENT_TYPE']
   ]) {
     const current = observation(); current.candidateBands[0][field] = value;
-    expectDiagnostic(service.normalizePilotObservationV1(current), code);
+    expectRepeatedRejection(() => service.normalizePilotObservationV1(current), code);
   }
 });
 
 test('enumeration preserves source order and derives stable immutable IDs', () => {
   const current = observation(); current.candidateBands = candidates(12);
   const value = normalized(current);
-  const first = service.enumerateNumberedBandsV1(value);
-  const second = service.enumerateNumberedBandsV1(value);
+  const first = service.enumerateNumberedBandsV1(value, identityContext());
+  const second = service.enumerateNumberedBandsV1(value, identityContext());
   assert.strictEqual(first.ok, true);
   assert.strictEqual(service.rccCanonicalSerialize(first), service.rccCanonicalSerialize(second));
   assert.deepStrictEqual(first.itemLedger.map((item) => item.canonicalNumber), Array.from({ length: 12 }, (_, index) => index + 1));
@@ -223,14 +341,14 @@ test('enumeration rejects mixed, duplicate, missing and token mismatch without i
     [(bands) => { bands[1].rawNumberToken = '3.'; }, 'NUMBER_TOKEN_MISMATCH']
   ]) {
     const current = observation(); current.candidateBands = candidates(2); mutate(current.candidateBands);
-    expectDiagnostic(service.enumerateNumberedBandsV1(normalized(current)), code);
+    expectRepeatedRejection(() => service.enumerateNumberedBandsV1(normalized(current), identityContext()), code);
   }
 });
 
 test('topology proves one page, one column, region ownership and canonical order', () => {
   const current = observation(); current.candidateBands = candidates(4);
   const value = normalized(current);
-  const ledger = service.enumerateNumberedBandsV1(value).itemLedger;
+  const ledger = service.enumerateNumberedBandsV1(value, identityContext()).itemLedger;
   const topology = service.validateOnePageTopologyV1(value, ledger);
   assert.strictEqual(topology.ok, true);
   assert.deepStrictEqual(clone(topology.topology), {
@@ -238,9 +356,9 @@ test('topology proves one page, one column, region ownership and canonical order
     pageTopologyState: 'resolved', readingColumnCount: 1, sourceImageCount: 1
   });
   const overlap = clone(ledger); overlap[1].promptPolygon = clone(overlap[0].promptPolygon);
-  expectDiagnostic(service.validateOnePageTopologyV1(value, overlap), 'TOPOLOGY_REGION_OVERLAP');
+  expectRepeatedRejection(() => service.validateOnePageTopologyV1(value, overlap), 'TOPOLOGY_REGION_OVERLAP');
   const reordered = [ledger[1], ledger[0], ...ledger.slice(2)];
-  expectDiagnostic(service.validateOnePageTopologyV1(value, reordered), 'ITEM_SEQUENCE_INVALID');
+  expectRepeatedRejection(() => service.validateOnePageTopologyV1(value, reordered), 'ITEM_SEQUENCE_INVALID');
 });
 
 test('source partition and accounting enforce exact thresholds and limitation', () => {
@@ -258,21 +376,26 @@ test('source partition and accounting enforce exact thresholds and limitation', 
       leafInteriorOverlapRatio: fixture.leafInteriorOverlapRatio
     }));
     if (fixture.expected === 'accounted') assert.strictEqual(result.sourceDomainAccounting.sourceDomainAccountingState, 'accounted');
-    else expectDiagnostic(result, fixture.expected);
+    else expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({
+      uncoveredAreaRatio: fixture.uncoveredAreaRatio,
+      largestConnectedUncoveredComponentRatio: fixture.largestConnectedUncoveredComponentRatio,
+      uncoveredContainsCandidateInk: fixture.uncoveredContainsCandidateInk,
+      leafInteriorOverlapRatio: fixture.leafInteriorOverlapRatio
+    })), fixture.expected);
   }
-  expectDiagnostic(service.accountSourceDomainV1(accountedSourceDomain({ transformVersion: 'stale' })), 'SOURCE_DOMAIN_METHOD_OR_TRANSFORM_STALE');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ transformVersion: 'stale' })), 'SOURCE_DOMAIN_METHOD_OR_TRANSFORM_STALE');
   const unresolved = observation(); unresolved.sourceLeaves[0].sourceLeafClass = 'unresolved';
-  expectDiagnostic(service.partitionSourceDomainV1(normalized(unresolved)), 'SOURCE_DOMAIN_UNRESOLVED_LEAF');
+  expectRepeatedRejection(() => service.partitionSourceDomainV1(normalized(unresolved)), 'SOURCE_DOMAIN_UNRESOLVED_LEAF');
 });
 
 test('overlap and uncovered geometry are derived by production partition code', () => {
   const overlap = observation(); overlap.sourceLeaves.push({ ...clone(overlap.sourceLeaves[0]), leafId: 'duplicate-domain' });
   const overlapPartition = service.partitionSourceDomainV1(normalized(overlap));
   assert(overlapPartition.sourceDomain.leafInteriorOverlapRatio > 0.001);
-  expectDiagnostic(service.accountSourceDomainV1(overlapPartition.sourceDomain), 'SOURCE_DOMAIN_OVERLAP_EXCEEDED');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(overlapPartition.sourceDomain), 'SOURCE_DOMAIN_OVERLAP_EXCEEDED');
   const gap = observation(); gap.sourceLeaves[0].polygon = rect(0.05, 0.05, 0.95, 0.8); gap.sourceLeaves[0].areaRatio = 0.8333333333;
   const gapPartition = service.partitionSourceDomainV1(normalized(gap));
-  expectDiagnostic(service.accountSourceDomainV1(gapPartition.sourceDomain), 'SOURCE_DOMAIN_UNCOVERED_AREA_EXCEEDED');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(gapPartition.sourceDomain), 'SOURCE_DOMAIN_UNCOVERED_AREA_EXCEEDED');
 });
 
 test('source and effective fingerprints are deterministic, comprehensive, and exclude local state', () => {
@@ -282,7 +405,7 @@ test('source and effective fingerprints are deterministic, comprehensive, and ex
   assert.notStrictEqual(sourceFingerprint, service.computeSourceImageFingerprintV1(Buffer.concat([image.bytes, Buffer.from([0])])));
   const value = normalized();
   const envelope = service.validatePilotEnvelopeV1(acceptedFixture.baseImageMetadata, value).envelope;
-  const ledger = service.enumerateNumberedBandsV1(value).itemLedger;
+  const ledger = service.enumerateNumberedBandsV1(value, identityContext()).itemLedger;
   const topology = service.validateOnePageTopologyV1(value, ledger).topology;
   const sourceDomain = service.partitionSourceDomainV1(value).sourceDomain;
   const inputs = {
@@ -315,7 +438,7 @@ test('accepted pipeline is byte-identical across repeated normalization and ever
   const run = () => {
     const value = normalized();
     const envelope = service.validatePilotEnvelopeV1(acceptedFixture.baseImageMetadata, value);
-    const enumeration = service.enumerateNumberedBandsV1(value);
+    const enumeration = service.enumerateNumberedBandsV1(value, identityContext());
     const topology = service.validateOnePageTopologyV1(value, enumeration.itemLedger);
     const partition = service.partitionSourceDomainV1(value);
     const accounting = service.accountSourceDomainV1(partition.sourceDomain);
@@ -365,7 +488,7 @@ test('Q16 exact source-gap path reaches the mandated compared-ledger result thro
   const runMutation = () => {
     const value = normalized(clone(current));
     const envelope = service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, value);
-    const harnessLedger = service.enumerateNumberedBandsV1(value, { harnessOnly: true });
+    const harnessLedger = rccTestService.enumerateNumberedBandsForQ16FixtureV1(value, identityContext());
     const topology = service.validateOnePageTopologyV1(value, harnessLedger.itemLedger);
     const partition = service.partitionSourceDomainV1(value);
     const accounting = partition.ok ? service.accountSourceDomainV1(partition.sourceDomain) : partition;
@@ -386,7 +509,7 @@ test('Q16 exact source-gap path reaches the mandated compared-ledger result thro
   const firstRun = runMutation();
   const secondRun = runMutation();
   assert.strictEqual(service.rccCanonicalSerialize(firstRun), service.rccCanonicalSerialize(secondRun));
-  expectDiagnostic(service.enumerateNumberedBandsV1(firstRun.value), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
+  expectRepeatedRejection(() => service.enumerateNumberedBandsV1(firstRun.value, identityContext()), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
   const { envelope, harnessLedger, topology, partition, accounting, exact } = firstRun;
   expectDiagnostic(envelope, 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
   assert.strictEqual(harnessLedger.ok, true);
@@ -427,7 +550,216 @@ test('model observation extraction is closed and cannot set deterministic struct
   assert.strictEqual(analyzeTest.extractRCCPilotObservationV1(text).ok, true);
   current.reconciliationState = 'reconciliation_matched';
   const injected = `RCC_PILOT_OBSERVATION_V1_BEGIN\n${JSON.stringify(current)}\nRCC_PILOT_OBSERVATION_V1_END`;
-  expectDiagnostic(analyzeTest.extractRCCPilotObservationV1(injected), 'OBSERVATION_SCHEMA_INVALID');
+  expectRepeatedRejection(() => analyzeTest.extractRCCPilotObservationV1(injected), 'OBSERVATION_SCHEMA_INVALID');
+});
+
+test('valid bounded PNG, JPEG, and WebP payloads decode while structural scaffolds fail twice identically', () => {
+  const validPng = makePng();
+  const validJpeg = makeValidJpeg();
+  const validWebp = Buffer.from('UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoCAAIAAUAmJaQAA3AA/vz0AAA=', 'base64');
+  for (const [mime, bytes, dimensions] of [
+    ['image/png', validPng, [1, 1]],
+    ['image/jpeg', validJpeg, [1, 1]],
+    ['image/webp', validWebp, [2, 2]]
+  ]) {
+    const first = service.decodePilotImageMetadataV1(imageUrl(mime, bytes));
+    const second = service.decodePilotImageMetadataV1(imageUrl(mime, bytes));
+    assert.strictEqual(first.ok, true, mime);
+    assert.deepStrictEqual([first.metadata.width, first.metadata.height], dimensions);
+    assert.strictEqual(service.rccCanonicalSerialize({ metadata: first.metadata }), service.rccCanonicalSerialize({ metadata: second.metadata }));
+  }
+
+  const markerOnlyJpeg = Buffer.alloc(28);
+  markerOnlyJpeg.set([0xff, 0xd8], 0);
+  markerOnlyJpeg.set([0xff, 0xd9], 26);
+  const jpegWithoutScanData = Buffer.concat([validJpeg.subarray(0, validJpeg.length - 3), validJpeg.subarray(validJpeg.length - 2)]);
+  const jpegWithoutEoi = validJpeg.subarray(0, validJpeg.length - 2);
+  const pngUnknownCritical = makePng({ beforeIdat: [pngChunk('ABCD', Buffer.from([1]))] });
+  const pngMissingIdat = makePng({ omitIdat: true });
+  const pngInvalidCrc = Buffer.from(validPng);
+  pngInvalidCrc[32] ^= 1;
+  const pngInvalidScanline = makePng({ raw: Buffer.from([5, 0, 0, 0, 0]) });
+  const vp8xPayload = Buffer.alloc(10);
+  const webpVp8xOnly = makeWebp([webpChunk('VP8X', vp8xPayload)]);
+  const webpInvalidRiffLength = Buffer.from(validWebp);
+  webpInvalidRiffLength.writeUInt32LE(webpInvalidRiffLength.readUInt32LE(4) + 1, 4);
+  const webpTruncatedChunk = Buffer.from(validWebp.subarray(0, validWebp.length - 1));
+  webpTruncatedChunk.writeUInt32LE(webpTruncatedChunk.length - 8, 4);
+
+  for (const [name, run, diagnostic] of [
+    ['28-byte marker-only JPEG', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', markerOnlyJpeg)), 'IMAGE_DECODE_FAILED'],
+    ['JPEG without scan data', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', jpegWithoutScanData)), 'IMAGE_DECODE_FAILED'],
+    ['JPEG without EOI', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', jpegWithoutEoi)), 'IMAGE_DECODE_FAILED'],
+    ['PNG unknown critical chunk', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngUnknownCritical)), 'IMAGE_DECODE_FAILED'],
+    ['PNG missing IDAT', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngMissingIdat)), 'IMAGE_DECODE_FAILED'],
+    ['PNG invalid CRC', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngInvalidCrc)), 'IMAGE_DECODE_FAILED'],
+    ['PNG invalid scanline', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngInvalidScanline)), 'IMAGE_DECODE_FAILED'],
+    ['WebP VP8X-only', () => service.decodePilotImageMetadataV1(imageUrl('image/webp', webpVp8xOnly)), 'IMAGE_DECODE_FAILED'],
+    ['WebP invalid RIFF length', () => service.decodePilotImageMetadataV1(imageUrl('image/webp', webpInvalidRiffLength)), 'IMAGE_DECODE_FAILED'],
+    ['WebP truncated image-data chunk', () => service.decodePilotImageMetadataV1(imageUrl('image/webp', webpTruncatedChunk)), 'IMAGE_DECODE_FAILED'],
+    ['MIME/format mismatch', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', validPng)), 'IMAGE_FORMAT_MIME_MISMATCH']
+  ]) {
+    assert(name);
+    expectRepeatedRejection(run, diagnostic);
+  }
+});
+
+test('10 MB image-byte boundary is inclusive and deterministic', () => {
+  const belowBytes = makeSizedPng(10 * 1024 * 1024 - 1);
+  const exactBytes = makeSizedPng(10 * 1024 * 1024);
+  const aboveBytes = makeSizedPng(10 * 1024 * 1024 + 1);
+  assert.strictEqual(service.decodePilotImageMetadataV1(imageUrl('image/png', belowBytes)).ok, true);
+  assert.strictEqual(service.decodePilotImageMetadataV1(imageUrl('image/png', exactBytes)).ok, true);
+  expectRepeatedRejection(() => service.decodePilotImageMetadataV1(imageUrl('image/png', aboveBytes)), 'IMAGE_FILE_SIZE_EXCEEDED');
+});
+
+test('envelope dimension, pixel, skew, area, clipping, image-count, and production-count boundaries execute exactly', () => {
+  const base = normalized();
+  const accepted = (metadata, value = base) => {
+    const first = service.validatePilotEnvelopeV1(metadata, value);
+    const second = service.validatePilotEnvelopeV1(metadata, value);
+    assert.strictEqual(first.ok, true);
+    assert.strictEqual(service.rccCanonicalSerialize(first), service.rccCanonicalSerialize(second));
+  };
+  accepted({ width: 1200, height: 1600 });
+  accepted({ width: 1201, height: 1600 });
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1199, height: 1600 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
+  accepted({ width: 3999, height: 5000 });
+  accepted({ width: 4000, height: 5000 });
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 4001, height: 4998 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
+  accepted({ width: 3000, height: 6000 });
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 3000, height: 6001 }, base), 'IMAGE_DIMENSIONS_UNSUPPORTED');
+  accepted({ width: 4000, height: 5000 });
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 4000, height: 5001 }, base), 'IMAGE_PIXEL_COUNT_EXCEEDED');
+
+  for (const skewDegrees of [-3, -2.999, 2.999, 3]) accepted({ width: 1200, height: 1600 }, { ...base, skewDegrees });
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, skewDegrees: -3.001 }), 'SKEW_EXCEEDS_LIMIT');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, skewDegrees: 3.001 }), 'SKEW_EXCEEDS_LIMIT');
+  for (const pageAreaRatio of [0.55, 0.551, 0.979, 0.98]) accepted({ width: 1200, height: 1600 }, { ...base, pageAreaRatio });
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, pageAreaRatio: 0.549 }), 'PAGE_AREA_RATIO_UNSUPPORTED');
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, { ...base, pageAreaRatio: 0.981 }), 'PAGE_AREA_RATIO_UNSUPPORTED');
+
+  const justInside = clone(base);
+  justInside.candidateBands[0].promptPolygon = rect(0.050001, 0.1, 0.5, 0.14);
+  accepted({ width: 1200, height: 1600 }, justInside);
+  const touching = clone(base);
+  touching.candidateBands[0].promptPolygon = rect(0.05, 0.1, 0.5, 0.14);
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, touching), 'REGION_TOUCHES_PAGE_BOUNDARY');
+
+  assert.strictEqual(service.validatePilotImageCountV1(['one']).ok, true);
+  expectRepeatedRejection(() => service.validatePilotImageCountV1([]), 'PILOT_IMAGE_COUNT_NOT_ONE');
+  expectRepeatedRejection(() => service.validatePilotImageCountV1(['one', 'two']), 'PILOT_IMAGE_COUNT_NOT_ONE');
+  for (const count of [1, 12]) {
+    const current = clone(base); current.candidateBands = candidates(count);
+    accepted({ width: 1200, height: 1600 }, current);
+  }
+  const thirteen = clone(base); thirteen.candidateBands = candidates(13);
+  expectRepeatedRejection(() => service.validatePilotEnvelopeV1({ width: 1200, height: 1600 }, thirteen), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
+});
+
+test('unsupported and unresolved source leaves never account or exhaust the method', () => {
+  const wholeUnsupported = observation();
+  wholeUnsupported.sourceLeaves[0].sourceLeafClass = 'unsupported';
+  const normalizedUnsupported = normalized(wholeUnsupported);
+  const wholeResult = expectRepeatedRejection(() => service.partitionSourceDomainV1(normalizedUnsupported), 'SOURCE_DOMAIN_UNSUPPORTED_LEAF');
+  assert.strictEqual(wholeResult.sourceDomainAccountingState, 'unresolved');
+  assert.strictEqual(wholeResult.method_exhausted, false);
+  assert.strictEqual(wholeResult.coverageAssuranceLevel, 'unknown');
+  assert.deepStrictEqual(wholeResult.limitations, ['INDEPENDENT_SOURCE_COMPLETENESS_NOT_CLAIMED']);
+
+  const mixed = observation();
+  mixed.sourceLeaves = [
+    { leafId: 'supported-half', polygon: rect(0.05, 0.05, 0.5, 0.95), areaRatio: 0.5, adjacency: ['unsupported-half'], sourceLeafClass: 'assessable_candidate', exclusionReason: null, containsCandidateInk: true },
+    { leafId: 'unsupported-half', polygon: rect(0.5, 0.05, 0.95, 0.95), areaRatio: 0.5, adjacency: ['supported-half'], sourceLeafClass: 'unsupported', exclusionReason: null, containsCandidateInk: false }
+  ];
+  expectRepeatedRejection(() => service.partitionSourceDomainV1(normalized(mixed)), 'SOURCE_DOMAIN_UNSUPPORTED_LEAF');
+  mixed.sourceLeaves[1].containsCandidateInk = true;
+  expectRepeatedRejection(() => service.partitionSourceDomainV1(normalized(mixed)), 'SOURCE_DOMAIN_UNSUPPORTED_LEAF');
+
+  const markedExclusion = observation();
+  markedExclusion.sourceLeaves[0].sourceLeafClass = 'unsupported';
+  markedExclusion.sourceLeaves[0].exclusionReason = 'decoration';
+  expectRepeatedRejection(() => service.normalizePilotObservationV1(markedExclusion), 'SOURCE_DOMAIN_UNSUPPORTED_LEAF');
+
+  const directUnsupported = accountedSourceDomain();
+  directUnsupported.leaves[0].sourceLeafClass = 'unsupported';
+  expectRepeatedRejection(() => service.accountSourceDomainV1(directUnsupported), 'SOURCE_DOMAIN_UNSUPPORTED_LEAF');
+  const unresolved = observation(); unresolved.sourceLeaves[0].sourceLeafClass = 'unresolved';
+  expectRepeatedRejection(() => service.partitionSourceDomainV1(normalized(unresolved)), 'SOURCE_DOMAIN_UNRESOLVED_LEAF');
+});
+
+test('source accounting exact thresholds and stale versions execute twice without positive state', () => {
+  for (const values of [
+    { uncoveredAreaRatio: 0.0049, largestConnectedUncoveredComponentRatio: 0.0024, leafInteriorOverlapRatio: 0.0009 },
+    { uncoveredAreaRatio: 0.005, largestConnectedUncoveredComponentRatio: 0.0025, leafInteriorOverlapRatio: 0.001 }
+  ]) assert.strictEqual(service.accountSourceDomainV1(accountedSourceDomain(values)).ok, true);
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ uncoveredAreaRatio: 0.0051, largestConnectedUncoveredComponentRatio: 0.002, leafInteriorOverlapRatio: 0 })), 'SOURCE_DOMAIN_UNCOVERED_AREA_EXCEEDED');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ uncoveredAreaRatio: 0.0026, largestConnectedUncoveredComponentRatio: 0.0026 })), 'SOURCE_DOMAIN_UNCOVERED_COMPONENT_EXCEEDED');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ leafInteriorOverlapRatio: 0.0011 })), 'SOURCE_DOMAIN_OVERLAP_EXCEEDED');
+  assert.strictEqual(service.accountSourceDomainV1(accountedSourceDomain({ uncoveredContainsCandidateInk: false })).ok, true);
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ uncoveredAreaRatio: 0.0001, largestConnectedUncoveredComponentRatio: 0.0001, uncoveredContainsCandidateInk: true })), 'SOURCE_DOMAIN_GAP_UNRESOLVED');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ methodVersion: 'stale' })), 'SOURCE_DOMAIN_METHOD_OR_TRANSFORM_STALE');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ transformVersion: 'stale' })), 'SOURCE_DOMAIN_METHOD_OR_TRANSFORM_STALE');
+  expectRepeatedRejection(() => service.accountSourceDomainV1(accountedSourceDomain({ toleranceVersion: 'stale' })), 'SOURCE_DOMAIN_METHOD_OR_TRANSFORM_STALE');
+});
+
+test('item and region IDs bind source, content, format, geometry, role, and method but ignore local fields', () => {
+  const value = normalized();
+  const baseLedger = service.enumerateNumberedBandsV1(value, identityContext()).itemLedger;
+  const repeated = service.enumerateNumberedBandsV1(value, { methodVersion: 'pilot_numbered_bands_v1', sourceImageFingerprint: q16Gold.artifactHash }).itemLedger;
+  assert.strictEqual(service.rccCanonicalSerialize(baseLedger), service.rccCanonicalSerialize(repeated));
+  assert.notStrictEqual(baseLedger[0].promptRegionId, baseLedger[0].answerRegionId);
+
+  const otherSource = service.enumerateNumberedBandsV1(value, identityContext({ sourceImageFingerprint: 'a'.repeat(64) })).itemLedger;
+  assert.notStrictEqual(baseLedger[0].itemId, otherSource[0].itemId);
+  assert.notStrictEqual(baseLedger[0].promptRegionId, otherSource[0].promptRegionId);
+
+  const otherTypeObservation = observation(); otherTypeObservation.candidateBands[0].contentType = 'maths_fill';
+  const otherType = service.enumerateNumberedBandsV1(normalized(otherTypeObservation), identityContext()).itemLedger;
+  assert.notStrictEqual(baseLedger[0].itemId, otherType[0].itemId);
+  assert.notStrictEqual(baseLedger[0].promptRegionId, otherType[0].promptRegionId);
+
+  const otherMethod = service.enumerateNumberedBandsV1(value, identityContext({ methodVersion: 'pilot_numbered_bands_v2' })).itemLedger;
+  assert.notStrictEqual(baseLedger[0].itemId, otherMethod[0].itemId);
+  assert.notStrictEqual(baseLedger[0].answerRegionId, otherMethod[0].answerRegionId);
+
+  const otherFormatObservation = observation(); otherFormatObservation.candidateBands[0].answerFormat = 'tick_or_circle';
+  const otherFormat = service.enumerateNumberedBandsV1(normalized(otherFormatObservation), identityContext()).itemLedger;
+  assert.notStrictEqual(baseLedger[0].answerRegionId, otherFormat[0].answerRegionId);
+
+  const localContext = identityContext({ localSelection: 'ignored', clientCacheState: 'ignored' });
+  assert.strictEqual(service.rccCanonicalSerialize(baseLedger), service.rccCanonicalSerialize(service.enumerateNumberedBandsV1(value, localContext).itemLedger));
+});
+
+test('duplicate JSON keys fail closed at top-level and every nested observation object', () => {
+  const validJson = JSON.stringify(observation());
+  const wrap = (json) => `RCC_PILOT_OBSERVATION_V1_BEGIN\n${json}\nRCC_PILOT_OBSERVATION_V1_END`;
+  assert.strictEqual(analyzeTest.extractRCCPilotObservationV1(wrap(validJson)).ok, true);
+  for (const duplicateJson of [
+    validJson.replace('"schemaVersion":1', '"schemaVersion":1,"schemaVersion":1'),
+    validJson.replace('"schemaVersion":1', '"schemaVersion":1,"schemaVersion":2'),
+    validJson.replace('"sharpnessPass":true', '"sharpnessPass":true,"sharpnessPass":true'),
+    validJson.replace('"candidateId":"candidate-1"', '"candidateId":"candidate-1","candidateId":"candidate-1"'),
+    validJson.replace('"leafId":"page-domain"', '"leafId":"page-domain","leafId":"other"'),
+    validJson.replace('"x":0.05', '"x":0.05,"x":0.05')
+  ]) expectRepeatedRejection(() => analyzeTest.extractRCCPilotObservationV1(wrap(duplicateJson)), 'OBSERVATION_DUPLICATE_KEY');
+  expectRepeatedRejection(() => analyzeTest.extractRCCPilotObservationV1(wrap('{bad json')), 'OBSERVATION_BLOCK_JSON_INVALID');
+  expectRepeatedRejection(() => analyzeTest.extractRCCPilotObservationV1(`${wrap(validJson)}\n${wrap(validJson)}`), 'OBSERVATION_BLOCK_MISSING');
+});
+
+test('production enumeration rejects 13 through 16 and Q16 allowance exists only under test exports', () => {
+  assert.strictEqual(service.enumerateNumberedBandsForQ16FixtureV1, undefined);
+  assert.strictEqual(typeof rccTestService.enumerateNumberedBandsForQ16FixtureV1, 'function');
+  assert.strictEqual(analyzeTest.enumerateNumberedBandsForQ16FixtureV1, undefined);
+  for (let count = 13; count <= 16; count += 1) {
+    const current = observation(); current.candidateBands = candidates(count);
+    const value = normalized(current);
+    expectRepeatedRejection(() => service.enumerateNumberedBandsV1(value, identityContext()), 'ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
+  }
+  const q16 = observation(); q16.candidateBands = candidates(16, q16Gold.independentlyMarkedQ16SourceRegion);
+  const ledger = rccTestService.enumerateNumberedBandsForQ16FixtureV1(normalized(q16), identityContext());
+  assert.strictEqual(ledger.ok, true);
+  assert.strictEqual(ledger.itemLedger.length, 16);
 });
 
 console.log(`PASS rc-c-pilot-enumeration: ${passed}/${passed} deterministic assertions`);

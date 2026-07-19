@@ -615,13 +615,21 @@ function intersectionAreaV1(left, right) {
     * Math.max(0, Math.min(left.maxY, right.maxY) - Math.max(left.minY, right.minY));
 }
 
+const PNG_CRC_TABLE = Object.freeze(Array.from({ length: 256 }, (_unused, index) => {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+  return value >>> 0;
+}));
+
 function pngCrc32V1(bytes) {
   let crc = 0xffffffff;
-  for (const byte of bytes) {
-    crc ^= byte;
-    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
-  }
+  for (const byte of bytes) crc = (crc >>> 8) ^ PNG_CRC_TABLE[(crc ^ byte) & 0xff];
   return (crc ^ 0xffffffff) >>> 0;
+}
+
+function boundedImageDimensionsV1(width, height) {
+  return Number.isInteger(width) && Number.isInteger(height) && width > 0 && height > 0
+    && width <= 6000 && height <= 6000 && width * height <= 20000000;
 }
 
 function decodePilotImageMetadataV1(dataUrl) {
@@ -640,6 +648,14 @@ function decodePilotImageMetadataV1(dataUrl) {
   }
   if (bytes.length > RC_C_MAX_IMAGE_BYTES) return fail('IMAGE_FILE_SIZE_EXCEEDED');
   const mime = match[1];
+  const signatureFormat = bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))
+    ? 'image/png'
+    : bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xd8
+      ? 'image/jpeg'
+      : bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
+        ? 'image/webp'
+        : null;
+  if (signatureFormat && signatureFormat !== mime) return fail('IMAGE_FORMAT_MIME_MISMATCH');
   let width;
   let height;
   if (mime === 'image/png') {
@@ -655,27 +671,43 @@ function decodePilotImageMetadataV1(dataUrl) {
     let offset = 8;
     let sawIhdr = false;
     let sawIend = false;
+    let sawPlte = false;
+    let sawIdat = false;
+    let endedIdatRun = false;
     const idat = [];
     while (offset + 12 <= bytes.length) {
       const length = bytes.readUInt32BE(offset);
+      if (length > RC_C_MAX_IMAGE_BYTES || length > bytes.length - offset - 12) return fail('IMAGE_DECODE_FAILED');
       const end = offset + 12 + length;
-      if (end > bytes.length) return fail('IMAGE_DECODE_FAILED');
       const type = bytes.toString('ascii', offset + 4, offset + 8);
+      if (!/^[A-Za-z]{4}$/.test(type)) return fail('IMAGE_DECODE_FAILED');
       const crcExpected = bytes.readUInt32BE(offset + 8 + length);
       const crcActual = pngCrc32V1(bytes.subarray(offset + 4, offset + 8 + length));
       if (crcExpected !== crcActual) return fail('IMAGE_DECODE_FAILED');
       if (type === 'IHDR') {
         if (sawIhdr || offset !== 8 || length !== 13) return fail('IMAGE_DECODE_FAILED');
         sawIhdr = true;
-      } else if (type === 'IDAT') idat.push(bytes.subarray(offset + 8, offset + 8 + length));
+      } else if (!sawIhdr) return fail('IMAGE_DECODE_FAILED');
+      else if (type === 'PLTE') {
+        if (sawPlte || sawIdat || length < 3 || length > 768 || length % 3 !== 0 || [0, 4].includes(colorType)) return fail('IMAGE_DECODE_FAILED');
+        sawPlte = true;
+      } else if (type === 'IDAT') {
+        if (endedIdatRun || (colorType === 3 && !sawPlte)) return fail('IMAGE_DECODE_FAILED');
+        sawIdat = true;
+        idat.push(bytes.subarray(offset + 8, offset + 8 + length));
+      }
       else if (type === 'IEND') {
-        if (length !== 0 || end !== bytes.length) return fail('IMAGE_DECODE_FAILED');
+        if (!sawIdat || length !== 0 || end !== bytes.length) return fail('IMAGE_DECODE_FAILED');
         sawIend = true;
         break;
+      } else {
+        if (type[0] === type[0].toUpperCase()) return fail('IMAGE_DECODE_FAILED');
+        if (sawIdat) endedIdatRun = true;
       }
       offset = end;
     }
-    if (!sawIhdr || !sawIend || !idat.length) return fail('IMAGE_DECODE_FAILED');
+    if (!sawIhdr || !sawIend || !sawIdat || !idat.length || (colorType === 3 && !sawPlte)) return fail('IMAGE_DECODE_FAILED');
+    if (!boundedImageDimensionsV1(width, height)) return fail('IMAGE_DIMENSIONS_UNSUPPORTED');
     const rowBytes = Math.ceil(width * channels * bitDepth / 8);
     const expectedInflatedLength = height * (rowBytes + 1);
     if (!Number.isSafeInteger(expectedInflatedLength) || expectedInflatedLength > 100000000) return fail('IMAGE_DECODE_FAILED');
@@ -691,42 +723,156 @@ function decodePilotImageMetadataV1(dataUrl) {
     let offset = 2;
     let sawSof = false;
     let sawSos = false;
+    let sawDqt = false;
+    let sawDht = false;
+    let frameComponents = null;
+    let scanDataBytes = 0;
+    const quantizationTables = new Set();
+    const dcHuffmanTables = new Set();
+    const acHuffmanTables = new Set();
     while (offset + 3 < bytes.length - 2) {
       if (bytes[offset] !== 0xff) return fail('IMAGE_DECODE_FAILED');
-      while (bytes[offset] === 0xff) offset += 1;
+      while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+      if (offset >= bytes.length - 2) return fail('IMAGE_DECODE_FAILED');
       const marker = bytes[offset++];
-      if (marker === 0xd9) break;
+      if (marker === 0x00 || marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) return fail('IMAGE_DECODE_FAILED');
       if (offset + 2 > bytes.length) return fail('IMAGE_DECODE_FAILED');
       const length = bytes.readUInt16BE(offset);
-      if (length < 2 || offset + length > bytes.length) return fail('IMAGE_DECODE_FAILED');
+      if (length < 2 || length > bytes.length - offset) return fail('IMAGE_DECODE_FAILED');
       if (marker === 0xda) {
+        if (!sawSof || !sawDqt || !sawDht || sawSos || !frameComponents) return fail('IMAGE_DECODE_FAILED');
+        const componentCount = bytes[offset + 2];
+        if (componentCount < 1 || componentCount !== frameComponents.size || length !== 6 + 2 * componentCount) return fail('IMAGE_DECODE_FAILED');
+        const scanIds = new Set();
+        for (let index = 0; index < componentCount; index += 1) {
+          const componentId = bytes[offset + 3 + index * 2];
+          const tables = bytes[offset + 4 + index * 2];
+          if (!frameComponents.has(componentId) || scanIds.has(componentId) || !quantizationTables.has(frameComponents.get(componentId))
+            || !dcHuffmanTables.has(tables >> 4) || !acHuffmanTables.has(tables & 0x0f)) return fail('IMAGE_DECODE_FAILED');
+          scanIds.add(componentId);
+        }
+        if (bytes[offset + length - 3] !== 0 || bytes[offset + length - 2] !== 63 || bytes[offset + length - 1] !== 0) return fail('IMAGE_DECODE_FAILED');
         sawSos = true;
+        offset += length;
+        while (offset < bytes.length - 2) {
+          if (bytes[offset] !== 0xff) {
+            scanDataBytes += 1;
+            offset += 1;
+            continue;
+          }
+          if (offset + 1 >= bytes.length - 2) return fail('IMAGE_DECODE_FAILED');
+          const next = bytes[offset + 1];
+          if (next === 0x00) {
+            scanDataBytes += 1;
+            offset += 2;
+            continue;
+          }
+          if (next >= 0xd0 && next <= 0xd7) {
+            offset += 2;
+            continue;
+          }
+          return fail('IMAGE_DECODE_FAILED');
+        }
         break;
       }
-      if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
-        if (length < 7) return fail('IMAGE_DECODE_FAILED');
+      if (marker === 0xc0) {
+        if (sawSof || length < 11 || bytes[offset + 2] !== 8) return fail('IMAGE_DECODE_FAILED');
+        const componentCount = bytes[offset + 7];
+        if (![1, 3].includes(componentCount) || length !== 8 + 3 * componentCount) return fail('IMAGE_DECODE_FAILED');
         height = bytes.readUInt16BE(offset + 3);
         width = bytes.readUInt16BE(offset + 5);
+        frameComponents = new Map();
+        for (let index = 0; index < componentCount; index += 1) {
+          const componentId = bytes[offset + 8 + index * 3];
+          const sampling = bytes[offset + 9 + index * 3];
+          const quantTable = bytes[offset + 10 + index * 3];
+          if (frameComponents.has(componentId) || (sampling >> 4) < 1 || (sampling >> 4) > 4 || (sampling & 0x0f) < 1 || (sampling & 0x0f) > 4 || quantTable > 3) return fail('IMAGE_DECODE_FAILED');
+          frameComponents.set(componentId, quantTable);
+        }
         sawSof = true;
-      }
+      } else if ([0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) return fail('IMAGE_DECODE_FAILED');
+      else if (marker === 0xdb) {
+        let position = offset + 2;
+        while (position < offset + length) {
+          const precisionAndId = bytes[position++];
+          const tableBytes = (precisionAndId >> 4) === 0 ? 64 : (precisionAndId >> 4) === 1 ? 128 : 0;
+          if (!tableBytes || (precisionAndId & 0x0f) > 3 || position + tableBytes > offset + length) return fail('IMAGE_DECODE_FAILED');
+          quantizationTables.add(precisionAndId & 0x0f);
+          position += tableBytes;
+        }
+        if (position !== offset + length) return fail('IMAGE_DECODE_FAILED');
+        sawDqt = true;
+      } else if (marker === 0xc4) {
+        let position = offset + 2;
+        while (position < offset + length) {
+          const table = bytes[position++];
+          if ((table >> 4) > 1 || (table & 0x0f) > 3 || position + 16 > offset + length) return fail('IMAGE_DECODE_FAILED');
+          let symbols = 0;
+          for (let index = 0; index < 16; index += 1) symbols += bytes[position + index];
+          position += 16;
+          if (!symbols || position + symbols > offset + length) return fail('IMAGE_DECODE_FAILED');
+          position += symbols;
+          ((table >> 4) === 0 ? dcHuffmanTables : acHuffmanTables).add(table & 0x0f);
+        }
+        if (position !== offset + length) return fail('IMAGE_DECODE_FAILED');
+        sawDht = true;
+      } else if (![0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef, 0xfe].includes(marker)) return fail('IMAGE_DECODE_FAILED');
       offset += length;
     }
-    if (!sawSof || !sawSos) return fail('IMAGE_DECODE_FAILED');
+    if (!sawSof || !sawSos || !scanDataBytes || offset !== bytes.length - 2 || !boundedImageDimensionsV1(width, height)) return fail('IMAGE_DECODE_FAILED');
   } else {
-    if (bytes.length < 30 || bytes.toString('ascii', 0, 4) !== 'RIFF'
+    if (bytes.length < 20 || bytes.toString('ascii', 0, 4) !== 'RIFF'
       || bytes.toString('ascii', 8, 12) !== 'WEBP' || bytes.readUInt32LE(4) + 8 !== bytes.length) return fail('IMAGE_DECODE_FAILED');
-    const kind = bytes.toString('ascii', 12, 16);
-    if (kind === 'VP8X' && bytes.length >= 30) {
-      width = 1 + bytes.readUIntLE(24, 3);
-      height = 1 + bytes.readUIntLE(27, 3);
-    } else if (kind === 'VP8L' && bytes.length >= 25 && bytes[20] === 0x2f) {
-      const bits = bytes.readUInt32LE(21);
-      width = (bits & 0x3fff) + 1;
-      height = ((bits >>> 14) & 0x3fff) + 1;
-    } else if (kind === 'VP8 ' && bytes.length >= 30 && bytes[23] === 0x9d && bytes[24] === 0x01 && bytes[25] === 0x2a) {
-      width = bytes.readUInt16LE(26) & 0x3fff;
-      height = bytes.readUInt16LE(28) & 0x3fff;
+    let offset = 12;
+    let vp8xDimensions = null;
+    let imageDimensions = null;
+    let imageDataKind = null;
+    let chunkIndex = 0;
+    let alphaSeen = false;
+    const chunkKinds = new Set();
+    while (offset < bytes.length) {
+      if (offset + 8 > bytes.length) return fail('IMAGE_DECODE_FAILED');
+      const kind = bytes.toString('ascii', offset, offset + 4);
+      const length = bytes.readUInt32LE(offset + 4);
+      const paddedLength = length + (length & 1);
+      if (length > RC_C_MAX_IMAGE_BYTES || paddedLength > bytes.length - offset - 8) return fail('IMAGE_DECODE_FAILED');
+      const start = offset + 8;
+      const end = start + length;
+      if ((length & 1) && bytes[end] !== 0) return fail('IMAGE_DECODE_FAILED');
+      if (chunkKinds.has(kind) && ['VP8X', 'VP8 ', 'VP8L', 'ALPH', 'ICCP', 'EXIF', 'XMP '].includes(kind)) return fail('IMAGE_DECODE_FAILED');
+      chunkKinds.add(kind);
+      if (kind === 'VP8X') {
+        if (chunkIndex !== 0 || vp8xDimensions || length !== 10 || (bytes[start] & ~0x3c) !== 0
+          || bytes[start + 1] !== 0 || bytes[start + 2] !== 0 || bytes[start + 3] !== 0) return fail('IMAGE_DECODE_FAILED');
+        vp8xDimensions = { width: 1 + bytes.readUIntLE(start + 4, 3), height: 1 + bytes.readUIntLE(start + 7, 3) };
+      } else if (kind === 'VP8 ') {
+        if (imageDataKind || length < 11 || (bytes[start] & 1) !== 0
+          || bytes[start + 3] !== 0x9d || bytes[start + 4] !== 0x01 || bytes[start + 5] !== 0x2a) return fail('IMAGE_DECODE_FAILED');
+        const frameTag = bytes[start] | (bytes[start + 1] << 8) | (bytes[start + 2] << 16);
+        if (((frameTag >> 1) & 7) > 3 || ((frameTag >> 4) & 1) !== 1) return fail('IMAGE_DECODE_FAILED');
+        const firstPartitionLength = frameTag >>> 5;
+        if (!firstPartitionLength || 10 + firstPartitionLength > length) return fail('IMAGE_DECODE_FAILED');
+        imageDimensions = { width: bytes.readUInt16LE(start + 6) & 0x3fff, height: bytes.readUInt16LE(start + 8) & 0x3fff };
+        imageDataKind = kind;
+      } else if (kind === 'VP8L') {
+        if (imageDataKind || alphaSeen || length < 6 || bytes[start] !== 0x2f) return fail('IMAGE_DECODE_FAILED');
+        const bits = bytes.readUInt32LE(start + 1);
+        if ((bits >>> 29) !== 0) return fail('IMAGE_DECODE_FAILED');
+        imageDimensions = { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+        imageDataKind = kind;
+      } else if (kind === 'ALPH') {
+        if (imageDataKind || !vp8xDimensions || length < 2) return fail('IMAGE_DECODE_FAILED');
+        alphaSeen = true;
+      } else if (kind === 'ANIM' || kind === 'ANMF') return fail('IMAGE_DECODE_FAILED');
+      else if (!['ICCP', 'EXIF', 'XMP '].includes(kind)) return fail('IMAGE_DECODE_FAILED');
+      offset = end + (length & 1);
+      chunkIndex += 1;
     }
+    if (offset !== bytes.length || !imageDataKind || !imageDimensions) return fail('IMAGE_DECODE_FAILED');
+    if (alphaSeen && (imageDataKind !== 'VP8 ' || !vp8xDimensions || (bytes[20] & 0x10) === 0)) return fail('IMAGE_DECODE_FAILED');
+    if (vp8xDimensions && (vp8xDimensions.width !== imageDimensions.width || vp8xDimensions.height !== imageDimensions.height)) return fail('IMAGE_DECODE_FAILED');
+    ({ width, height } = imageDimensions);
+    if (!boundedImageDimensionsV1(width, height)) return fail('IMAGE_DIMENSIONS_UNSUPPORTED');
   }
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) return fail('IMAGE_DECODE_FAILED');
   return pass({ metadata: Object.freeze({ mime, width, height, byteLength: bytes.length }), imageBytes: bytes });
@@ -789,6 +935,7 @@ function normalizePilotObservationV1(observation) {
       || leaf.adjacency.some((id) => typeof id !== 'string') || new Set(leaf.adjacency).size !== leaf.adjacency.length
       || !ENUMS.sourceLeafClass.includes(leaf.sourceLeafClass) || typeof leaf.containsCandidateInk !== 'boolean') return fail('OBSERVATION_SOURCE_LEAF_INVALID');
     const excluded = leaf.sourceLeafClass === 'excluded_outer_margin';
+    if (leaf.sourceLeafClass === 'unsupported' && leaf.exclusionReason !== null) return sourceDomainFailureV1('SOURCE_DOMAIN_UNSUPPORTED_LEAF');
     if ((excluded && !EXCLUSION_REASONS.includes(leaf.exclusionReason)) || (!excluded && leaf.exclusionReason !== null)) return fail('OBSERVATION_EXCLUSION_REASON_INVALID');
     leafIds.add(leaf.leafId);
     sourceLeaves.push({ ...leaf, polygon, adjacency: leaf.adjacency.slice() });
@@ -857,11 +1004,13 @@ function parseNumberTokenV1(token, style) {
   return match ? Number(match[1]) : null;
 }
 
-function enumerateNumberedBandsV1(observation, options = {}) {
+function enumerateNumberedBandsBoundedV1(observation, identityContext, maximumItems) {
   if (!observation || !Array.isArray(observation.candidateBands)) return fail('ENUMERATION_INPUT_INVALID');
+  const sourceImageFingerprint = identityContext && identityContext.sourceImageFingerprint;
+  const methodVersion = identityContext && identityContext.methodVersion;
+  if (!/^[0-9a-f]{64}$/.test(sourceImageFingerprint || '') || typeof methodVersion !== 'string' || !methodVersion) return fail('ENUMERATION_IDENTITY_CONTEXT_INVALID');
   const bands = assessableBandsV1(observation);
-  const limit = options.harnessOnly === true ? 16 : 12;
-  if (bands.length < 1 || bands.length > limit) return fail('ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
+  if (bands.length < 1 || bands.length > maximumItems) return fail('ASSESSABLE_ITEM_COUNT_UNSUPPORTED');
   const styles = new Set(bands.map((band) => band.numberingStyle));
   if (styles.size !== 1) return fail('MIXED_NUMBERING_STYLES');
   const numbers = [];
@@ -881,15 +1030,26 @@ function enumerateNumberedBandsV1(observation, options = {}) {
     }
   }
   const itemLedger = bands.map((band, sourceOrder) => {
-    const identity = rccCanonicalSerialize({
-      methodVersion: RC_C_ENUMERATION_METHOD_VERSION, sourceOrder, canonicalNumber: band.canonicalNumber,
-      numberingStyle: band.numberingStyle, promptPolygon: band.promptPolygon, answerPolygon: band.answerPolygon,
-    });
-    const root = rccSha256Hex(identity);
+    const itemIdentity = {
+      sourceImageFingerprint,
+      methodVersion,
+      sourceOrder,
+      canonicalNumber: band.canonicalNumber,
+      numberingStyle: band.numberingStyle,
+      contentType: band.contentType,
+      answerFormat: band.answerFormat,
+      promptPolygon: band.promptPolygon,
+      answerPolygon: band.answerPolygon,
+    };
+    const itemId = `rcci_${rccSha256Hex(rccCanonicalSerialize(itemIdentity))}`;
+    const promptRegionId = `rccpr_${rccSha256Hex(rccCanonicalSerialize({ ...itemIdentity, regionRole: 'prompt', regionPolygon: band.promptPolygon }))}`;
+    const answerRegionId = band.answerPolygon
+      ? `rccar_${rccSha256Hex(rccCanonicalSerialize({ ...itemIdentity, regionRole: 'answer', regionPolygon: band.answerPolygon }))}`
+      : null;
     return rccCanonicalize({
-      itemId: `rcci_${root}`,
-      promptRegionId: `rccpr_${rccSha256Hex(`${root}:prompt`)}`,
-      answerRegionId: band.answerPolygon ? `rccar_${rccSha256Hex(`${root}:answer`)}` : null,
+      itemId,
+      promptRegionId,
+      answerRegionId,
       sourceCandidateId: band.candidateId,
       sourceOrder,
       canonicalNumber: band.canonicalNumber,
@@ -903,6 +1063,14 @@ function enumerateNumberedBandsV1(observation, options = {}) {
   });
   const validation = validatePilotItemSequenceV1(itemLedger);
   return validation.ok ? pass({ itemLedger: Object.freeze(itemLedger) }) : validation;
+}
+
+function enumerateNumberedBandsV1(observation, identityContext) {
+  return enumerateNumberedBandsBoundedV1(observation, identityContext, 12);
+}
+
+function enumerateNumberedBandsForQ16FixtureV1(observation, identityContext) {
+  return enumerateNumberedBandsBoundedV1(observation, identityContext, 16);
 }
 
 function validatePilotItemSequenceV1(itemLedger) {
@@ -950,9 +1118,19 @@ function validateOnePageTopologyV1(observation, itemLedger) {
   }) });
 }
 
+function sourceDomainFailureV1(code, state = 'unresolved') {
+  return fail(code, {
+    sourceDomainAccountingState: state,
+    method_exhausted: false,
+    coverageAssuranceLevel: 'unknown',
+    limitations: Object.freeze([INDEPENDENT_SOURCE_COMPLETENESS_LIMITATION]),
+  });
+}
+
 function partitionSourceDomainV1(observation) {
   if (!observation || !Array.isArray(observation.sourceLeaves)) return fail('SOURCE_DOMAIN_INPUT_INVALID');
-  if (observation.sourceLeaves.some((leaf) => leaf.sourceLeafClass === 'unresolved')) return fail('SOURCE_DOMAIN_UNRESOLVED_LEAF');
+  if (observation.sourceLeaves.some((leaf) => leaf.sourceLeafClass === 'unsupported')) return sourceDomainFailureV1('SOURCE_DOMAIN_UNSUPPORTED_LEAF');
+  if (observation.sourceLeaves.some((leaf) => leaf.sourceLeafClass === 'unresolved')) return sourceDomainFailureV1('SOURCE_DOMAIN_UNRESOLVED_LEAF');
   const pageBox = polygonBoxV1(observation.pagePolygon);
   const pageArea = boxAreaV1(pageBox);
   if (!(pageArea > 0)) return fail('SOURCE_DOMAIN_PAGE_INVALID');
@@ -1040,20 +1218,23 @@ function accountSourceDomainV1(sourceDomain) {
     || sourceDomain.toleranceVersion !== RC_C_SOURCE_ACCOUNTING_TOLERANCE_VERSION
     || sourceDomain.allTransformsAndTolerancesCurrent !== true) return fail('SOURCE_DOMAIN_METHOD_OR_TRANSFORM_STALE', {
     sourceDomainAccountingState: 'stale', method_exhausted: false,
+    coverageAssuranceLevel: 'unknown',
     limitations: Object.freeze([INDEPENDENT_SOURCE_COMPLETENESS_LIMITATION]),
   });
+  const unsupportedLeaf = sourceDomain.leaves.some((leaf) => leaf.sourceLeafClass === 'unsupported');
   const unresolvedLeaf = sourceDomain.leaves.some((leaf) => leaf.sourceLeafClass === 'unresolved');
   const undeclaredExclusion = sourceDomain.leaves.some((leaf) => leaf.sourceLeafClass === 'excluded_outer_margin' && !EXCLUSION_REASONS.includes(leaf.exclusionReason));
   const excludedCandidateInk = sourceDomain.leaves.some((leaf) => leaf.sourceLeafClass === 'excluded_outer_margin' && leaf.containsCandidateInk);
   let code = null;
-  if (unresolvedLeaf) code = 'SOURCE_DOMAIN_UNRESOLVED_LEAF';
+  if (unsupportedLeaf) code = 'SOURCE_DOMAIN_UNSUPPORTED_LEAF';
+  else if (unresolvedLeaf) code = 'SOURCE_DOMAIN_UNRESOLVED_LEAF';
   else if (undeclaredExclusion) code = 'SOURCE_DOMAIN_EXCLUSION_UNDECLARED';
   else if (sourceDomain.uncoveredContainsCandidateInk || excludedCandidateInk) code = 'SOURCE_DOMAIN_GAP_UNRESOLVED';
   else if (sourceDomain.uncoveredAreaRatio > 0.005) code = 'SOURCE_DOMAIN_UNCOVERED_AREA_EXCEEDED';
   else if (sourceDomain.largestConnectedUncoveredComponentRatio > 0.0025) code = 'SOURCE_DOMAIN_UNCOVERED_COMPONENT_EXCEEDED';
   else if (sourceDomain.leafInteriorOverlapRatio > 0.001) code = 'SOURCE_DOMAIN_OVERLAP_EXCEEDED';
   const limitations = Object.freeze([INDEPENDENT_SOURCE_COMPLETENESS_LIMITATION]);
-  if (code) return fail(code, { sourceDomainAccountingState: 'unresolved', method_exhausted: false, limitations });
+  if (code) return fail(code, { sourceDomainAccountingState: 'unresolved', method_exhausted: false, coverageAssuranceLevel: 'unknown', limitations });
   return pass({
     sourceDomainAccounting: rccCanonicalize({
       sourceDomainAccountingState: 'accounted', method_exhausted: true,
@@ -1140,6 +1321,7 @@ const service = Object.freeze({
 exports.service = service;
 exports.__rccTest = Object.freeze({
   ...service,
+  enumerateNumberedBandsForQ16FixtureV1,
   RC_C_CONTRACT_VERSION,
   RC_C_SCHEMA_VERSION,
   RC_C_ENUMERATION_METHOD_VERSION,
