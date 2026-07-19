@@ -213,6 +213,7 @@ test('9 - blank attempts have no mismatch, fabricated row, or weakness claim', (
   assert(!comparison.diagnostics.includes('SERVER_STRUCTURAL_USE_CLASS_MISMATCH'));
   assert.deepStrictEqual(state.itemLedger, []);
   assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'weaknessClaim'), false);
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'correctnessClaim'), false);
 });
 
 test('10 - stored positive cannot override recomputed stale', () => {
@@ -301,7 +302,11 @@ test('15 - canonical serialization and fingerprint key order are stable', () => 
 test('16 - covered changes tamper the fingerprint while local and issued-time changes do not', () => {
   const snapshot = completeTrustedSelfReconciledBaseline();
   const fingerprint = rcc.computeAuthoritySnapshotFingerprintV1(snapshot);
-  const issued = { ...snapshot, authoritySnapshotFingerprint: fingerprint };
+  const issued = {
+    ...snapshot,
+    authoritySnapshotFingerprint: fingerprint,
+    authorityRevisionId: rcc.buildAuthorityRevisionIdV1(fingerprint),
+  };
   assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(issued), true);
   assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1({ ...issued, reportLineageId: 'tampered' }), false);
   assert.notStrictEqual(fingerprint, rcc.computeAuthoritySnapshotFingerprintV1({ ...snapshot, reportLineageId: 'changed' }));
@@ -345,6 +350,135 @@ test('18 - partial processing with positive assurance is structurally invalid', 
   const result = assertClass(partialPositiveAssuranceBaseline(), 'structurally_invalid',
     'PARTIAL_PROCESSING_WITH_POSITIVE_ASSURANCE');
   assert.strictEqual(result.effectiveCoverageAssuranceLevel, 'unknown');
+});
+
+test('19 - blank and no-content cannot bypass incomplete or terminal structural states', () => {
+  const terminalCases = [
+    ['capacity unknown', { capacity: { result: 'unknown' } }, 'structural_unknown', 'STRUCTURE_RECOGNIZED_INCOMPLETE'],
+    ['capacity exceeded', { capacity: { result: 'exceeded' } }, 'structurally_invalid', 'TERMINAL_STRUCTURAL_INVARIANT_FAILURE'],
+    ['capacity incompatible', { capacity: { result: 'incompatible' } }, 'structurally_invalid', 'TERMINAL_STRUCTURAL_INVARIANT_FAILURE'],
+    ['enumeration unresolved', { enumerationState: 'unresolved' }, 'structural_unknown', 'STRUCTURE_RECOGNIZED_INCOMPLETE'],
+    ['topology unsupported', { pageTopologyState: 'unsupported' }, 'structural_unknown', 'STRUCTURE_RECOGNIZED_INCOMPLETE'],
+    ['source accounting unresolved', { sourceDomainAccountingState: 'unresolved' }, 'structural_unknown', 'STRUCTURE_RECOGNIZED_INCOMPLETE'],
+    ['reconciliation not available', { reconciliationState: 'not_available' }, 'structural_unknown', 'STRUCTURE_RECOGNIZED_INCOMPLETE'],
+    ['reconciliation mismatched', { reconciliationState: 'reconciliation_mismatched' },
+      'reconciliation_mismatched', 'RECONCILIATION_MISMATCHED'],
+  ];
+  for (const attemptStructureState of ['blank_attempts', 'no_assessable_content']) {
+    for (const [name, patch, expectedClass, expectedDiagnostic] of terminalCases) {
+      const state = {
+        ...completeTrustedSelfReconciledBaseline(),
+        coverageAssuranceLevel: 'unknown',
+        attemptStructureState,
+        reconciliationState: attemptStructureState === 'no_assessable_content'
+          ? 'reconciliation_no_assessable_content' : 'reconciliation_matched',
+        ...patch,
+      };
+      const result = rcc.deriveServerStructuralUseClassV1(state);
+      assert.strictEqual(result.serverClass, expectedClass, `${attemptStructureState} + ${name}`);
+      assert.deepStrictEqual(result.diagnostics, [expectedDiagnostic], `${attemptStructureState} + ${name}`);
+      assert.strictEqual(result.effectiveCoverageAssuranceLevel, 'unknown', `${attemptStructureState} + ${name}`);
+      assert(!['trusted_self_reconciled', 'trusted_observed_only', 'legacy_observed_only'].includes(result.serverClass));
+      assert.notStrictEqual(result.serverClass, attemptStructureState, `${attemptStructureState} + ${name}`);
+    }
+  }
+  assertClass({ ...blankAssessableBaseline(), coverageAssuranceLevel: 'unknown' }, 'blank_attempts');
+  assertClass({
+    ...completeTrustedSelfReconciledBaseline(),
+    attemptStructureState: 'no_assessable_content',
+    reconciliationState: 'reconciliation_no_assessable_content',
+    coverageAssuranceLevel: 'unknown',
+  }, 'no_assessable_content');
+});
+
+test('20 - revision ID relation is mandatory and tamper-resistant without mutation', () => {
+  const snapshot = completeTrustedSelfReconciledBaseline();
+  const fingerprint = rcc.computeAuthoritySnapshotFingerprintV1(snapshot);
+  const valid = {
+    ...snapshot,
+    authoritySnapshotFingerprint: fingerprint,
+    authorityRevisionId: rcc.buildAuthorityRevisionIdV1(fingerprint),
+  };
+  const bytesBefore = JSON.stringify(valid);
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(valid), true);
+  assert.strictEqual(JSON.stringify(valid), bytesBefore);
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1({
+    ...valid, authorityRevisionId: `rccar_${'0'.repeat(64)}`,
+  }), false);
+  const missing = { ...valid };
+  delete missing.authorityRevisionId;
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(missing), false);
+  for (const authorityRevisionId of [
+    'malformed',
+    `wrong_${fingerprint}`,
+    `rccar_${fingerprint.slice(1)}`,
+    `rccar_${fingerprint.toUpperCase()}`,
+    rcc.buildAuthorityRevisionIdV1(rcc.rccSha256Hex('another fingerprint')),
+  ]) assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1({ ...valid, authorityRevisionId }), false);
+  const tamperedFingerprint = rcc.rccSha256Hex('tampered fingerprint');
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1({
+    ...valid,
+    authoritySnapshotFingerprint: tamperedFingerprint,
+    authorityRevisionId: rcc.buildAuthorityRevisionIdV1(tamperedFingerprint),
+  }), false);
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1(valid), true);
+});
+
+test('21 - unsupported canonical values are rejected deterministically and verification fails closed', () => {
+  class UnsupportedClass {}
+  const cyclic = {};
+  cyclic.self = cyclic;
+  const cases = [
+    [new Date('2020-01-01'), 'DATE'],
+    [new Date('2030-01-01'), 'DATE'],
+    [/abc/, 'REGEXP'],
+    [new Map(), 'MAP'],
+    [new Set(), 'SET'],
+    [Object.create({ x: 1 }), 'OBJECT_PROTOTYPE'],
+    [new UnsupportedClass(), 'OBJECT_PROTOTYPE'],
+    [[,], 'SPARSE_ARRAY'],
+    [[undefined], 'UNDEFINED'],
+    [{ a: undefined }, 'UNDEFINED'],
+    [NaN, 'NON_FINITE_NUMBER'],
+    [Infinity, 'NON_FINITE_NUMBER'],
+    [BigInt(1), 'BIGINT'],
+    [function unsupported() {}, 'FUNCTION'],
+    [Symbol('unsupported'), 'SYMBOL'],
+    [cyclic, 'CYCLIC_REFERENCE'],
+  ];
+  for (const [value, code] of cases) {
+    assert.throws(() => rcc.rccCanonicalize(value), {
+      name: 'TypeError', message: `RCC_CANONICAL_UNSUPPORTED:${code}`,
+    });
+    assert.throws(() => rcc.rccCanonicalSerialize(value), {
+      name: 'TypeError', message: `RCC_CANONICAL_UNSUPPORTED:${code}`,
+    });
+  }
+  assert.throws(() => rcc.computeAuthoritySnapshotFingerprintV1({ covered: new Date('2020-01-01') }), {
+    name: 'TypeError', message: 'RCC_CANONICAL_UNSUPPORTED:DATE',
+  });
+  assert.strictEqual(rcc.verifyAuthoritySnapshotFingerprintV1({
+    covered: new Date('2020-01-01'),
+    authoritySnapshotFingerprint: '0'.repeat(64),
+    authorityRevisionId: `rccar_${'0'.repeat(64)}`,
+  }), false);
+});
+
+test('22 - supported canonical values remain deterministic and collision-safe', () => {
+  assert.strictEqual(rcc.rccCanonicalSerialize({}), '{}');
+  assert.strictEqual(rcc.rccCanonicalSerialize([null]), '[null]');
+  assert.notStrictEqual(rcc.rccCanonicalSerialize([1, 2]), rcc.rccCanonicalSerialize([2, 1]));
+  assert.strictEqual(
+    rcc.rccCanonicalSerialize({ z: { b: 2, a: 1 } }),
+    rcc.rccCanonicalSerialize({ z: { a: 1, b: 2 } }),
+  );
+  const nullPrototype = Object.create(null);
+  nullPrototype.valid = true;
+  assert.strictEqual(rcc.rccCanonicalSerialize(nullPrototype), '{"valid":true}');
+  assert.strictEqual(
+    rcc.computeAuthoritySnapshotFingerprintV1(completeTrustedSelfReconciledBaseline()),
+    'd2d66432a36863404786954b64239349e330d2ed2cc7dc8d6a1d943a659bbd1b',
+  );
 });
 
 let passed = 0;

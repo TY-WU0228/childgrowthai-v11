@@ -117,21 +117,70 @@ function getRCCPilotConfig(env = {}) {
   });
 }
 
+function rccCanonicalError(code) {
+  return new TypeError(`RCC_CANONICAL_UNSUPPORTED:${code}`);
+}
+
 function rccCanonicalize(value) {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new TypeError('RCC canonical values require finite numbers');
-    return Object.is(value, -0) ? 0 : value;
-  }
-  if (Array.isArray(value)) return value.map(rccCanonicalize);
-  if (typeof value === 'object') {
-    const result = {};
-    for (const key of Object.keys(value).sort()) {
-      if (value[key] !== undefined) result[key] = rccCanonicalize(value[key]);
+  const active = new WeakSet();
+
+  function canonicalize(current) {
+    if (current === null || typeof current === 'string' || typeof current === 'boolean') return current;
+    if (typeof current === 'number') {
+      if (!Number.isFinite(current)) throw rccCanonicalError('NON_FINITE_NUMBER');
+      return Object.is(current, -0) ? 0 : current;
     }
-    return result;
+    if (current === undefined) throw rccCanonicalError('UNDEFINED');
+    if (typeof current === 'function') throw rccCanonicalError('FUNCTION');
+    if (typeof current === 'symbol') throw rccCanonicalError('SYMBOL');
+    if (typeof current === 'bigint') throw rccCanonicalError('BIGINT');
+
+    if (Array.isArray(current)) {
+      if (Object.getPrototypeOf(current) !== Array.prototype) throw rccCanonicalError('ARRAY_PROTOTYPE');
+      if (active.has(current)) throw rccCanonicalError('CYCLIC_REFERENCE');
+      active.add(current);
+      try {
+        const result = [];
+        for (let index = 0; index < current.length; index += 1) {
+          if (!Object.prototype.hasOwnProperty.call(current, index)) throw rccCanonicalError('SPARSE_ARRAY');
+          result.push(canonicalize(current[index]));
+        }
+        return result;
+      } finally {
+        active.delete(current);
+      }
+    }
+
+    if (current instanceof Date) throw rccCanonicalError('DATE');
+    if (current instanceof RegExp) throw rccCanonicalError('REGEXP');
+    if (current instanceof Map) throw rccCanonicalError('MAP');
+    if (current instanceof Set) throw rccCanonicalError('SET');
+    if (Buffer.isBuffer(current) || ArrayBuffer.isView(current)) throw rccCanonicalError('BUFFER_OR_TYPED_ARRAY');
+    if (typeof current === 'object') {
+      const prototype = Object.getPrototypeOf(current);
+      if (prototype !== Object.prototype && prototype !== null) throw rccCanonicalError('OBJECT_PROTOTYPE');
+      if (active.has(current)) throw rccCanonicalError('CYCLIC_REFERENCE');
+      active.add(current);
+      try {
+        const ownKeys = Reflect.ownKeys(current);
+        if (ownKeys.some((key) => typeof key !== 'string')) throw rccCanonicalError('SYMBOL_KEY');
+        const result = {};
+        for (const key of ownKeys.sort()) {
+          const descriptor = Object.getOwnPropertyDescriptor(current, key);
+          if (!descriptor.enumerable || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+            throw rccCanonicalError('PROPERTY_DESCRIPTOR');
+          }
+          result[key] = canonicalize(descriptor.value);
+        }
+        return result;
+      } finally {
+        active.delete(current);
+      }
+    }
+    throw rccCanonicalError('UNKNOWN_TYPE');
   }
-  throw new TypeError(`Unsupported RCC canonical value type: ${typeof value}`);
+
+  return canonicalize(value);
 }
 
 function rccCanonicalSerialize(value) {
@@ -234,12 +283,9 @@ function deriveServerStructuralUseClassV1(state) {
     return serverResult('review_required', ['RECONCILIATION_REVIEW_REQUIRED']);
   }
 
-  if (
-    state.attemptStructureState === 'no_assessable_content'
-    && state.reconciliationState === 'reconciliation_no_assessable_content'
-  ) return serverResult('no_assessable_content');
-
-  if (state.attemptStructureState === 'blank_attempts') return serverResult('blank_attempts');
+  if (state.capacity.result === 'exceeded' || state.capacity.result === 'incompatible') {
+    return serverResult('structurally_invalid', ['TERMINAL_STRUCTURAL_INVARIANT_FAILURE']);
+  }
 
   const exactStructuralInputs = (
     state.processingState === 'complete'
@@ -286,6 +332,27 @@ function deriveServerStructuralUseClassV1(state) {
   if (recognizedIncomplete && state.coverageAssuranceLevel === 'unknown') {
     return serverResult('structural_unknown', ['STRUCTURE_RECOGNIZED_INCOMPLETE']);
   }
+
+  const exactTerminalContentInputs = (
+    state.processingState === 'complete'
+    && state.enumerationState === 'enumerated'
+    && state.pageTopologyState === 'resolved'
+    && state.sourceDomainAccountingState === 'accounted'
+    && state.capacity.result === 'compatible_and_sufficient'
+    && state.blockingLimitations.length === 0
+  );
+
+  if (
+    exactTerminalContentInputs
+    && state.attemptStructureState === 'no_assessable_content'
+    && state.reconciliationState === 'reconciliation_no_assessable_content'
+  ) return serverResult('no_assessable_content');
+
+  if (
+    exactTerminalContentInputs
+    && state.attemptStructureState === 'blank_attempts'
+    && state.reconciliationState === 'reconciliation_matched'
+  ) return serverResult('blank_attempts');
 
   return serverResult('structurally_invalid', ['TERMINAL_STRUCTURAL_INVARIANT_FAILURE']);
 }
@@ -357,15 +424,32 @@ const EXCLUDED_FINGERPRINT_KEYS = new Set([
   'payloadIntegrityValid',
 ]);
 
-function fingerprintProjection(value) {
-  if (Array.isArray(value)) return value.map(fingerprintProjection);
-  if (value && typeof value === 'object') {
-    const result = {};
-    for (const [key, child] of Object.entries(value)) {
-      if (EXCLUDED_FINGERPRINT_KEYS.has(key) || /^(client|local)/i.test(key) || key === 'rcCPilotLocalState') continue;
-      if (child !== undefined) result[key] = fingerprintProjection(child);
+function fingerprintProjection(value, active = new WeakSet()) {
+  if (Array.isArray(value)) {
+    if (active.has(value)) throw rccCanonicalError('CYCLIC_REFERENCE');
+    active.add(value);
+    try {
+      return value.map((child) => fingerprintProjection(child, active));
+    } finally {
+      active.delete(value);
     }
-    return result;
+  }
+  if (value && typeof value === 'object') {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return value;
+    if (Reflect.ownKeys(value).some((key) => typeof key !== 'string')) return value;
+    if (active.has(value)) throw rccCanonicalError('CYCLIC_REFERENCE');
+    active.add(value);
+    try {
+      const result = {};
+      for (const [key, child] of Object.entries(value)) {
+        if (EXCLUDED_FINGERPRINT_KEYS.has(key) || /^(client|local)/i.test(key) || key === 'rcCPilotLocalState') continue;
+        result[key] = fingerprintProjection(child, active);
+      }
+      return result;
+    } finally {
+      active.delete(value);
+    }
   }
   return value;
 }
@@ -375,9 +459,14 @@ function computeAuthoritySnapshotFingerprintV1(snapshot) {
 }
 
 function verifyAuthoritySnapshotFingerprintV1(snapshot) {
-  if (!snapshot || !/^[0-9a-f]{64}$/.test(snapshot.authoritySnapshotFingerprint || '')) return false;
-  const actual = computeAuthoritySnapshotFingerprintV1(snapshot);
-  return crypto.timingSafeEqual(Buffer.from(actual, 'ascii'), Buffer.from(snapshot.authoritySnapshotFingerprint, 'ascii'));
+  try {
+    if (!snapshot || !/^[0-9a-f]{64}$/.test(snapshot.authoritySnapshotFingerprint || '')) return false;
+    if (snapshot.authorityRevisionId !== buildAuthorityRevisionIdV1(snapshot.authoritySnapshotFingerprint)) return false;
+    const actual = computeAuthoritySnapshotFingerprintV1(snapshot);
+    return crypto.timingSafeEqual(Buffer.from(actual, 'ascii'), Buffer.from(snapshot.authoritySnapshotFingerprint, 'ascii'));
+  } catch (_error) {
+    return false;
+  }
 }
 
 function buildAuthorityRevisionIdV1(fingerprint) {
