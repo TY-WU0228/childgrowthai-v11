@@ -1,0 +1,51 @@
+{
+  "fixtureVersion": 1,
+  "baseImageMetadata": { "mime": "image/png", "width": 1200, "height": 1600, "byteLength": 1 },
+  "baseObservation": {
+    "schemaVersion": 1,
+    "logicalPageCount": 1,
+    "pagePolygon": [{"x":0.05,"y":0.05},{"x":0.95,"y":0.05},{"x":0.95,"y":0.95},{"x":0.05,"y":0.95}],
+    "orientationDegrees": 0,
+    "skewDegrees": 0,
+    "pageAreaRatio": 0.81,
+    "quality": {
+      "sharpnessPass": true,
+      "contrastPass": true,
+      "glareOrSolidClippingRatio": 0.02,
+      "materialCompressionDamage": false
+    },
+    "candidateBands": [{
+      "candidateId": "candidate-1",
+      "rawNumberToken": "1.",
+      "canonicalNumber": 1,
+      "numberingStyle": "dot",
+      "promptRegionId": "observed-prompt-1",
+      "promptPolygon": [{"x":0.1,"y":0.1},{"x":0.5,"y":0.1},{"x":0.5,"y":0.14},{"x":0.1,"y":0.14}],
+      "answerRegionId": "observed-answer-1",
+      "answerPolygon": [{"x":0.55,"y":0.1},{"x":0.85,"y":0.1},{"x":0.85,"y":0.14},{"x":0.55,"y":0.14}],
+      "answerFormat": "numeric_or_operator",
+      "attemptDisposition": "answered",
+      "containsCandidateInk": true,
+      "contentType": "maths_single_line"
+    }],
+    "sourceLeaves": [{
+      "leafId": "page-domain",
+      "polygon": [{"x":0.05,"y":0.05},{"x":0.95,"y":0.05},{"x":0.95,"y":0.95},{"x":0.05,"y":0.95}],
+      "areaRatio": 1,
+      "adjacency": [],
+      "sourceLeafClass": "assessable_candidate",
+      "exclusionReason": null,
+      "containsCandidateInk": true
+    }]
+  },
+  "acceptedCases": [
+    "minimum_supported_dimensions",
+    "maximum_supported_dimensions",
+    "exact_quality_thresholds",
+    "one_item",
+    "twelve_items",
+    "orientation_0_90_180_270",
+    "skew_minus_3_plus_3",
+    "page_area_0_55_0_98"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "fixtureId": "q16_source_gap_compared_ledger_v1_mutation",
+  "fixtureVersion": 1,
+  "retainedIndependentGoldDomain": {"minX":0.05,"minY":0.05,"maxX":0.95,"maxY":0.95},
+  "removedOrUnclassifiedRegion": {"minX":0.1,"minY":0.89,"maxX":0.2,"maxY":0.91},
+  "reconciliationAttemptedAgainstGoldRegion": true,
+  "expectedExactDiagnostic": "SOURCE_DOMAIN_GAP_UNRESOLVED"
+}
