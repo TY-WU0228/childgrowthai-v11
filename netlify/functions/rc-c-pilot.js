@@ -597,7 +597,12 @@ function normalizePolygonV1(polygon) {
     || !corners.has(`${box.minX},${box.minY}`) || !corners.has(`${box.maxX},${box.minY}`)
     || !corners.has(`${box.maxX},${box.maxY}`) || !corners.has(`${box.minX},${box.maxY}`)
   ) return null;
-  return points;
+  return [
+    { x: box.minX, y: box.minY },
+    { x: box.maxX, y: box.minY },
+    { x: box.maxX, y: box.maxY },
+    { x: box.minX, y: box.maxY },
+  ];
 }
 
 function polygonBoxV1(polygon) {

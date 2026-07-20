@@ -714,6 +714,12 @@ test('item and region IDs bind source, content, format, geometry, role, and meth
   assert.notStrictEqual(baseLedger[0].itemId, otherSource[0].itemId);
   assert.notStrictEqual(baseLedger[0].promptRegionId, otherSource[0].promptRegionId);
 
+  const otherGeometryObservation = observation(); otherGeometryObservation.candidateBands[0].promptPolygon = rect(0.1, 0.08, 0.49, 0.105);
+  const otherGeometry = service.enumerateNumberedBandsV1(normalized(otherGeometryObservation), identityContext()).itemLedger;
+  assert.notStrictEqual(baseLedger[0].itemId, otherGeometry[0].itemId);
+  assert.notStrictEqual(baseLedger[0].promptRegionId, otherGeometry[0].promptRegionId);
+  assert.notStrictEqual(baseLedger[0].answerRegionId, otherGeometry[0].answerRegionId);
+
   const otherTypeObservation = observation(); otherTypeObservation.candidateBands[0].contentType = 'maths_fill';
   const otherType = service.enumerateNumberedBandsV1(normalized(otherTypeObservation), identityContext()).itemLedger;
   assert.notStrictEqual(baseLedger[0].itemId, otherType[0].itemId);
@@ -729,6 +735,76 @@ test('item and region IDs bind source, content, format, geometry, role, and meth
 
   const localContext = identityContext({ localSelection: 'ignored', clientCacheState: 'ignored' });
   assert.strictEqual(service.rccCanonicalSerialize(baseLedger), service.rccCanonicalSerialize(service.enumerateNumberedBandsV1(value, localContext).itemLedger));
+});
+
+test('rectangle corner sets canonicalize every ordering before geometry-dependent identity', () => {
+  const canonicalPrompt = rect(0.1, 0.08, 0.5, 0.105);
+  const canonicalAnswer = rect(0.55, 0.08, 0.85, 0.105);
+  const perimeterOrders = [
+    [0, 1, 2, 3], [1, 2, 3, 0], [2, 3, 0, 1], [3, 0, 1, 2],
+    [0, 3, 2, 1], [3, 2, 1, 0], [2, 1, 0, 3], [1, 0, 3, 2],
+  ];
+  const crossingOrders = [[0, 2, 1, 3], [1, 3, 0, 2]];
+  const order = (polygon, indices) => indices.map((index) => ({ ...polygon[index] }));
+  const run = (indices) => {
+    const input = observation();
+    input.candidateBands[0].promptPolygon = order(canonicalPrompt, indices);
+    input.candidateBands[0].answerPolygon = order(canonicalAnswer, indices);
+    const normalizedObservation = normalized(input);
+    const itemLedger = service.enumerateNumberedBandsV1(normalizedObservation, identityContext()).itemLedger;
+    const topology = service.validateOnePageTopologyV1(normalizedObservation, itemLedger).topology;
+    const effectiveInputFingerprint = service.computeEffectiveInputFingerprintV1({
+      sourceImageFingerprint: q16Gold.artifactHash,
+      normalizedObservation,
+      methodVersions: { enumeration: 'pilot_numbered_bands_v1' },
+      transform: 'rc-c-pilot-geometry-v1',
+      toleranceVersions: { geometry: 'rc-c-pilot-geometry-v1' },
+      envelopeResult: { accepted: true },
+      itemLedger,
+      topology,
+      sourceDomain: { state: 'accounted' },
+    });
+    return { normalizedObservation, itemLedger, topology, effectiveInputFingerprint };
+  };
+
+  const baseline = run(perimeterOrders[0]);
+  assert.deepStrictEqual(clone(baseline.normalizedObservation.candidateBands[0].promptPolygon), canonicalPrompt);
+  assert.deepStrictEqual(clone(baseline.normalizedObservation.candidateBands[0].answerPolygon), canonicalAnswer);
+  const baselineBytes = service.rccCanonicalSerialize(baseline);
+  for (const indices of [...perimeterOrders, ...crossingOrders]) {
+    const first = run(indices);
+    const second = run(indices);
+    assert.deepStrictEqual(clone(first.normalizedObservation.candidateBands[0].promptPolygon), canonicalPrompt);
+    assert.deepStrictEqual(clone(first.normalizedObservation.candidateBands[0].answerPolygon), canonicalAnswer);
+    assert.strictEqual(first.itemLedger[0].itemId, baseline.itemLedger[0].itemId);
+    assert.strictEqual(first.itemLedger[0].promptRegionId, baseline.itemLedger[0].promptRegionId);
+    assert.strictEqual(first.itemLedger[0].answerRegionId, baseline.itemLedger[0].answerRegionId);
+    assert.deepStrictEqual(first.topology, baseline.topology);
+    assert.strictEqual(first.effectiveInputFingerprint, baseline.effectiveInputFingerprint);
+    assert.strictEqual(service.rccCanonicalSerialize(first), baselineBytes);
+    assert.strictEqual(service.rccCanonicalSerialize(second), baselineBytes);
+  }
+});
+
+test('rectangle canonicalization rejects malformed and incomplete corner sets', () => {
+  const cases = [
+    [{ x: 0.1, y: 0.08 }, { x: 0.5, y: 0.08 }, { x: 0.5, y: 0.105 }, { x: 0.5, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: 0.5, y: 0.08 }, { x: 0.5, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: 0.5, y: 0.08 }, { x: 0.5, y: 0.105 }, { x: 0.3, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: 0.5, y: 0.08 }, { x: 0.45, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: 0.1, y: 0.08 }, { x: 0.1, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: 0.5, y: 0.08 }, { x: 0.5, y: 0.08 }, { x: 0.1, y: 0.08 }],
+    [{ x: 0.1, y: 0.08 }, { x: 1.01, y: 0.08 }, { x: 1.01, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: NaN, y: 0.08 }, { x: 0.5, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: Infinity, y: 0.08 }, { x: 0.5, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, { x: '0.5', y: 0.08 }, { x: 0.5, y: 0.105 }, { x: 0.1, y: 0.105 }],
+    [{ x: 0.1, y: 0.08 }, [0.5, 0.08], { x: 0.5, y: 0.105 }, { x: 0.1, y: 0.105 }],
+  ];
+  for (const polygon of cases) {
+    const input = observation();
+    input.candidateBands[0].promptPolygon = polygon;
+    expectRepeatedRejection(() => service.normalizePilotObservationV1(input), 'OBSERVATION_PROMPT_REGION_INVALID');
+  }
 });
 
 test('duplicate JSON keys fail closed at top-level and every nested observation object', () => {
