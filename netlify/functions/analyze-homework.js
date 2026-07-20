@@ -59,7 +59,7 @@ exports.handler = async function(event) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
       const observationMarker = text.indexOf('RCC_PILOT_OBSERVATION_V1_BEGIN');
       const analysis = cleanParentText(rccPilotRequested && observationMarker >= 0 ? text.slice(0, observationMarker) : text);
-      const structureContext = rccPilotRequested ? buildRCCPilotStructureContextV1(body, images, text) : null;
+      const structureContext = rccPilotRequested ? await buildRCCPilotStructureContextV1(body, images, text) : null;
       return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens}, ...(rccPilotRequested ? { rcCPilotStructureContext: structureContext } : {}) });
     }
 
@@ -90,7 +90,7 @@ exports.handler = async function(event) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
       const observationMarker = text.indexOf('RCC_PILOT_OBSERVATION_V1_BEGIN');
       const analysis = cleanParentText(rccPilotRequested && observationMarker >= 0 ? text.slice(0, observationMarker) : text);
-      const structureContext = rccPilotRequested ? buildRCCPilotStructureContextV1(body, images, text) : null;
+      const structureContext = rccPilotRequested ? await buildRCCPilotStructureContextV1(body, images, text) : null;
       return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)}, ...(rccPilotRequested ? { rcCPilotStructureContext: structureContext } : {}) });
     }
 
@@ -235,11 +235,11 @@ function extractRCCPilotObservationV1(modelText) {
   return rccPilotService.normalizePilotObservationV1(parsed);
 }
 
-function buildRCCPilotStructureContextV1(body, images, modelText) {
+async function buildRCCPilotStructureContextV1(body, images, modelText) {
   if (!isRCCPilotRequestedV1(body, process.env)) return null;
   const count = rccPilotService.validatePilotImageCountV1(images);
   if (!count.ok) return rccPilotService.buildFailClosedStructureStateV1(count.diagnostics[0]);
-  const decoded = rccPilotService.decodePilotImageMetadataV1(images[0]);
+  const decoded = await rccPilotService.decodePilotImageMetadataV1(images[0]);
   if (!decoded.ok) return rccPilotService.buildFailClosedStructureStateV1(decoded.diagnostics[0]);
   const sourceImageFingerprint = rccPilotService.computeSourceImageFingerprintV1(decoded.imageBytes);
   const extracted = extractRCCPilotObservationV1(modelText);

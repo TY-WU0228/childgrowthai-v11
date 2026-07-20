@@ -2,5 +2,7 @@
   "scripts": {
     "start": "netlify dev"
   },
-  "dependencies": {}
+  "dependencies": {
+    "sharp": "0.35.0"
+  }
 }

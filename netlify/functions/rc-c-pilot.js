@@ -12,6 +12,12 @@ const RC_C_GEOMETRY_TOLERANCE_VERSION = 'rc-c-pilot-geometry-v1';
 const RC_C_AUTHORITY_ISSUER = 'coverage-authority-service';
 const RC_C_CANONICAL_MAX_DEPTH = 128;
 const RC_C_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const RC_C_MAX_IMAGE_WIDTH = 6000;
+const RC_C_MAX_IMAGE_HEIGHT = 6000;
+const RC_C_MAX_DECODED_PIXELS = 20000000;
+const RC_C_MAX_IMAGE_CHANNELS = 4;
+const RC_C_MAX_RAW_OUTPUT_BYTES = 80000000;
+const RC_C_DECODE_TIMEOUT_SECONDS = 3;
 const RC_C_MAX_GLARE_OR_SOLID_CLIPPING_RATIO = 0.02;
 const RC_C_SOURCE_ACCOUNTING_METHOD_VERSION = 'pilot_source_partition_v1';
 const RC_C_SOURCE_ACCOUNTING_TOLERANCE_VERSION = 'pilot_source_accounting_tolerance_v1';
@@ -632,12 +638,14 @@ function pngCrc32V1(bytes) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function boundedImageDimensionsV1(width, height) {
-  return Number.isInteger(width) && Number.isInteger(height) && width > 0 && height > 0
-    && width <= 6000 && height <= 6000 && width * height <= 20000000;
+function pilotImageBoundsDiagnosticV1(width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0
+    || width > RC_C_MAX_IMAGE_WIDTH || height > RC_C_MAX_IMAGE_HEIGHT) return 'IMAGE_DIMENSIONS_UNSUPPORTED';
+  if (width > Math.floor(RC_C_MAX_DECODED_PIXELS / height)) return 'IMAGE_PIXEL_COUNT_EXCEEDED';
+  return null;
 }
 
-function decodePilotImageMetadataV1(dataUrl) {
+function preflightPilotImageMetadataV1(dataUrl) {
   if (typeof dataUrl !== 'string') return fail('MALFORMED_IMAGE_DATA_URL');
   const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl);
   if (!match || match[2].length % 4 !== 0) {
@@ -712,7 +720,8 @@ function decodePilotImageMetadataV1(dataUrl) {
       offset = end;
     }
     if (!sawIhdr || !sawIend || !sawIdat || !idat.length || (colorType === 3 && !sawPlte)) return fail('IMAGE_DECODE_FAILED');
-    if (!boundedImageDimensionsV1(width, height)) return fail('IMAGE_DIMENSIONS_UNSUPPORTED');
+    const boundsDiagnostic = pilotImageBoundsDiagnosticV1(width, height);
+    if (boundsDiagnostic) return fail(boundsDiagnostic);
     const rowBytes = Math.ceil(width * channels * bitDepth / 8);
     const expectedInflatedLength = height * (rowBytes + 1);
     if (!Number.isSafeInteger(expectedInflatedLength) || expectedInflatedLength > 100000000) return fail('IMAGE_DECODE_FAILED');
@@ -824,7 +833,9 @@ function decodePilotImageMetadataV1(dataUrl) {
       } else if (![0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef, 0xfe].includes(marker)) return fail('IMAGE_DECODE_FAILED');
       offset += length;
     }
-    if (!sawSof || !sawSos || !scanDataBytes || offset !== bytes.length - 2 || !boundedImageDimensionsV1(width, height)) return fail('IMAGE_DECODE_FAILED');
+    if (!sawSof || !sawSos || !scanDataBytes || offset !== bytes.length - 2) return fail('IMAGE_DECODE_FAILED');
+    const boundsDiagnostic = pilotImageBoundsDiagnosticV1(width, height);
+    if (boundsDiagnostic) return fail(boundsDiagnostic);
   } else {
     if (bytes.length < 20 || bytes.toString('ascii', 0, 4) !== 'RIFF'
       || bytes.toString('ascii', 8, 12) !== 'WEBP' || bytes.readUInt32LE(4) + 8 !== bytes.length) return fail('IMAGE_DECODE_FAILED');
@@ -877,10 +888,79 @@ function decodePilotImageMetadataV1(dataUrl) {
     if (alphaSeen && (imageDataKind !== 'VP8 ' || !vp8xDimensions || (bytes[20] & 0x10) === 0)) return fail('IMAGE_DECODE_FAILED');
     if (vp8xDimensions && (vp8xDimensions.width !== imageDimensions.width || vp8xDimensions.height !== imageDimensions.height)) return fail('IMAGE_DECODE_FAILED');
     ({ width, height } = imageDimensions);
-    if (!boundedImageDimensionsV1(width, height)) return fail('IMAGE_DIMENSIONS_UNSUPPORTED');
+    const boundsDiagnostic = pilotImageBoundsDiagnosticV1(width, height);
+    if (boundsDiagnostic) return fail(boundsDiagnostic);
   }
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) return fail('IMAGE_DECODE_FAILED');
   return pass({ metadata: Object.freeze({ mime, width, height, byteLength: bytes.length }), imageBytes: bytes });
+}
+
+async function decodePilotImageWithTrustedDecoderV1(imageBytes, expectedMime) {
+  if (!Buffer.isBuffer(imageBytes) || !imageBytes.length || imageBytes.length > RC_C_MAX_IMAGE_BYTES) {
+    return fail('IMAGE_DECODE_FAILED');
+  }
+  const expectedFormats = Object.freeze({ 'image/jpeg': 'jpeg', 'image/png': 'png', 'image/webp': 'webp' });
+  if (!Object.prototype.hasOwnProperty.call(expectedFormats, expectedMime)) return fail('UNSUPPORTED_IMAGE_MIME');
+  try {
+    // Lazy loading keeps feature-off requests independent of the native module.
+    // When RC-C is enabled, any load or native failure is caught and fails closed.
+    const sharp = require('sharp');
+    const pipeline = sharp(imageBytes, {
+      failOn: 'warning',
+      limitInputPixels: RC_C_MAX_DECODED_PIXELS,
+      limitInputChannels: RC_C_MAX_IMAGE_CHANNELS,
+      pages: 1,
+      animated: false,
+      unlimited: false,
+      sequentialRead: true,
+      ignoreIcc: true,
+    });
+    const metadata = await pipeline.metadata();
+    if (!['jpeg', 'png', 'webp'].includes(metadata.format)) return fail('UNSUPPORTED_IMAGE_MIME');
+    if (metadata.format !== expectedFormats[expectedMime]) return fail('IMAGE_FORMAT_MIME_MISMATCH');
+    const pages = metadata.pages === undefined ? 1 : metadata.pages;
+    if (pages !== 1) return fail('IMAGE_DECODE_FAILED');
+    const boundsDiagnostic = pilotImageBoundsDiagnosticV1(metadata.width, metadata.height);
+    if (boundsDiagnostic) return fail(boundsDiagnostic);
+    if (!Number.isInteger(metadata.channels) || metadata.channels < 1 || metadata.channels > RC_C_MAX_IMAGE_CHANNELS) {
+      return fail('IMAGE_DECODE_FAILED');
+    }
+    const decoded = await pipeline.raw().timeout({ seconds: RC_C_DECODE_TIMEOUT_SECONDS }).toBuffer({ resolveWithObject: true });
+    if (!decoded || !Buffer.isBuffer(decoded.data) || !decoded.info
+      || decoded.info.width !== metadata.width || decoded.info.height !== metadata.height
+      || !Number.isInteger(decoded.info.channels) || decoded.info.channels < 1
+      || decoded.info.channels > RC_C_MAX_IMAGE_CHANNELS
+      || metadata.width > Math.floor(RC_C_MAX_RAW_OUTPUT_BYTES / metadata.height / decoded.info.channels)) {
+      return fail('IMAGE_DECODE_FAILED');
+    }
+    const expectedRawBytes = metadata.width * metadata.height * decoded.info.channels;
+    if (decoded.data.length !== expectedRawBytes || decoded.data.length > RC_C_MAX_RAW_OUTPUT_BYTES) return fail('IMAGE_DECODE_FAILED');
+    return pass({ metadata: Object.freeze({
+      mime: expectedMime,
+      width: metadata.width,
+      height: metadata.height,
+      byteLength: imageBytes.length,
+      channels: metadata.channels,
+      pages,
+      decodedChannels: decoded.info.channels,
+      decodedByteLength: decoded.data.length,
+    }) });
+  } catch (_error) {
+    return fail('IMAGE_DECODE_FAILED');
+  }
+}
+
+async function decodePilotImageMetadataV1(dataUrl) {
+  const preflight = preflightPilotImageMetadataV1(dataUrl);
+  if (!preflight.ok) return preflight;
+  const decoded = await decodePilotImageWithTrustedDecoderV1(preflight.imageBytes, preflight.metadata.mime);
+  if (!decoded.ok) return decoded;
+  return pass({ metadata: Object.freeze({
+    mime: decoded.metadata.mime,
+    width: decoded.metadata.width,
+    height: decoded.metadata.height,
+    byteLength: decoded.metadata.byteLength,
+  }), imageBytes: preflight.imageBytes });
 }
 
 function validatePilotImageCountV1(images) {
@@ -1310,6 +1390,7 @@ const service = Object.freeze({
   verifyAuthoritySnapshotFingerprintV1,
   buildAuthorityRevisionIdV1,
   decodePilotImageMetadataV1,
+  decodePilotImageWithTrustedDecoderV1,
   validatePilotImageCountV1,
   normalizePilotObservationV1,
   validatePilotEnvelopeV1,

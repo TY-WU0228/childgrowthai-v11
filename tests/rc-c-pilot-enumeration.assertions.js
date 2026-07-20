@@ -9,6 +9,7 @@ const rccPilotModule = require('../netlify/functions/rc-c-pilot');
 const { service } = rccPilotModule;
 const rccTestService = rccPilotModule.__rccTest;
 const analyzeTest = require('../netlify/functions/analyze-homework').__rccTest;
+const { buildFixtures: buildImageDecodeFixtures } = require('./fixtures/rc-c-pilot/image-decode/fixture-builder');
 
 const FIXTURES = path.join(__dirname, 'fixtures', 'rc-c-pilot');
 const acceptedFixture = readJson('envelope', 'accepted-single-page.json');
@@ -16,17 +17,27 @@ const rejectedFixture = readJson('envelope', 'unsupported-cases.json');
 const sourceCases = readJson('source-domain', 'gap-overlap-cases.json');
 const q16Gold = readJson('q16-source-gap', 'worksheet-q16-source.gold.json');
 const q16Mutation = readJson('q16-source-gap', 'worksheet-q16-source-gap.mutation.json');
+const imageDecodeManifest = readJson('image-decode', 'manifest.json');
 
 let passed = 0;
+const tests = [];
 function test(name, fn) {
-  try {
-    fn();
-    passed += 1;
-    console.log(`PASS ${passed} - ${name}`);
-  } catch (error) {
-    console.error(`FAIL - ${name}`);
-    throw error;
-  }
+  tests.push({ name, fn });
+}
+
+async function expectRepeatedAsyncRejection(run, diagnostic) {
+  const first = await run();
+  const second = await run();
+  expectDiagnostic(first, diagnostic);
+  expectDiagnostic(second, diagnostic);
+  assert.strictEqual(service.rccCanonicalSerialize(first), service.rccCanonicalSerialize(second));
+  const serialized = JSON.stringify(first);
+  assert(!/(?:sharp|libvips|vips|stack|\\\\|\/[A-Za-z0-9_.-]+\/|timestamp|random|issuedAt)/i.test(serialized));
+  assert.notStrictEqual(first.sourceDomainAccountingState, 'accounted');
+  assert.notStrictEqual(first.method_exhausted, true);
+  assert.notStrictEqual(first.coverageAssuranceLevel, 'self_reconciled');
+  assert.strictEqual(first.rcCPilotAuthority, undefined);
+  return first;
 }
 
 function readJson(...parts) {
@@ -145,51 +156,6 @@ function makeSizedPng(byteLength) {
   return makePng({ beforeIdat: [pngChunk('raNd', Buffer.alloc(payloadLength))] });
 }
 
-function jpegSegment(marker, payload) {
-  const result = Buffer.alloc(payload.length + 4);
-  result[0] = 0xff;
-  result[1] = marker;
-  result.writeUInt16BE(payload.length + 2, 2);
-  payload.copy(result, 4);
-  return result;
-}
-
-function makeValidJpeg() {
-  const dqt = Buffer.concat([Buffer.from([0]), Buffer.alloc(64, 1)]);
-  const huffmanCounts = Buffer.from([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  const dht = Buffer.concat([
-    Buffer.from([0x00]), huffmanCounts, Buffer.from([0x00]),
-    Buffer.from([0x10]), huffmanCounts, Buffer.from([0x00])
-  ]);
-  const sof = Buffer.from([8, 0, 1, 0, 1, 1, 1, 0x11, 0]);
-  const sos = Buffer.from([1, 1, 0x00, 0, 63, 0]);
-  return Buffer.concat([
-    Buffer.from([0xff, 0xd8]),
-    jpegSegment(0xdb, dqt),
-    jpegSegment(0xc0, sof),
-    jpegSegment(0xc4, dht),
-    jpegSegment(0xda, sos),
-    Buffer.from([0x3f]),
-    Buffer.from([0xff, 0xd9])
-  ]);
-}
-
-function webpChunk(type, payload) {
-  const padding = payload.length & 1 ? Buffer.from([0]) : Buffer.alloc(0);
-  const header = Buffer.alloc(8);
-  header.write(type, 0, 4, 'ascii');
-  header.writeUInt32LE(payload.length, 4);
-  return Buffer.concat([header, payload, padding]);
-}
-
-function makeWebp(chunks) {
-  const body = Buffer.concat([Buffer.from('WEBP', 'ascii'), ...chunks]);
-  const header = Buffer.alloc(8);
-  header.write('RIFF', 0, 4, 'ascii');
-  header.writeUInt32LE(body.length, 4);
-  return Buffer.concat([header, body]);
-}
-
 function imageUrl(mime, bytes) {
   return `data:${mime};base64,${bytes.toString('base64')}`;
 }
@@ -235,21 +201,34 @@ test('fixture manifests cover every required accepted and rejected boundary', ()
     'geometry', 'free_form_long_answer', 'unsupported_answer_format', 'unresolved_source_leaf',
     'uncovered_ink', 'excessive_uncovered_area', 'excessive_overlap', 'stale_method_or_transform'
   ]) assert(names.has(required), required);
+  assert.strictEqual(imageDecodeManifest.fixtureVersion, 'rc-c-image-decode-v1');
+  assert.strictEqual(imageDecodeManifest.fixtures.length, 15);
 });
 
-test('exact one-image envelope and bounded PNG metadata decoding', () => {
+test('trusted image fixture builder is byte-exact and manifest-bound', async () => {
+  const fixtures = await buildImageDecodeFixtures();
+  assert.deepStrictEqual(Object.keys(fixtures), imageDecodeManifest.fixtures.map((fixture) => fixture.filename));
+  for (const fixture of imageDecodeManifest.fixtures) {
+    const bytes = fixtures[fixture.filename];
+    assert.strictEqual(bytes.length, fixture.byteSize, fixture.filename);
+    assert.strictEqual(crypto.createHash('sha256').update(bytes).digest('hex'), fixture.sha256, fixture.filename);
+    assert(fixture.purpose && fixture.expected);
+  }
+});
+
+test('exact one-image envelope and bounded PNG metadata decoding', async () => {
   expectRepeatedRejection(() => service.validatePilotImageCountV1([]), 'PILOT_IMAGE_COUNT_NOT_ONE');
   expectRepeatedRejection(() => service.validatePilotImageCountV1(['a', 'b']), 'PILOT_IMAGE_COUNT_NOT_ONE');
   assert.strictEqual(service.validatePilotImageCountV1(['a']).ok, true);
   const image = dataUrlForFixture();
-  const decoded = service.decodePilotImageMetadataV1(image.dataUrl);
+  const decoded = await service.decodePilotImageMetadataV1(image.dataUrl);
   assert.strictEqual(decoded.ok, true);
   assert.deepStrictEqual(decoded.metadata, { mime: 'image/png', width: 1200, height: 1600, byteLength: image.bytes.length });
-  expectRepeatedRejection(() => service.decodePilotImageMetadataV1('data:image/gif;base64,AAAA'), 'UNSUPPORTED_IMAGE_MIME');
-  expectRepeatedRejection(() => service.decodePilotImageMetadataV1('not-a-data-url'), 'MALFORMED_IMAGE_DATA_URL');
-  expectRepeatedRejection(() => service.decodePilotImageMetadataV1('data:image/png;base64,iVBORw0KGgo='), 'IMAGE_DECODE_FAILED');
+  await expectRepeatedAsyncRejection(() => service.decodePilotImageMetadataV1('data:image/gif;base64,AAAA'), 'UNSUPPORTED_IMAGE_MIME');
+  await expectRepeatedAsyncRejection(() => service.decodePilotImageMetadataV1('not-a-data-url'), 'MALFORMED_IMAGE_DATA_URL');
+  await expectRepeatedAsyncRejection(() => service.decodePilotImageMetadataV1('data:image/png;base64,iVBORw0KGgo='), 'IMAGE_DECODE_FAILED');
   const tooLarge = Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64');
-  expectRepeatedRejection(() => service.decodePilotImageMetadataV1(`data:image/png;base64,${tooLarge}`), 'IMAGE_FILE_SIZE_EXCEEDED');
+  await expectRepeatedAsyncRejection(() => service.decodePilotImageMetadataV1(`data:image/png;base64,${tooLarge}`), 'IMAGE_FILE_SIZE_EXCEEDED');
 });
 
 test('accepted envelope dimensions, quality, item count, orientation, skew, and page ratio boundaries', () => {
@@ -533,7 +512,7 @@ test('Q16 exact source-gap path reaches the mandated compared-ledger result thro
   assert.strictEqual(service.rccCanonicalSerialize(exact), service.rccCanonicalSerialize(service.buildFailClosedStructureStateV1(accounting.diagnostics[0])));
 });
 
-test('pilot feature requires both gates and feature-off preserves RC-B prompt/response seams', () => {
+test('pilot feature requires both gates and feature-off preserves RC-B prompt/response seams', async () => {
   assert.strictEqual(analyzeTest.isRCCPilotRequestedV1({ rcCPilotRequested: true }, { RC_C_PILOT_ENABLED: '1' }), true);
   assert.strictEqual(analyzeTest.isRCCPilotRequestedV1({ rcCPilotRequested: false }, { RC_C_PILOT_ENABLED: '1' }), false);
   assert.strictEqual(analyzeTest.isRCCPilotRequestedV1({ rcCPilotRequested: true }, { RC_C_PILOT_ENABLED: '0' }), false);
@@ -542,6 +521,18 @@ test('pilot feature requires both gates and feature-off preserves RC-B prompt/re
   assert(prompt.includes('RCC_PILOT_OBSERVATION_V1_BEGIN'));
   assert(prompt.includes('untrusted observation'));
   assert(!prompt.includes('rcCPilotAuthority'));
+  const previous = process.env.RC_C_PILOT_ENABLED;
+  try {
+    process.env.RC_C_PILOT_ENABLED = '0';
+    assert.strictEqual(await analyzeTest.buildRCCPilotStructureContextV1(
+      { rcCPilotRequested: true }, ['not-an-image'], 'not-an-observation'), null);
+    process.env.RC_C_PILOT_ENABLED = '1';
+    assert.strictEqual(await analyzeTest.buildRCCPilotStructureContextV1(
+      { rcCPilotRequested: false }, ['not-an-image'], 'not-an-observation'), null);
+  } finally {
+    if (previous === undefined) delete process.env.RC_C_PILOT_ENABLED;
+    else process.env.RC_C_PILOT_ENABLED = previous;
+  }
 });
 
 test('model observation extraction is closed and cannot set deterministic structure or authority', () => {
@@ -553,64 +544,76 @@ test('model observation extraction is closed and cannot set deterministic struct
   expectRepeatedRejection(() => analyzeTest.extractRCCPilotObservationV1(injected), 'OBSERVATION_SCHEMA_INVALID');
 });
 
-test('valid bounded PNG, JPEG, and WebP payloads decode while structural scaffolds fail twice identically', () => {
-  const validPng = makePng();
-  const validJpeg = makeValidJpeg();
-  const validWebp = Buffer.from('UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoCAAIAAUAmJaQAA3AA/vz0AAA=', 'base64');
+test('trusted decoder fully decodes valid JPEG, PNG, and single-frame WebP', async () => {
+  const fixtures = await buildImageDecodeFixtures();
   for (const [mime, bytes, dimensions] of [
-    ['image/png', validPng, [1, 1]],
-    ['image/jpeg', validJpeg, [1, 1]],
-    ['image/webp', validWebp, [2, 2]]
+    ['image/png', fixtures['valid.png'], [2, 2]],
+    ['image/jpeg', fixtures['valid-baseline.jpeg'], [1, 1]],
+    ['image/webp', fixtures['valid-single-frame.webp'], [2, 2]]
   ]) {
-    const first = service.decodePilotImageMetadataV1(imageUrl(mime, bytes));
-    const second = service.decodePilotImageMetadataV1(imageUrl(mime, bytes));
+    const first = await service.decodePilotImageWithTrustedDecoderV1(bytes, mime);
+    const second = await service.decodePilotImageWithTrustedDecoderV1(bytes, mime);
     assert.strictEqual(first.ok, true, mime);
     assert.deepStrictEqual([first.metadata.width, first.metadata.height], dimensions);
-    assert.strictEqual(service.rccCanonicalSerialize({ metadata: first.metadata }), service.rccCanonicalSerialize({ metadata: second.metadata }));
-  }
-
-  const markerOnlyJpeg = Buffer.alloc(28);
-  markerOnlyJpeg.set([0xff, 0xd8], 0);
-  markerOnlyJpeg.set([0xff, 0xd9], 26);
-  const jpegWithoutScanData = Buffer.concat([validJpeg.subarray(0, validJpeg.length - 3), validJpeg.subarray(validJpeg.length - 2)]);
-  const jpegWithoutEoi = validJpeg.subarray(0, validJpeg.length - 2);
-  const pngUnknownCritical = makePng({ beforeIdat: [pngChunk('ABCD', Buffer.from([1]))] });
-  const pngMissingIdat = makePng({ omitIdat: true });
-  const pngInvalidCrc = Buffer.from(validPng);
-  pngInvalidCrc[32] ^= 1;
-  const pngInvalidScanline = makePng({ raw: Buffer.from([5, 0, 0, 0, 0]) });
-  const vp8xPayload = Buffer.alloc(10);
-  const webpVp8xOnly = makeWebp([webpChunk('VP8X', vp8xPayload)]);
-  const webpInvalidRiffLength = Buffer.from(validWebp);
-  webpInvalidRiffLength.writeUInt32LE(webpInvalidRiffLength.readUInt32LE(4) + 1, 4);
-  const webpTruncatedChunk = Buffer.from(validWebp.subarray(0, validWebp.length - 1));
-  webpTruncatedChunk.writeUInt32LE(webpTruncatedChunk.length - 8, 4);
-
-  for (const [name, run, diagnostic] of [
-    ['28-byte marker-only JPEG', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', markerOnlyJpeg)), 'IMAGE_DECODE_FAILED'],
-    ['JPEG without scan data', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', jpegWithoutScanData)), 'IMAGE_DECODE_FAILED'],
-    ['JPEG without EOI', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', jpegWithoutEoi)), 'IMAGE_DECODE_FAILED'],
-    ['PNG unknown critical chunk', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngUnknownCritical)), 'IMAGE_DECODE_FAILED'],
-    ['PNG missing IDAT', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngMissingIdat)), 'IMAGE_DECODE_FAILED'],
-    ['PNG invalid CRC', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngInvalidCrc)), 'IMAGE_DECODE_FAILED'],
-    ['PNG invalid scanline', () => service.decodePilotImageMetadataV1(imageUrl('image/png', pngInvalidScanline)), 'IMAGE_DECODE_FAILED'],
-    ['WebP VP8X-only', () => service.decodePilotImageMetadataV1(imageUrl('image/webp', webpVp8xOnly)), 'IMAGE_DECODE_FAILED'],
-    ['WebP invalid RIFF length', () => service.decodePilotImageMetadataV1(imageUrl('image/webp', webpInvalidRiffLength)), 'IMAGE_DECODE_FAILED'],
-    ['WebP truncated image-data chunk', () => service.decodePilotImageMetadataV1(imageUrl('image/webp', webpTruncatedChunk)), 'IMAGE_DECODE_FAILED'],
-    ['MIME/format mismatch', () => service.decodePilotImageMetadataV1(imageUrl('image/jpeg', validPng)), 'IMAGE_FORMAT_MIME_MISMATCH']
-  ]) {
-    assert(name);
-    expectRepeatedRejection(run, diagnostic);
+    assert.strictEqual(first.metadata.pages, 1);
+    assert(first.metadata.channels >= 1 && first.metadata.channels <= 4);
+    assert.strictEqual(first.metadata.decodedByteLength,
+      first.metadata.width * first.metadata.height * first.metadata.decodedChannels);
+    assert(first.metadata.decodedByteLength <= 80000000);
+    assert.strictEqual(service.rccCanonicalSerialize(first), service.rccCanonicalSerialize(second));
   }
 });
 
-test('10 MB image-byte boundary is inclusive and deterministic', () => {
+test('trusted decoder rejects malformed compressed payloads deterministically without native leakage', async () => {
+  const fixtures = await buildImageDecodeFixtures();
+  for (const [name, filename, mime] of [
+    ['oversubscribed JPEG Huffman table', 'invalid-oversubscribed-huffman.jpeg', 'image/jpeg'],
+    ['truncated JPEG entropy stream', 'invalid-truncated-entropy.jpeg', 'image/jpeg'],
+    ['invalid JPEG entropy data', 'invalid-entropy-byte-stuffing.jpeg', 'image/jpeg'],
+    ['marker-only JPEG', 'invalid-marker-only.jpeg', 'image/jpeg'],
+    ['invalid VP8 payload', 'invalid-vp8.webp', 'image/webp'],
+    ['truncated VP8 payload', 'invalid-truncated-vp8.webp', 'image/webp'],
+    ['invalid VP8L payload', 'invalid-vp8l.webp', 'image/webp'],
+    ['VP8X without subordinate frame', 'invalid-vp8x-no-frame.webp', 'image/webp'],
+    ['animated WebP', 'invalid-animated.webp', 'image/webp'],
+    ['malformed PNG compressed stream', 'invalid-compressed.png', 'image/png'],
+  ]) {
+    assert(name);
+    await expectRepeatedAsyncRejection(
+      () => service.decodePilotImageWithTrustedDecoderV1(fixtures[filename], mime),
+      'IMAGE_DECODE_FAILED',
+    );
+  }
+  await expectRepeatedAsyncRejection(
+    () => service.decodePilotImageWithTrustedDecoderV1(fixtures['valid.png'], 'image/jpeg'),
+    'IMAGE_FORMAT_MIME_MISMATCH',
+  );
+  await expectRepeatedAsyncRejection(
+    () => service.decodePilotImageWithTrustedDecoderV1(Buffer.alloc(0), 'image/png'),
+    'IMAGE_DECODE_FAILED',
+  );
+  await expectRepeatedAsyncRejection(
+    () => service.decodePilotImageWithTrustedDecoderV1(Buffer.alloc(10 * 1024 * 1024 + 1), 'image/png'),
+    'IMAGE_DECODE_FAILED',
+  );
+});
+
+test('input and decoded image resource boundaries are deterministic', async () => {
+  const fixtures = await buildImageDecodeFixtures();
   const belowBytes = makeSizedPng(10 * 1024 * 1024 - 1);
   const exactBytes = makeSizedPng(10 * 1024 * 1024);
   const aboveBytes = makeSizedPng(10 * 1024 * 1024 + 1);
-  assert.strictEqual(service.decodePilotImageMetadataV1(imageUrl('image/png', belowBytes)).ok, true);
-  assert.strictEqual(service.decodePilotImageMetadataV1(imageUrl('image/png', exactBytes)).ok, true);
-  expectRepeatedRejection(() => service.decodePilotImageMetadataV1(imageUrl('image/png', aboveBytes)), 'IMAGE_FILE_SIZE_EXCEEDED');
+  assert.strictEqual((await service.decodePilotImageMetadataV1(imageUrl('image/png', belowBytes))).ok, true);
+  assert.strictEqual((await service.decodePilotImageMetadataV1(imageUrl('image/png', exactBytes))).ok, true);
+  await expectRepeatedAsyncRejection(() => service.decodePilotImageMetadataV1(imageUrl('image/png', aboveBytes)), 'IMAGE_FILE_SIZE_EXCEEDED');
+  await expectRepeatedAsyncRejection(
+    () => service.decodePilotImageMetadataV1(imageUrl('image/png', fixtures['excessive-width.png'])),
+    'IMAGE_DIMENSIONS_UNSUPPORTED',
+  );
+  await expectRepeatedAsyncRejection(
+    () => service.decodePilotImageMetadataV1(imageUrl('image/png', fixtures['excessive-pixels.png'])),
+    'IMAGE_PIXEL_COUNT_EXCEEDED',
+  );
 });
 
 test('envelope dimension, pixel, skew, area, clipping, image-count, and production-count boundaries execute exactly', () => {
@@ -838,4 +841,19 @@ test('production enumeration rejects 13 through 16 and Q16 allowance exists only
   assert.strictEqual(ledger.itemLedger.length, 16);
 });
 
-console.log(`PASS rc-c-pilot-enumeration: ${passed}/${passed} deterministic assertions`);
+(async () => {
+  for (const { name, fn } of tests) {
+    try {
+      await fn();
+      passed += 1;
+      console.log(`PASS ${passed} - ${name}`);
+    } catch (error) {
+      console.error(`FAIL - ${name}`);
+      throw error;
+    }
+  }
+  console.log(`PASS rc-c-pilot-enumeration: ${passed}/${tests.length} deterministic assertions`);
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
