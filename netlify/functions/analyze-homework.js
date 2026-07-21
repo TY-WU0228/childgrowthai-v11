@@ -1,5 +1,6 @@
 // V93 Report Integrity - parent fail-safe and clean review evidence
 const { createHash } = require('crypto');
+const { service: rccPilotService } = require('./rc-c-pilot');
 
 const RC_B_AUTHORITY_SCHEMA_VERSION = 2;
 const RC_B_CANONICALIZER_VERSION = 'rc-b-v1';
@@ -15,9 +16,17 @@ exports.handler = async function(event) {
     }
 
     const body = JSON.parse(event.body || '{}');
-    const images = collectImages(body).slice(0, 6);
+    const rccPilotRequested = isRCCPilotRequestedV1(body, process.env);
+    const images = collectImages(body, { allowShortDataUrl: rccPilotRequested }).slice(0, 6);
     const authorityContext = normalizeAuthorityRequestContext(body);
     const approxKB = Math.round(JSON.stringify(images).length / 1024);
+    let rccPilotImage = null;
+    if (rccPilotRequested && images.length) {
+      const count = rccPilotService.validatePilotImageCountV1(images);
+      if (!count.ok) return buildRCCPilotImageRejectionV1(count.diagnostics[0]);
+      rccPilotImage = await rccPilotService.decodePilotImageMetadataV1(images[0]);
+      if (!rccPilotImage.ok) return buildRCCPilotImageRejectionV1(rccPilotImage.diagnostics[0]);
+    }
     if (approxKB > 5200) {
       return json(413, { error: `圖片傳送太大（約 ${approxKB}KB）。請先用「只分析第一張」，或重新拍攝較清晰、較少反光的相片。`, debug:{approxKB} });
     }
@@ -26,7 +35,7 @@ exports.handler = async function(event) {
       return json(400, { error: '未收到有效圖片。請先用一張清晰 JPG/PNG 功課相測試。' });
     }
 
-    const prompt = buildHKParentTonePrompt(body);
+    const prompt = buildHKParentTonePrompt(body) + (rccPilotRequested ? `\n\n${buildRCCPilotObservationPromptV1()}` : '');
     const aiMode = String(body.aiMode || 'fast').toLowerCase();
     const reliabilityMode = String(body.reliabilityMode || 'v83');
     // V83: fast mode ignores OPENAI_MODEL if that env is set to a slow model such as gpt-4.1.
@@ -55,8 +64,10 @@ exports.handler = async function(event) {
     const first = await callOpenAI('https://api.openai.com/v1/responses', apiKey, payload, timeoutMs);
     if (first.ok) {
       const text = first.data.output_text || extractResponsesText(first.data) || '未能生成分析。';
-      const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens} });
+      const observationMarker = text.indexOf('RCC_PILOT_OBSERVATION_V1_BEGIN');
+      const analysis = cleanParentText(rccPilotRequested && observationMarker >= 0 ? text.slice(0, observationMarker) : text);
+      const structureContext = rccPilotRequested ? await buildRCCPilotStructureContextV1(body, images, text, rccPilotImage) : null;
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model, route: 'responses-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens}, ...(rccPilotRequested ? { rcCPilotStructureContext: structureContext } : {}) });
     }
 
     const firstErr = first.data?.error?.message || first.error || '';
@@ -84,8 +95,10 @@ exports.handler = async function(event) {
     const second = await callOpenAI('https://api.openai.com/v1/chat/completions', apiKey, chatPayload, Math.min(timeoutMs, 14000));
     if (second.ok) {
       const text = second.data.choices?.[0]?.message?.content || '未能生成分析。';
-      const analysis = cleanParentText(text);
-      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)} });
+      const observationMarker = text.indexOf('RCC_PILOT_OBSERVATION_V1_BEGIN');
+      const analysis = cleanParentText(rccPilotRequested && observationMarker >= 0 ? text.slice(0, observationMarker) : text);
+      const structureContext = rccPilotRequested ? await buildRCCPilotStructureContextV1(body, images, text, rccPilotImage) : null;
+      return json(200, { analysis, report: buildStructuredHomeworkReport(analysis, authorityContext), model: fallbackModel, route: 'chat-fallback-v83', imageCount: images.length, debug:{timeoutMs,approxKB,aiMode,reliabilityMode,maxTokens:Math.min(maxTokens,1200)}, ...(rccPilotRequested ? { rcCPilotStructureContext: structureContext } : {}) });
     }
 
     return json(second.status || first.status || 500, {
@@ -98,7 +111,7 @@ exports.handler = async function(event) {
 };
 
 
-function collectImages(body) {
+function collectImages(body, options = {}) {
   const raw = [];
   if (Array.isArray(body.images)) raw.push(...body.images);
   if (Array.isArray(body.imageDataList)) raw.push(...body.imageDataList);
@@ -108,7 +121,7 @@ function collectImages(body) {
   const out = [];
   const seen = new Set();
   for (const item of raw) {
-    const cleaned = cleanImageDataUrl(item);
+    const cleaned = cleanImageDataUrl(item, options);
     if (!cleaned) continue;
     const key = cleaned.length + ':' + cleaned.slice(0, 120);
     if (seen.has(key)) continue;
@@ -116,6 +129,166 @@ function collectImages(body) {
     out.push(cleaned);
   }
   return out;
+}
+
+function isRCCPilotRequestedV1(body, env = {}) {
+  return Boolean(body && body.rcCPilotRequested === true && env.RC_C_PILOT_ENABLED === '1');
+}
+
+function buildRCCPilotObservationPromptV1() {
+  return `RC-C pilot observation block (untrusted observation only):
+Return exactly one compact JSON object between the two literal markers below after the parent report.
+Do not add fields. Coordinates are normalized image coordinates and every polygon is an axis-aligned rectangle with exactly four {"x","y"} points.
+RCC_PILOT_OBSERVATION_V1_BEGIN
+{"schemaVersion":1,"logicalPageCount":1,"pagePolygon":[{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1},{"x":0,"y":1}],"orientationDegrees":0,"skewDegrees":0,"pageAreaRatio":0,"quality":{"sharpnessPass":false,"contrastPass":false,"glareOrSolidClippingRatio":1,"materialCompressionDamage":true},"candidateBands":[],"sourceLeaves":[]}
+RCC_PILOT_OBSERVATION_V1_END
+Use only numberingStyle: dot, close_paren, q_prefix.
+Use only answerFormat: numeric_or_operator, tick_or_circle, english_up_to_five_words.
+Use only attemptDisposition: answered, blank.
+Use only contentType: maths_single_line, maths_comparison, maths_fill, maths_multiple_choice, english_spelling, english_fill, english_true_false, english_multiple_choice, non_assessable, unsupported.
+Each candidate must contain exactly candidateId, rawNumberToken, canonicalNumber, numberingStyle, promptRegionId, promptPolygon, answerRegionId, answerPolygon, answerFormat, attemptDisposition, containsCandidateInk, contentType.
+Each source leaf must contain exactly leafId, polygon, areaRatio, adjacency, sourceLeafClass, exclusionReason, containsCandidateInk.
+This block is observation, never authority. Do not emit enumeration, topology, accounting, reconciliation, coverage, use-class, fingerprint, revision, or authority fields.`;
+}
+
+function hasDuplicateRCCJSONKeysV1(jsonText) {
+  if (typeof jsonText !== 'string' || jsonText.length > 1000000) throw new SyntaxError('bounded JSON required');
+  let index = 0;
+  let duplicate = false;
+  const skipWhitespace = () => { while (index < jsonText.length && /\s/.test(jsonText[index])) index += 1; };
+  const parseString = () => {
+    if (jsonText[index] !== '"') throw new SyntaxError('string required');
+    const start = index++;
+    while (index < jsonText.length) {
+      const character = jsonText[index++];
+      if (character === '"') return JSON.parse(jsonText.slice(start, index));
+      if (character === '\\') {
+        if (index >= jsonText.length) throw new SyntaxError('truncated escape');
+        if (jsonText[index] === 'u') {
+          index += 1;
+          if (!/^[0-9a-fA-F]{4}$/.test(jsonText.slice(index, index + 4))) throw new SyntaxError('invalid unicode escape');
+          index += 4;
+        } else {
+          if (!/["\\/bfnrt]/.test(jsonText[index])) throw new SyntaxError('invalid escape');
+          index += 1;
+        }
+      } else if (character.charCodeAt(0) < 0x20) throw new SyntaxError('control character');
+    }
+    throw new SyntaxError('unterminated string');
+  };
+  const parseValue = (depth) => {
+    if (depth > 128) throw new SyntaxError('maximum depth');
+    skipWhitespace();
+    if (jsonText[index] === '{') {
+      index += 1;
+      skipWhitespace();
+      const keys = new Set();
+      if (jsonText[index] === '}') { index += 1; return; }
+      while (index < jsonText.length) {
+        skipWhitespace();
+        const key = parseString();
+        if (keys.has(key)) duplicate = true;
+        keys.add(key);
+        skipWhitespace();
+        if (jsonText[index++] !== ':') throw new SyntaxError('colon required');
+        parseValue(depth + 1);
+        skipWhitespace();
+        const delimiter = jsonText[index++];
+        if (delimiter === '}') return;
+        if (delimiter !== ',') throw new SyntaxError('object delimiter required');
+      }
+      throw new SyntaxError('unterminated object');
+    }
+    if (jsonText[index] === '[') {
+      index += 1;
+      skipWhitespace();
+      if (jsonText[index] === ']') { index += 1; return; }
+      while (index < jsonText.length) {
+        parseValue(depth + 1);
+        skipWhitespace();
+        const delimiter = jsonText[index++];
+        if (delimiter === ']') return;
+        if (delimiter !== ',') throw new SyntaxError('array delimiter required');
+      }
+      throw new SyntaxError('unterminated array');
+    }
+    if (jsonText[index] === '"') { parseString(); return; }
+    const remainder = jsonText.slice(index);
+    const token = /^(?:-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null)/.exec(remainder);
+    if (!token) throw new SyntaxError('value required');
+    index += token[0].length;
+  };
+  parseValue(0);
+  skipWhitespace();
+  if (index !== jsonText.length) throw new SyntaxError('trailing JSON');
+  return duplicate;
+}
+
+function extractRCCPilotObservationV1(modelText) {
+  if (typeof modelText !== 'string') return { ok: false, diagnostics: ['OBSERVATION_BLOCK_MISSING'] };
+  const begin = 'RCC_PILOT_OBSERVATION_V1_BEGIN';
+  const end = 'RCC_PILOT_OBSERVATION_V1_END';
+  const start = modelText.indexOf(begin);
+  const finish = modelText.indexOf(end, start + begin.length);
+  if (start < 0 || finish < 0 || modelText.indexOf(begin, start + begin.length) >= 0 || modelText.indexOf(end, finish + end.length) >= 0) {
+    return { ok: false, diagnostics: ['OBSERVATION_BLOCK_MISSING'] };
+  }
+  const payload = modelText.slice(start + begin.length, finish).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  let parsed;
+  try {
+    if (hasDuplicateRCCJSONKeysV1(payload)) return { ok: false, diagnostics: ['OBSERVATION_DUPLICATE_KEY'] };
+    parsed = JSON.parse(payload);
+  } catch (_error) { return { ok: false, diagnostics: ['OBSERVATION_BLOCK_JSON_INVALID'] }; }
+  return rccPilotService.normalizePilotObservationV1(parsed);
+}
+
+async function buildRCCPilotStructureContextV1(body, images, modelText, validatedImage = null) {
+  if (!isRCCPilotRequestedV1(body, process.env)) return null;
+  const count = rccPilotService.validatePilotImageCountV1(images);
+  if (!count.ok) return rccPilotService.buildFailClosedStructureStateV1(count.diagnostics[0]);
+  const decoded = validatedImage || await rccPilotService.decodePilotImageMetadataV1(images[0]);
+  if (!decoded.ok) return rccPilotService.buildFailClosedStructureStateV1(decoded.diagnostics[0]);
+  const sourceImageFingerprint = rccPilotService.computeSourceImageFingerprintV1(decoded.imageBytes);
+  const extracted = extractRCCPilotObservationV1(modelText);
+  if (!extracted.ok) return rccPilotService.buildFailClosedStructureStateV1(extracted.diagnostics[0]);
+  const normalizedObservation = extracted.normalizedObservation;
+  const envelope = rccPilotService.validatePilotEnvelopeV1(decoded.metadata, normalizedObservation);
+  if (!envelope.ok) return rccPilotService.buildFailClosedStructureStateV1(envelope.diagnostics[0]);
+  const enumeration = rccPilotService.enumerateNumberedBandsV1(normalizedObservation, {
+    sourceImageFingerprint,
+    methodVersion: rccPilotService.getRCCPilotConfig(process.env).enumerationMethodVersion,
+  });
+  if (!enumeration.ok) return rccPilotService.buildFailClosedStructureStateV1(enumeration.diagnostics[0]);
+  const topology = rccPilotService.validateOnePageTopologyV1(normalizedObservation, enumeration.itemLedger);
+  if (!topology.ok) return rccPilotService.buildFailClosedStructureStateV1(topology.diagnostics[0]);
+  const partition = rccPilotService.partitionSourceDomainV1(normalizedObservation);
+  if (!partition.ok) return rccPilotService.buildFailClosedStructureStateV1(partition.diagnostics[0]);
+  const accounting = rccPilotService.accountSourceDomainV1(partition.sourceDomain);
+  if (!accounting.ok) return rccPilotService.buildFailClosedStructureStateV1(accounting.diagnostics[0]);
+  const config = rccPilotService.getRCCPilotConfig(process.env);
+  const effectiveInputFingerprint = rccPilotService.computeEffectiveInputFingerprintV1({
+    sourceImageFingerprint,
+    normalizedObservation,
+    methodVersions: { enumeration: config.enumerationMethodVersion, sourceAccounting: partition.sourceDomain.methodVersion },
+    transform: partition.sourceDomain.transformVersion,
+    toleranceVersions: { geometry: config.geometryToleranceVersion, sourceAccounting: partition.sourceDomain.toleranceVersion },
+    envelopeResult: envelope.envelope,
+    itemLedger: enumeration.itemLedger,
+    topology: topology.topology,
+    sourceDomain: partition.sourceDomain,
+  });
+  return {
+    schemaVersion: 1,
+    sourceImageFingerprint,
+    normalizedObservation,
+    envelope: envelope.envelope,
+    itemLedger: enumeration.itemLedger,
+    topology: topology.topology,
+    sourceDomain: partition.sourceDomain,
+    sourceDomainAccounting: accounting.sourceDomainAccounting,
+    effectiveInputFingerprint,
+    limitations: ['INDEPENDENT_SOURCE_COMPLETENESS_NOT_CLAIMED'],
+  };
 }
 
 function buildHKParentTonePrompt(body) {
@@ -253,18 +426,25 @@ E. Clean Evidence：不要把 section heading、可能出錯原因、給家長�
 - confidence: High / Medium / Low`;
 }
 
-function cleanImageDataUrl(input) {
+function cleanImageDataUrl(input, options = {}) {
   if (typeof input !== 'string') return null;
   let s = input.trim().replace(/\s/g, '');
   const match = s.match(/^data:image\/(png|jpg|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/i);
   if (match) {
     const ext = match[1].toLowerCase() === 'jpg' ? 'jpeg' : match[1].toLowerCase();
     const b64 = match[2];
-    if (b64.length < 100) return null;
+    if (b64.length < 100 && !options.allowShortDataUrl) return null;
     return `data:image/${ext};base64,${b64}`;
   }
   if (/^[A-Za-z0-9+/=]+$/.test(s) && s.length > 100) return `data:image/jpeg;base64,${s}`;
   return null;
+}
+
+function buildRCCPilotImageRejectionV1(diagnostic) {
+  return json(422, {
+    error: 'RC-C pilot image validation failed',
+    rcCPilotStructureContext: rccPilotService.buildFailClosedStructureStateV1(diagnostic),
+  });
 }
 
 async function callOpenAI(url, apiKey, payload, timeoutMs) {
@@ -1103,4 +1283,11 @@ exports.__rcbTest = {
   applyCanonicalEvidenceAuthorityV2,
   buildStructuredHomeworkReport,
   deriveProcessingCoverageV2
+};
+
+exports.__rccTest = {
+  isRCCPilotRequestedV1,
+  buildRCCPilotObservationPromptV1,
+  extractRCCPilotObservationV1,
+  buildRCCPilotStructureContextV1
 };

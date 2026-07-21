@@ -1,0 +1,21 @@
+{
+  "fixtureVersion": "rc-c-image-decode-v1",
+  "generationProvenance": "Deterministic local fixture-builder.js; no downloaded fixture inputs. The 64x64 JPEG derivatives use Sharp 0.35.0/libvips 8.18.3 encoding of a fixed raw byte pattern.",
+  "fixtures": [
+    { "filename": "valid-baseline.jpeg", "purpose": "Valid baseline sequential JPEG", "byteSize": 137, "sha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737", "expected": "ok:image/jpeg:1x1" },
+    { "filename": "valid.png", "purpose": "Valid RGBA PNG", "byteSize": 74, "sha256": "83351dfd721c6cb80b4fd9c4b6723b637deec75d1c30faa06dc5e99752c22ad3", "expected": "ok:image/png:2x2" },
+    { "filename": "valid-single-frame.webp", "purpose": "Valid single-frame lossless WebP", "byteSize": 38, "sha256": "116ad85c3abea73af3874755d91e84b3b4b9375bc5adf1b27f10a3a4b172dde4", "expected": "ok:image/webp:2x2" },
+    { "filename": "invalid-oversubscribed-huffman.jpeg", "purpose": "JPEG with an oversubscribed DC Huffman table", "byteSize": 139, "sha256": "802c919ef6292b141f7a2d536af675a6aa940ffc8f2eed349c25e875994d1b9e", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-truncated-entropy.jpeg", "purpose": "JPEG with its entropy-coded scan truncated to one quarter", "byteSize": 860, "sha256": "76ebbc556f6cf2788e6d2afaad1722ff3dce8dcfd5b59248719ffbe110e592f8", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-entropy-byte-stuffing.jpeg", "purpose": "JPEG entropy replaced by repeated FF/00 byte-stuffing pairs", "byteSize": 2513, "sha256": "35462929dcb14004861833d50a5b7f9d2f9a01b3658cab593789803dc3af0647", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-marker-only.jpeg", "purpose": "JPEG containing only SOI and EOI markers", "byteSize": 4, "sha256": "32461d5bd1773012acef0ba15636752949bd7c2ce50f9172159d9f56cf0dd9af", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-vp8.webp", "purpose": "WebP with invalid VP8 compressed payload", "byteSize": 32, "sha256": "913f00e19479a4eb198f8520b81fa9e586c9e3067376bd48359388673736232a", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-truncated-vp8.webp", "purpose": "WebP VP8 frame whose declared first partition exceeds its payload", "byteSize": 32, "sha256": "4296fd0a2b821b911c66314cc205f2d7ff52db1dfa03f2e74223f973da8d082b", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-vp8l.webp", "purpose": "WebP with invalid VP8L compressed payload", "byteSize": 26, "sha256": "1bcae0580d7ae87ed1250e1a90882eb33cbdbfb02bc59d262961118f8f9aaf84", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-vp8x-no-frame.webp", "purpose": "VP8X container without a subordinate image frame", "byteSize": 30, "sha256": "4a5d3458dfeabd63090fe08fdc8224ae61d45f0c430eee3c0544a92891af3b69", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-animated.webp", "purpose": "Two-frame animated WebP with 100 ms frame delays", "byteSize": 144, "sha256": "447a15ce35b73ae279956e106d2e9434c95010c2284c3690d4a887c9a65b5c6b", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "invalid-compressed.png", "purpose": "PNG with malformed zlib-compressed IDAT data", "byteSize": 61, "sha256": "bcbc1c74aebdcc416b78295ab56c425248c2aeca9970e9c43e235bb2b07d3531", "expected": "IMAGE_DECODE_FAILED" },
+    { "filename": "excessive-width.png", "purpose": "PNG declaring width 6001", "byteSize": 103, "sha256": "e981739bb5f514f015151500add2ed4777db9ff77a5084c7f3ccd3ee7e14c3eb", "expected": "IMAGE_DIMENSIONS_UNSUPPORTED" },
+    { "filename": "excessive-pixels.png", "purpose": "PNG declaring 25,000,000 decoded pixels", "byteSize": 68, "sha256": "602603f5a191d76345c7e358eab28ef6339750845f94a2140c89e541754b62ab", "expected": "IMAGE_PIXEL_COUNT_EXCEEDED" }
+  ]
+}

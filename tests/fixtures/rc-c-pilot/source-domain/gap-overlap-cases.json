@@ -1,0 +1,15 @@
+{
+  "fixtureVersion": 1,
+  "thresholds": {
+    "maximumTotalUncoveredAreaRatio": 0.005,
+    "maximumConnectedUncoveredComponentRatio": 0.0025,
+    "maximumLeafInteriorOverlapRatio": 0.001
+  },
+  "cases": [
+    {"fixtureId":"accounted_at_thresholds","uncoveredAreaRatio":0.005,"largestConnectedUncoveredComponentRatio":0.0025,"uncoveredContainsCandidateInk":false,"leafInteriorOverlapRatio":0.001,"expected":"accounted"},
+    {"fixtureId":"uncovered_ink","uncoveredAreaRatio":0.001,"largestConnectedUncoveredComponentRatio":0.001,"uncoveredContainsCandidateInk":true,"leafInteriorOverlapRatio":0,"expected":"SOURCE_DOMAIN_GAP_UNRESOLVED"},
+    {"fixtureId":"excessive_uncovered","uncoveredAreaRatio":0.0051,"largestConnectedUncoveredComponentRatio":0.002,"uncoveredContainsCandidateInk":false,"leafInteriorOverlapRatio":0,"expected":"SOURCE_DOMAIN_UNCOVERED_AREA_EXCEEDED"},
+    {"fixtureId":"excessive_component","uncoveredAreaRatio":0.003,"largestConnectedUncoveredComponentRatio":0.0026,"uncoveredContainsCandidateInk":false,"leafInteriorOverlapRatio":0,"expected":"SOURCE_DOMAIN_UNCOVERED_COMPONENT_EXCEEDED"},
+    {"fixtureId":"excessive_overlap","uncoveredAreaRatio":0,"largestConnectedUncoveredComponentRatio":0,"uncoveredContainsCandidateInk":false,"leafInteriorOverlapRatio":0.0011,"expected":"SOURCE_DOMAIN_OVERLAP_EXCEEDED"}
+  ]
+}

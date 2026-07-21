@@ -1,0 +1,11 @@
+{
+  "fixtureId": "q16_source_gap_compared_ledger_v1",
+  "exactSourceImage": "worksheet-q16-source.png",
+  "independentlyHumanMarkedNormalizedPageDomain": {"minX":0.05,"minY":0.05,"maxX":0.95,"maxY":0.95},
+  "independentlyMarkedQ16SourceRegion": {"minX":0.1,"minY":0.89,"maxX":0.2,"maxY":0.91},
+  "expectedRegionClassification": "assessable_candidate",
+  "expectedLedgerCardinality": 16,
+  "artifactHash": "8fd41d62c0673a0b3a32470dce5a49e640161f155966658d81d109a60d7b6aff",
+  "reviewerProvenance": {"reviewerId":"independent-human-reviewer-1","reviewedAt":"2026-07-19","method":"normalized-page-domain-manual-marking"},
+  "fixtureVersion": 1
+}
