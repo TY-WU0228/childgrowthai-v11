@@ -8,7 +8,8 @@ const zlib = require('zlib');
 const rccPilotModule = require('../netlify/functions/rc-c-pilot');
 const { service } = rccPilotModule;
 const rccTestService = rccPilotModule.__rccTest;
-const analyzeTest = require('../netlify/functions/analyze-homework').__rccTest;
+const analyzeModule = require('../netlify/functions/analyze-homework');
+const analyzeTest = analyzeModule.__rccTest;
 const { buildFixtures: buildImageDecodeFixtures } = require('./fixtures/rc-c-pilot/image-decode/fixture-builder');
 
 const FIXTURES = path.join(__dirname, 'fixtures', 'rc-c-pilot');
@@ -158,6 +159,38 @@ function makeSizedPng(byteLength) {
 
 function imageUrl(mime, bytes) {
   return `data:${mime};base64,${bytes.toString('base64')}`;
+}
+
+async function runAnalyzeBoundary(body, enabled, fetchImpl) {
+  const previousEnabled = process.env.RC_C_PILOT_ENABLED;
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  const previousFetch = global.fetch;
+  try {
+    process.env.RC_C_PILOT_ENABLED = enabled;
+    process.env.OPENAI_API_KEY = 'sk-test-routing-boundary';
+    global.fetch = fetchImpl;
+    return await analyzeModule.handler({ httpMethod: 'POST', body: JSON.stringify(body) });
+  } finally {
+    if (previousEnabled === undefined) delete process.env.RC_C_PILOT_ENABLED;
+    else process.env.RC_C_PILOT_ENABLED = previousEnabled;
+    if (previousApiKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousApiKey;
+    global.fetch = previousFetch;
+  }
+}
+
+function assertBoundaryPilotRejection(response, diagnostic) {
+  assert.strictEqual(response.statusCode, 422);
+  const payload = JSON.parse(response.body);
+  assert.strictEqual(payload.error, 'RC-C pilot image validation failed');
+  assert.strictEqual(
+    service.rccCanonicalSerialize(payload.rcCPilotStructureContext),
+    service.rccCanonicalSerialize(service.buildFailClosedStructureStateV1(diagnostic)),
+  );
+  assert.strictEqual(payload.rcCPilotStructureContext.diagnostic, diagnostic);
+  assert.strictEqual(payload.rcCPilotStructureContext.positiveParentDisplayProhibited, true);
+  assert.strictEqual(payload.rcCPilotStructureContext.method_exhausted, false);
+  assert(!/(?:sharp|libvips|vips|stack|timestamp|random|issuedAt)/i.test(response.body));
 }
 
 function dataUrlForFixture() {
@@ -596,6 +629,68 @@ test('trusted decoder rejects malformed compressed payloads deterministically wi
     () => service.decodePilotImageWithTrustedDecoderV1(Buffer.alloc(10 * 1024 * 1024 + 1), 'image/png'),
     'IMAGE_DECODE_FAILED',
   );
+});
+
+test('production routing preserves feature-off and transport rejection boundaries', async () => {
+  let fetchCalls = 0;
+  const unexpectedFetch = async () => { fetchCalls += 1; throw new Error('unexpected fetch'); };
+  const shortImage = imageUrl('image/jpeg', Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  const featureOff = await runAnalyzeBoundary({ rcCPilotRequested: true, image: shortImage }, '0', unexpectedFetch);
+  assert.strictEqual(featureOff.statusCode, 400);
+  assert.strictEqual(JSON.parse(featureOff.body).rcCPilotStructureContext, undefined);
+  const malformed = await runAnalyzeBoundary({ rcCPilotRequested: true, image: 'data:image/jpeg;base64,%%%%' }, '1', unexpectedFetch);
+  assert.strictEqual(malformed.statusCode, 400);
+  assert.strictEqual(JSON.parse(malformed.body).rcCPilotStructureContext, undefined);
+  const nonString = await runAnalyzeBoundary({ rcCPilotRequested: true, image: { bytes: 'not-transport-safe' } }, '1', unexpectedFetch);
+  assert.strictEqual(nonString.statusCode, 400);
+  assert.strictEqual(fetchCalls, 0);
+});
+
+test('production routing sends gated compressed-image validity only to the trusted decoder', async () => {
+  const fixtures = await buildImageDecodeFixtures();
+  let fetchCalls = 0;
+  const unexpectedFetch = async () => { fetchCalls += 1; throw new Error('invalid image reached model transport'); };
+  const invalidCases = [
+    ['syntactically valid short image data', imageUrl('image/png', Buffer.from([0])), 'IMAGE_DECODE_FAILED'],
+    ['marker-only JPEG', imageUrl('image/jpeg', fixtures['invalid-marker-only.jpeg']), 'IMAGE_DECODE_FAILED'],
+    ['invalid JPEG Huffman data', imageUrl('image/jpeg', fixtures['invalid-oversubscribed-huffman.jpeg']), 'IMAGE_DECODE_FAILED'],
+    ['invalid JPEG entropy data', imageUrl('image/jpeg', fixtures['invalid-entropy-byte-stuffing.jpeg']), 'IMAGE_DECODE_FAILED'],
+    ['invalid VP8 payload', imageUrl('image/webp', fixtures['invalid-vp8.webp']), 'IMAGE_DECODE_FAILED'],
+    ['invalid VP8L payload', imageUrl('image/webp', fixtures['invalid-vp8l.webp']), 'IMAGE_DECODE_FAILED'],
+    ['VP8X without a valid frame', imageUrl('image/webp', fixtures['invalid-vp8x-no-frame.webp']), 'IMAGE_DECODE_FAILED'],
+    ['malformed PNG compressed data', imageUrl('image/png', fixtures['invalid-compressed.png']), 'IMAGE_DECODE_FAILED'],
+    ['MIME mismatch', imageUrl('image/jpeg', fixtures['valid.png']), 'IMAGE_FORMAT_MIME_MISMATCH'],
+    ['input above approved byte limit', imageUrl('image/png', Buffer.alloc(rccTestService.RC_C_MAX_IMAGE_BYTES + 1)), 'IMAGE_FILE_SIZE_EXCEEDED'],
+  ];
+  for (const [name, image, diagnostic] of invalidCases) {
+    assert(name);
+    const first = await runAnalyzeBoundary({ rcCPilotRequested: true, image }, '1', unexpectedFetch);
+    const second = await runAnalyzeBoundary({ rcCPilotRequested: true, image }, '1', unexpectedFetch);
+    assertBoundaryPilotRejection(first, diagnostic);
+    assertBoundaryPilotRejection(second, diagnostic);
+    assert.strictEqual(first.body, second.body, name);
+  }
+  assert.strictEqual(fetchCalls, 0);
+
+  const modelText = `parent text\nRCC_PILOT_OBSERVATION_V1_BEGIN\n${JSON.stringify(observation())}\nRCC_PILOT_OBSERVATION_V1_END`;
+  const successfulFetch = async () => {
+    fetchCalls += 1;
+    return { ok: true, status: 200, json: async () => ({ output_text: modelText }) };
+  };
+  for (const [mime, bytes] of [
+    ['image/jpeg', fixtures['valid-baseline.jpeg']],
+    ['image/png', fixtures['valid.png']],
+    ['image/webp', fixtures['valid-single-frame.webp']],
+  ]) {
+    const response = await runAnalyzeBoundary({ rcCPilotRequested: true, image: imageUrl(mime, bytes) }, '1', successfulFetch);
+    assert.strictEqual(response.statusCode, 200, mime);
+    const payload = JSON.parse(response.body);
+    assert.strictEqual(payload.route, 'responses-v83');
+    assert(payload.rcCPilotStructureContext);
+    assert.notStrictEqual(payload.rcCPilotStructureContext.diagnostic, 'IMAGE_DECODE_FAILED');
+    assert.notStrictEqual(payload.rcCPilotStructureContext.diagnostic, 'IMAGE_FORMAT_MIME_MISMATCH');
+  }
+  assert.strictEqual(fetchCalls, 3);
 });
 
 test('input and decoded image resource boundaries are deterministic', async () => {

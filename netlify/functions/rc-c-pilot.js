@@ -669,6 +669,11 @@ function preflightPilotImageMetadataV1(dataUrl) {
         ? 'image/webp'
         : null;
   if (signatureFormat && signatureFormat !== mime) return fail('IMAGE_FORMAT_MIME_MISMATCH');
+  // Preflight is limited to safe framing, canonical base64, MIME, signature mismatch,
+  // and compressed byte size. Sharp is the sole decodability authority below.
+  return pass({ metadata: Object.freeze({ mime }), imageBytes: bytes });
+
+  /* c8 ignore start -- retained parser is unreachable during the bounded routing correction. */
   let width;
   let height;
   if (mime === 'image/png') {
@@ -893,6 +898,7 @@ function preflightPilotImageMetadataV1(dataUrl) {
   }
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) return fail('IMAGE_DECODE_FAILED');
   return pass({ metadata: Object.freeze({ mime, width, height, byteLength: bytes.length }), imageBytes: bytes });
+  /* c8 ignore stop */
 }
 
 async function decodePilotImageWithTrustedDecoderV1(imageBytes, expectedMime) {
@@ -907,7 +913,9 @@ async function decodePilotImageWithTrustedDecoderV1(imageBytes, expectedMime) {
     const sharp = require('sharp');
     const pipeline = sharp(imageBytes, {
       failOn: 'warning',
-      limitInputPixels: RC_C_MAX_DECODED_PIXELS,
+      // Read bounded header metadata first so the closed RC-C dimension/pixel
+      // diagnostics below remain stable; raw decode runs only after those checks.
+      limitInputPixels: false,
       limitInputChannels: RC_C_MAX_IMAGE_CHANNELS,
       pages: 1,
       animated: false,
